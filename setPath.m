@@ -10,7 +10,7 @@ addpath(genpath(fullfile(pwd, 'lib')));
 % NIST data. Please make sure it is correct for the machine which will run
 % this script.
 %  - On Mac Lemma:
-absPathMacLemma = '';
+absPathMacLemma = '/Users/zhan1472/Google Drive/NIST Measurement Campaign';
 %  - Local copy on Windows Dell:
 absPathWinDell = 'C:\Users\Zyglabs\OneDrive - purdue.edu\NIST';
 unknownComputerErrorMsg = ...

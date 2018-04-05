@@ -48,6 +48,7 @@ measPowers = {(-37:-2:-91)'};
 %   compression (a non-linear area where a 1dB change in input results in
 %   less than 1dB change in output).  "
 BOOLS_MEAS_TO_FIT = {ones(1,28)};
+BOOLS_MEAS_TO_FIT{1}(end) = 0; % Ignore the last point.
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
@@ -84,7 +85,7 @@ FLAG_SAVE_FIG_COPY = true;
 % Parameters to overwrite when using the 60 kHz / 5 kHz LPF implemented in
 % Matlab.
 if ~FLAG_USE_FILTERED_OUTPUT_FILES
-    maxFreqPassed = 20000;
+    maxFreqPassed = 10000;
 end
 
 % Regression method to use, e.g. built-in: 'robustfit', 'polyfit',
@@ -164,7 +165,9 @@ for idxDataset = 1:numDatasets
     
     % Locate the folders containing data for each flight.
     curCalDataFlightFolders = rdir(curDatasetAbsPath, ...
-        'isdir && regexp(name, ''(flight_number_\d+\$)'')');
+        'regexp(name, ''(flight_number_\d+$)'')');
+    curCalDataFlightFolders = curCalDataFlightFolders(...
+        [curCalDataFlightFolders.isdir]);
     
     % Make sure the log files are sorted by name before loading.
     [~, sortedIs] = sort({curCalDataFlightFolders.name});
@@ -712,20 +715,20 @@ else
     matlabLPFStr = ['matlabLPF_', num2str(Fp/1000), 'kHz_'];
 end
 [ignoreStr, ignoreStrSet1, ignoreStrSet2] = deal('');
+% For the NIST dataset, we only have one calibration line.
 if ~all([BOOLS_MEAS_TO_FIT{1:end}])
     ignoreStr = '_ignore_';
     if ~all(BOOLS_MEAS_TO_FIT{1})
         ignoreStrSet1 = [num2str(sum(~BOOLS_MEAS_TO_FIT{1})), '_1st'];
     end
-    if ~all(BOOLS_MEAS_TO_FIT{2})
-        ignoreStrSet2 = ['_', num2str(sum(~BOOLS_MEAS_TO_FIT{2})), '_2nd'];
-    end
+    % if ~all(BOOLS_MEAS_TO_FIT{2})
+    %     ignoreStrSet2 = ['_', num2str(sum(~BOOLS_MEAS_TO_FIT{2})), '_2nd'];
+    % end
 end
 pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     ['Calibration_', datestr(datetime('now'), 'yyyymmdd'), '_', ...
     LINEAR_REGRESSION_METHOD, ...
-    '_ths_', num2str(NUMS_SIGMA_FOR_THRESHOLD(1)), '_', ...
-    num2str(NUMS_SIGMA_FOR_THRESHOLD(2)), ...
+    '_ths_', num2str(NUMS_SIGMA_FOR_THRESHOLD(1)), ... % '_', num2str(NUMS_SIGMA_FOR_THRESHOLD(2)), ...
     '_center_', num2str(timeLengthAtCenterToUse), 's_', ...
     matlabLPFStr, ...
     'range_', ...
@@ -749,6 +752,10 @@ pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'lsLinesPolys');
 save([pathCalFileToSave, '.mat'], ...
     'lsLinesPolys', 'lsLinesPolysInv', 'fittedMeaPs', 'fittedCalPs', ...
     'rxGains');
+
+if FLAG_GEN_PLOTS_SILENTLY
+    close all;
+end
 
 disp('    Done!')
 
