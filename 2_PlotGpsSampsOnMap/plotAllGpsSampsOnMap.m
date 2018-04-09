@@ -45,6 +45,14 @@ for idxS = 1:numGpsSamps
     lats(idxS) = lat;
     lons(idxS) = lon;
 end
+
+% Load the TX location.
+[markerLats, markerLons, markerNames] ...
+    = loadGpsMarkers(absPathToGpsMarkerCsvFile);
+idxTxMarker = find(strcmp(markerNames, 'Tx'));
+latTx = markerLats(idxTxMarker);
+lonTx = markerLons(idxTxMarker);
+
 disp('    Done!')
 
 %% Plot
@@ -53,8 +61,12 @@ disp(' ')
 disp('    Plotting...')
 
 hFigOverview = figure;
-plot(lons, lats, 'r.');
+hold on;
+hTx = plot(lonTx, latTx, 'g^');
+hSamps = plot(lons, lats, 'r.');
+axis tight;
 plot_google_map('MapType', 'satellite');
+legend([hTx, hSamps], 'Tx', 'Measurements');
 
 % Save the plot.
 pathToSaveOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview.png');
