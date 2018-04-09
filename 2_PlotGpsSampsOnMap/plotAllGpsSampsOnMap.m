@@ -13,7 +13,7 @@ addpath(fullfile(pwd));
 cd('..'); setPath;
 
 % Configure other paths accordingly.
-ABS_PATH_TO_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_FOLIAGE_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'Data', '20180331_NistFoliage');
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'PostProcessingResults');
@@ -31,19 +31,19 @@ disp(' ---------------------- ')
 disp(' ')
 disp('    Load GPS samples...')
 % Scan the series folder for GPS log files.
-allGpsLogFiles = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*.log'));
+allGpsLogFiles = rdir(fullfile(ABS_PATH_TO_FOLIAGE_DATA, '**', '*.log'));
 allGpsSamps = arrayfun(@(l) parseGpsLog(l.name), allGpsLogFiles);
 allGpsSamps = allGpsSamps(arrayfun(@(s) ~isempty(s.gpsLocation), allGpsSamps));
 
 % Parse the GPS log.
 numGpsSamps = length(allGpsSamps);
-[lats, lons] = deal(nan(numGpsSamps, 1));
+[allLats, allLons] = deal(nan(numGpsSamps, 1));
 for idxS = 1:numGpsSamps
     gpsLog = allGpsSamps(idxS);
     [lat, lon, ~, ~] = parseNmeaStr(gpsLog.gpsLocation);
     
-    lats(idxS) = lat;
-    lons(idxS) = lon;
+    allLats(idxS) = lat;
+    allLons(idxS) = lon;
 end
 
 % Load the TX location.
@@ -55,15 +55,15 @@ lonTx = markerLons(idxTxMarker);
 
 disp('    Done!')
 
-%% Plot
+%% Plot the Overview
 
 disp(' ')
-disp('    Plotting...')
+disp('    Plotting overview...')
 
 hFigOverview = figure;
 hold on;
 hTx = plot(lonTx, latTx, 'g^');
-hSamps = plot(lons, lats, 'r.');
+hSamps = plot(allLons, allLats, 'r.');
 axis tight;
 plot_google_map('MapType', 'satellite');
 legend([hTx, hSamps], 'Tx', 'Measurements');
@@ -73,4 +73,46 @@ pathToSaveOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview.png');
 saveas(hFigOverview, pathToSaveOverviewPlot);
 
 disp('    Done!')
+
+disp('    Done!')
+
+%% Plot Each Continuous Recording
+
+disp(' ')
+disp('    Plotting separate recording activities...')
+
+pathToSaveSeparateRecs = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'GpsSampsOnMap');
+
+% Find all GnuRadio .out files.
+allSigOutFiles = rdir(fullfile(ABS_PATH_TO_FOLIAGE_DATA, '**', '*.out'));
+% We do not need the filtered version.
+allSigOutFiles = allSigOutFiles(arrayfun(@(p) ...
+    ~isempty(regexp(p.name, '\d+.out','match')), allSigOutFiles));
+numAllSigOutFiles = length(allSigOutFiles);
+for idxRec = 1:numAllSigOutFiles
+    curOutFilePath = allSigOutFiles(idxRec).name;    
+    curGpsLogs = rdir(fullfile(allSigOutFiles(idxRec).folder, '*.log'));
+
+    % Fetch the (lat, lon) from these GPS logs.
+    [curLats, curLons, ~, ~] = parseGpsLogs(curGpsLogs);
+
+    % Plot.
+    hContiRec = figure;
+    hold on;
+    hTx = plot(lonTx, latTx, 'g^');
+    hSamps = plot(allLons, allLats, 'r.');
+    hCurRec = plot(curLons, curLats, 'b.');
+    axis tight;
+    plot_google_map('MapType', 'satellite');
+    legend([hTx, hCurRec, hSamps], ...
+        'Tx', ['Route #', num2str(idxRec)], 'Other measurements');
+
+    % Save the plot.
+    pathToSaveCurRecPlot = fullfile(pathToSaveSeparateRecs, ...
+        ['Overview_', num2str(idxRec), '.png']);
+    saveas(hContiRec,  pathToSaveCurRecPlot);
+end
+
+disp('    Done!')
+
 % EOF

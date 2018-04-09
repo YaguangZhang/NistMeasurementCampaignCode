@@ -1,16 +1,16 @@
 function [ gpsSample ] = parseGpsLog( filePath )
-%PARSEGPSLOG Summary of this function goes here
-%   Parse the GPS log file generated in the EARS measurement campaign.
+%PARSEGPSLOG Parse the GPS log file generated in the EARS measurement
+%campaign.
 %
-% Input: 
+% Input:
 %   - filePath
 %     The full path to the GPS log file. Supports csv type of string rows
 %     in the file (Note: ", " with 1 space). All "{" and "}" will be
 %     removed.
-% Output: 
+% Output:
 %   - gpsSample
 %     A struct with fields generated according to the title line of the
-%     file. Each field contains the corresponding value as a string. 
+%     file. Each field contains the corresponding value as a string.
 %
 % Yaguang Zhang, Purdue, 06/18/2017
 
