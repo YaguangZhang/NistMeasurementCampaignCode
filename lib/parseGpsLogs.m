@@ -20,7 +20,7 @@ numGpsSamps = length(gpsLogDirs);
 [lats, lons, alts] = deal(nan(numGpsSamps, 1));
 gpsLogSamples = cell(numGpsSamps, 1);
 for idxS = 1:numGpsSamps
-    gpsLog = gpsLogDirs(idxS);
+    gpsLog = parseGpsLog(gpsLogDirs(idxS).name);
     [lat, lon, alt, gpsLogSample] = parseNmeaStr(gpsLog.gpsLocation);
     
     lats(idxS) = lat;

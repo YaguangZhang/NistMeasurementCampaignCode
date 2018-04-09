@@ -82,6 +82,10 @@ disp(' ')
 disp('    Plotting separate recording activities...')
 
 pathToSaveSeparateRecs = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'GpsSampsOnMap');
+% Create directories if necessary.
+if exist(pathToSaveSeparateRecs, 'dir')~=7
+    mkdir(pathToSaveSeparateRecs);
+end
 
 % Find all GnuRadio .out files.
 allSigOutFiles = rdir(fullfile(ABS_PATH_TO_FOLIAGE_DATA, '**', '*.out'));
@@ -90,8 +94,15 @@ allSigOutFiles = allSigOutFiles(arrayfun(@(p) ...
     ~isempty(regexp(p.name, '\d+.out','match')), allSigOutFiles));
 numAllSigOutFiles = length(allSigOutFiles);
 for idxRec = 1:numAllSigOutFiles
+    curSeriesFolderPath = allSigOutFiles(idxRec).folder;
+    
+    % Get the Serires numbet just to make sure.
+    matchedSeriesNums = regexp(curSeriesFolderPath, 'Series_(\d+)', 'tokens');
+    seriesNum = str2double(matchedSeriesNums{1}{1});
+    
+    % Find all the GPS logs in the current folder.
     curOutFilePath = allSigOutFiles(idxRec).name;    
-    curGpsLogs = rdir(fullfile(allSigOutFiles(idxRec).folder, '*.log'));
+    curGpsLogs = rdir(fullfile(curSeriesFolderPath, '*.log'));
 
     % Fetch the (lat, lon) from these GPS logs.
     [curLats, curLons, ~, ~] = parseGpsLogs(curGpsLogs);
@@ -105,11 +116,11 @@ for idxRec = 1:numAllSigOutFiles
     axis tight;
     plot_google_map('MapType', 'satellite');
     legend([hTx, hCurRec, hSamps], ...
-        'Tx', ['Route #', num2str(idxRec)], 'Other measurements');
+        'Tx', ['Route #', num2str(seriesNum)], 'Other measurements');
 
     % Save the plot.
     pathToSaveCurRecPlot = fullfile(pathToSaveSeparateRecs, ...
-        ['Overview_', num2str(idxRec), '.png']);
+        ['Overview_', num2str(seriesNum), '.png']);
     saveas(hContiRec,  pathToSaveCurRecPlot);
 end
 
