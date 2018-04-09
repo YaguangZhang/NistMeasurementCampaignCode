@@ -14,21 +14,8 @@ gpsRecords = nan(length(gpsLogsDirs), 4);
 for idxGpsLog = 1:length(gpsLogsDirs)
     % Parse the GPS log.
     gpsLog = ...
-        parseGpsLog(gpsLogsDirs(idxGpsLog).name);
-    gpsLogSample = nmealineread(gpsLog.gpsLocation);
-    
-    lat = gpsLogSample.latitude;
-    lon = gpsLogSample.longitude;
-    alt = gpsLogSample.altitude;
-    
-    % Add a minus sign if it is W or S.
-    if(isW(gpsLog.gpsLocation))
-        lon = -lon;
-    end
-    if(isS(gpsLog.gpsLocation))
-        lat = -lat;
-    end
-    
+        parseGpsLog(gpsLogsDirs(idxGpsLog).name);     
+    [lat, lon, alt, ~] = parseNmeaStr(gpsLog.gpsLocation); 
     locked = str2double(gpsLog.gpsLocked);
     
     % Store the result.

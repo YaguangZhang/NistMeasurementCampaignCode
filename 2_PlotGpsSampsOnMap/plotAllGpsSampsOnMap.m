@@ -16,7 +16,7 @@ cd('..'); setPath;
 ABS_PATH_TO_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
     'Data', '20180331_NistFoliage');
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
-    'PostProcessingResults', 'AllGpsSampsOnMap');
+    'PostProcessingResults');
 
 % Create directories if necessary.
 if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
@@ -25,6 +25,11 @@ end
 
 %% Read In the Log Files
 
+disp(' ---------------------- ')
+disp('  plotAllGpsSampsOnMap ')
+disp(' ---------------------- ')
+disp(' ')
+disp('    Load GPS samples...')
 % Scan the series folder for GPS log files.
 allGpsLogFiles = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*.log'));
 allGpsSamps = arrayfun(@(l) parseGpsLog(l.name), allGpsLogFiles);
@@ -35,26 +40,25 @@ numGpsSamps = length(allGpsSamps);
 [lats, lons] = deal(nan(numGpsSamps, 1));
 for idxS = 1:numGpsSamps
     gpsLog = allGpsSamps(idxS);
-    gpsLogSample = nmealineread(gpsLog.gpsLocation);
-    
-    lat = gpsLogSample.latitude;
-    lon = gpsLogSample.longitude;
-    alt = gpsLogSample.altitude;
-    
-    % Add a minus sign if it is W or S.
-    if(isW(gpsLog.gpsLocation))
-        lon = -lon;
-    end
-    if(isS(gpsLog.gpsLocation))
-        lat = -lat;
-    end
+    [lat, lon, ~, ~] = parseNmeaStr(gpsLog.gpsLocation);
     
     lats(idxS) = lat;
     lons(idxS) = lon;
 end
+disp('    Done!')
 
 %% Plot
+
+disp(' ')
+disp('    Plotting...')
+
+hFigOverview = figure;
 plot(lons, lats, 'r.');
 plot_google_map('MapType', 'satellite');
 
+% Save the plot.
+pathToSaveOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview.png');
+saveas(hFigOverview, pathToSaveOverviewPlot);
+
+disp('    Done!')
 % EOF

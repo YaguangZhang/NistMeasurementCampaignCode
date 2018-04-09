@@ -7,6 +7,8 @@ function [ lat, lon, alt, gpsLog ] ...
 % Outputs (lat, lon, alt) is the resulted coordinate and gpsLog is the GPS
 % information struct containing all the fields stored in the GPS log file.
 %
+% Update 04/09/2018: wrap NMEA string parsing into a function.
+%
 % Yaguang Zhang, Purdue, 09/26/2017
 
 % Get the filename for the .out file.
@@ -43,18 +45,7 @@ end
 
 % Parse the GPS log.
 gpsLog = parseGpsLog(gpsFileDir.name);
-gpsLogSample = nmealineread(gpsLog.gpsLocation);
+[lat, lon, alt, ~] = parseNmeaStr(gpsLog.gpsLocation);
 
-lat = gpsLogSample.latitude;
-lon = gpsLogSample.longitude;
-alt = gpsLogSample.altitude;
-
-% Add a minus sign if it is W or S.
-if(isW(gpsLog.gpsLocation))
-    lon = -lon;
-end
-if(isS(gpsLog.gpsLocation))
-    lat = -lat;
-end
 end
 % EOF
