@@ -25,8 +25,8 @@ ABS_PATH_TO_SAVE_RESULTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation');
 
 % Create directories if necessary.
-if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
-    mkdir(ABS_PATH_TO_SAVE_PLOTS);
+if exist(ABS_PATH_TO_SAVE_RESULTS, 'dir')~=7
+    mkdir(ABS_PATH_TO_SAVE_RESULTS);
 end
 
 %% Hard Coded Parameters
@@ -108,7 +108,8 @@ else
         assert(allSeriesParentDirs(idxPar).isdir, ...
             ['#', num2str(idxPar), ' series parent dir should be a folder!']);
         
-        curSeriesDirs = rdir(fullfile(allSeriesParentDirs(idxPar).name, '**', '*'), ...
+        curSeriesDirs = rdir( ...
+            fullfile(allSeriesParentDirs(idxPar).name, '**', '*'), ...
             'regexp(name, ''(Series_\d+$)'')');
         if(isempty(curSeriesDirs))
             warning(['#', num2str(idxPar), ...

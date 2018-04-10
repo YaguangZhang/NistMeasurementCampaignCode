@@ -16,6 +16,9 @@ cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
+% We will need the function genCalibrationFct.m for calibration.
+addpath(fullfile(pwd, '1_Calibration'));
+
 % The functions: 
 %   -  thresholdWaveform.m for noise elimination 
 %    - antPatInter.m for antenna gain calculation
@@ -114,7 +117,7 @@ for idxContiOutFile = 1:numSeries
         '/', num2str(numSeries), '...']);
     
     % Here we only load the _Conti .out files.
-    regexPattern = '\d+_Conti';
+    regexPattern = '\d+_NistFoliage';
     [contiOutFilesDirs{idxContiOutFile}, contiGpsFilesDirs{idxContiOutFile}] = ...
         loadFilesFromSeriesDir(allSeriesDirsArray(idxContiOutFile), regexPattern);
 end

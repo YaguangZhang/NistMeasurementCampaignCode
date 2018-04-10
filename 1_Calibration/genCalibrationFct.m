@@ -25,10 +25,22 @@ function [ powerShiftsForCali ] ...
 %
 % Yaguang Zhang, Purdue, 09/14/2017
 
-% lsLinesPolysInv{1} is for the first calibration data set.
-powerShiftsForCali = ((gains-rxGains(2)).*lsLinesPolysInv{1}(2) ...
-    +(rxGains(1)-gains).*lsLinesPolysInv{end}(2)) ...
-    ./(rxGains(1)-rxGains(2));
+switch length(rxGains)
+    case 1
+        if ~all(gains==rxGains)
+            warning(['    ', num2str(sum(gains~=rxGains)), ...
+                ' of samples were collected with gain not clibratable!'])
+        end
+        
+        powerShiftsForCali = ones(length(gains),1).*lsLinesPolysInv{1}(2);
+    case 2
+        % lsLinesPolysInv{1} is for the first calibration data set.
+        powerShiftsForCali = ((gains-rxGains(2)).*lsLinesPolysInv{1}(2) ...
+            +(rxGains(1)-gains).*lsLinesPolysInv{2}(2)) ...
+            ./(rxGains(1)-rxGains(2));
+    otherwise
+        error('Unexpected number of calibration lines found in lsLinesPolysInv!')
+end
 
 end
 % EOF
