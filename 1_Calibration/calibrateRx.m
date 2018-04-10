@@ -9,16 +9,16 @@ clear; clc; close all;
 
 %% Configurations
 
-% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% Add libs to current path and set ABS_PATH_TO_NIST_SHARED_FOLDER according
 % to the machine name.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
 % Configure other paths accordingly.
-ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_CALI_DATA = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'Data', '20180330_Calibration');
-ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
 
 % Set this to true if you want figures to be generated silently.

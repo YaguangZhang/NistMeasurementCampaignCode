@@ -6,16 +6,16 @@ clear; clc; close all;
 
 %% Configurations
 
-% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% Add libs to current path and set ABS_PATH_TO_NIST_SHARED_FOLDER according
 % to the machine name.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
 % Configure other paths accordingly.
-ABS_PATH_TO_FOLIAGE_DATA = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_FOLIAGE_DATA = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'Data', '20180331_NistFoliage');
-ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults');
 
 % Create directories if necessary.
@@ -71,8 +71,6 @@ legend([hTx, hSamps], 'Tx', 'Measurements');
 % Save the plot.
 pathToSaveOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview.png');
 saveas(hFigOverview, pathToSaveOverviewPlot);
-
-disp('    Done!')
 
 disp('    Done!')
 

@@ -20,11 +20,14 @@ function [ powerShiftsForCali ] ...
 %          measuredPowerInDb = caluculatedPowerInDb + b,
 %      since we will force it to use 1 as its slope.
 %
+% Update 04/10/2018: Minor fix for NIST dataset (with only one calibration
+% line available).
+%
 % Yaguang Zhang, Purdue, 09/14/2017
 
 % lsLinesPolysInv{1} is for the first calibration data set.
 powerShiftsForCali = ((gains-rxGains(2)).*lsLinesPolysInv{1}(2) ...
-    +(rxGains(1)-gains).*lsLinesPolysInv{2}(2)) ...
+    +(rxGains(1)-gains).*lsLinesPolysInv{end}(2)) ...
     ./(rxGains(1)-rxGains(2));
 
 end

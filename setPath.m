@@ -20,11 +20,11 @@ unknownComputerErrorId = 'setPath:computerNotKnown';
 switch getenv('computername')
     case 'ZYGLABS-DELL'
         % ZYG's Dell laptop.
-        ABS_PATH_TO_EARS_SHARED_FOLDER = absPathWinDell;
+        ABS_PATH_TO_NIST_SHARED_FOLDER = absPathWinDell;
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.
         assert(ismac, unknownComputerErrorMsg);
-        ABS_PATH_TO_EARS_SHARED_FOLDER = absPathMacLemma;
+        ABS_PATH_TO_NIST_SHARED_FOLDER = absPathMacLemma;
     otherwise
         error(unknownComputerErrorId, unknownComputerErrorMsg);
 end
@@ -33,7 +33,7 @@ end
 % Marker. We have manually labeled the TX, together with trees in the
 % measured area, using the app. This file contains the corresponding GPS
 % data. 
-absPathToGpsMarkerCsvFile = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+absPathToGpsMarkerCsvFile = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'Data', 'NIST foliage analysis tree locations.csv');
 
 %EOF

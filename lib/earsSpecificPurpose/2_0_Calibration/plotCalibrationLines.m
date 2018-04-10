@@ -7,7 +7,7 @@ clear; clc; close all;
 
 %% Configurations
 
-% Add libs to current path and set ABS_PATH_TO_EARS_SHARED_FOLDER according
+% Add libs to current path and set ABS_PATH_TO_NIST_SHARED_FOLDER according
 % to the machine name.
 cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
@@ -15,10 +15,10 @@ cd('..'); setPath;
 
 % Configure other paths accordingly.
 ABS_PATH_TO_CALIBRATION_REF_POLYGONS = fullfile(...
-    ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+    ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'Calibration');
 
-ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, ...
+ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation');
 
 %% Before Processing the Data
@@ -37,7 +37,7 @@ end
 disp(' ')
 disp('    Loading GPS logs...')
 
-gpsLogs = rdir(fullfile(ABS_PATH_TO_EARS_SHARED_FOLDER, 'Data', '**', ...
+gpsLogs = rdir(fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, 'Data', '**', ...
     '*_GPS.log'));
 % Load the GPS samples.
 gpsLogsParsed = arrayfun(...
