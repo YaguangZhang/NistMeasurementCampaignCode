@@ -36,6 +36,9 @@ TX_POWER_DBM = 20;
 % Tx tower height in feet.
 TX_HEIGHT_FEET = 5; % 60 inch.
 
+% Rx height in meter.
+RX_HEIGHT_M = 1; 
+
 % Sample rate used for GnuRadio.
 F_S = 2 * 10^6;
 
@@ -49,7 +52,11 @@ TX_LON = -105.2746385;
 % The downconverter gain at the RX side.
 DOWNCONVERTER_GAIN_IN_DB = 13.4; 
 
-%% Necessary Unit Conversion
+%% Auto-generated Parameters
+
+TX_ALT = getElevations(TX_LAT, TX_LON); 
+
+% Necessary Unit Conversion
 TX_HEIGHT_M = distdim(TX_HEIGHT_FEET,'feet','meters');
 
 %% Load Records from TxInfo.txt Files
@@ -69,8 +76,8 @@ txInfoFilesDirs = rdir(fullfile(pathToData, '**', 'TxInfo.txt'), '', false);
 pathFileToSaveResults = fullfile(ABS_PATH_TO_SAVE_RESULTS, ...
     'txInfoLogs.mat');
 save(pathFileToSaveResults, 'TX_POWER_DBM', ...
-    'TX_HEIGHT_FEET', 'TX_HEIGHT_M', ...
-    'F_S', 'F_C_IN_GHZ', 'TX_LAT', 'TX_LON', ...
+    'TX_HEIGHT_FEET', 'RX_HEIGHT_M', 'TX_HEIGHT_M', ...
+    'F_S', 'F_C_IN_GHZ', 'TX_LAT', 'TX_LON', 'TX_ALT', ...
     'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS', ...
     'DOWNCONVERTER_GAIN_IN_DB');
 

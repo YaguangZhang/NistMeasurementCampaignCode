@@ -21,6 +21,10 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
 %   - Other inputs
 %     Please refer to computePathLossForCurSignal.m for more detail.
 %
+% Update 04/01/2018: If the GnuRadio gain is set to a value that is not
+% calibratable (e.g. some recording segments for the NIST data set), the
+% computed path loss will be set to nan.
+%
 % Yaguang Zhang, Purdue, 09/26/2017
 
 %% Parameters
@@ -74,7 +78,8 @@ end
 
 % Compute b for the calibration line corresponding to the RX gain.
 usrpGains = cellfun(@(gpsLog) str2double(gpsLog.rxChannelGain), gpsLogs);
-powerShiftsForCalis = genCalibrationFct( lsLinesPolysInv, ...
+[powerShiftsForCalis, boolsValidCaliGain] ...
+    = genCalibrationFct( lsLinesPolysInv, ...
     rxGains, usrpGains);
 
 % Get the epoch time stamp for the .oug file.
@@ -129,40 +134,44 @@ for idxGpsSample = 1:numGpsSamplesCovered
     disp('curContiPathLossesWithGpsInfo: ');
     disp(['    Computing path loss for segment ', num2str(idxGpsSample), '/', ...
         num2str(numGpsSamplesCovered), '...']);
-    
-    % Find the signal segment for this GPS sample.
-    if idxGpsSample<numGpsSamplesCovered
-        % The sample indices cooresponding to this and the next GPS
-        % samples.
-        sigSampIndicesByGps = floor(Fs.*( ...
-            [gpsTimes(idxGpsSample); gpsTimes(idxGpsSample+1)] ...
-            -gpsTimes(1)));
-        % We need to increase the start index by 1.
-        curSigSegIdxRange = [sigSampIndicesByGps(1)+1, ...
-            sigSampIndicesByGps(2)];
+    if boolsValidCaliGain(idxGpsSample)
+        % Find the signal segment for this GPS sample.
+        if idxGpsSample<numGpsSamplesCovered
+            % The sample indices cooresponding to this and the next GPS
+            % samples.
+            sigSampIndicesByGps = floor(Fs.*( ...
+                [gpsTimes(idxGpsSample); gpsTimes(idxGpsSample+1)] ...
+                -gpsTimes(1)));
+            % We need to increase the start index by 1.
+            curSigSegIdxRange = [sigSampIndicesByGps(1)+1, ...
+                sigSampIndicesByGps(2)];
+        else
+            % For the last GPS sample, all the remaining signal samples will be
+            % assigned to it.
+            sigSampIdxForCurGps = floor(Fs.*( ...
+                gpsTimes(idxGpsSample) ...
+                -gpsTimes(1)));
+            % We need to increase the start index by 1.
+            curSigSegIdxRange = [sigSampIdxForCurGps(1)+1, ...
+                numComplexSamps];
+        end
+        
+        % Compute the path loss for the singal segment. We only need to discard
+        % a small account of the starting samples at the very begining to avoid
+        % the possible warm-up stage of the USRP.
+        FlagCutHead = (idxGpsSample==1);
+        % function [ pathLossInDb ] ...
+        %     = computePathLossForCurSignal(curSignal, txPower, ...
+        %       rxGain, noiseEliminationFct, powerShiftsForCali, FlagCutHead)
+        pathLossInDb = computePathLossForCurSignal( ...
+            readComplexBinaryInRange(absPathOutFile, curSigSegIdxRange), ...
+            txPower, usrpGains(idxGpsSample), noiseEliminationFct, ...
+            powerShiftsForCalis(idxGpsSample), FlagCutHead);
     else
-        % For the last GPS sample, all the remaining signal samples will be
-        % assigned to it.
-        sigSampIdxForCurGps = floor(Fs.*( ...
-            gpsTimes(idxGpsSample) ...
-            -gpsTimes(1)));
-        % We need to increase the start index by 1.
-        curSigSegIdxRange = [sigSampIdxForCurGps(1)+1, ...
-            numComplexSamps];
+        warning('The GnuRadio gain for this sample is not calibratable!')
+        pathLossInDb = nan;
     end
-    
-    % Compute the path loss for the singal segment. We only need to discard
-    % a small account of the starting samples at the very begining to avoid
-    % the possible warm-up stage of the USRP.
-    FlagCutHead = (idxGpsSample==1);
-    % function [ pathLossInDb ] ...
-    %     = computePathLossForCurSignal(curSignal, txPower, ...
-    %       rxGain, noiseEliminationFct, powerShiftsForCali, FlagCutHead)
-    pathLossInDb = computePathLossForCurSignal( ...
-        readComplexBinaryInRange(absPathOutFile, curSigSegIdxRange), ... 
-        txPower, usrpGains(idxGpsSample), noiseEliminationFct, ...
-        powerShiftsForCalis(idxGpsSample), FlagCutHead);
-    
+
     % Store the result as a [path loss (dB), lat, lon, alt] array.
     curContiPathLossesWithGpsInfo(idxGpsSample, :) ...
         = [pathLossInDb, ...

@@ -112,7 +112,8 @@ if numSampsToKeep > numSampsCurSeries
 else
     idxRangeToKeep = floor(0.5.*numSampsCurSeries ...
         + [-1,1].*numSampsToKeep./2);
-    curSignal = curSignal(idxRangeToKeep(1):idxRangeToKeep(2));
+    curSignal = curSignal(max(idxRangeToKeep(1),1) ...
+        :min(idxRangeToKeep(2), numSampsCurSeries));
 end
 % Make sure we end up with even number of samples.
 if mod(length(curSignal),2)==1
