@@ -167,6 +167,11 @@ for idxGpsSample = 1:numGpsSamplesCovered
             readComplexBinaryInRange(absPathOutFile, curSigSegIdxRange), ...
             txPower, usrpGains(idxGpsSample), noiseEliminationFct, ...
             powerShiftsForCalis(idxGpsSample), FlagCutHead);
+        
+        if isinf(pathLossInDb)
+            warning('The resulting pathloss is +/- inf! Resetting it to nan...')
+            pathLossInDb = nan;
+        end
     else
         warning('The GnuRadio gain for this sample is not calibratable!')
         pathLossInDb = nan;
@@ -177,6 +182,13 @@ for idxGpsSample = 1:numGpsSamplesCovered
         = [pathLossInDb, ...
         lats(idxGpsSample), lons(idxGpsSample), alts(idxGpsSample)];
 end
+
+% Discard samples with invalid info.
+boolsValidSamps = arrayfun(@(idx) ...
+    all(~isnan(curContiPathLossesWithGpsInfo(idx, :))), ...
+    1:numGpsSamplesCovered);
+curContiPathLossesWithGpsInfo ...
+    = curContiPathLossesWithGpsInfo(boolsValidSamps, :);
 
 end
 % EOF

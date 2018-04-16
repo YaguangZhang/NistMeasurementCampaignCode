@@ -32,12 +32,12 @@ end
 %% Hard Coded Parameters
 
 % Tx Power in dBm. TODO: Update this according to the data sheet!
-TX_POWER_DBM = 20;
+TX_POWER_DBM = 20.9;
 % Tx tower height in feet.
 TX_HEIGHT_FEET = 5; % 60 inch.
 
 % Rx height in meter.
-RX_HEIGHT_M = 1; 
+RX_HEIGHT_M = 1;
 
 % Sample rate used for GnuRadio.
 F_S = 2 * 10^6;
@@ -50,11 +50,17 @@ TX_LAT = 39.99145872;
 TX_LON = -105.2746385;
 
 % The downconverter gain at the RX side.
-DOWNCONVERTER_GAIN_IN_DB = 13.4; 
+DOWNCONVERTER_GAIN_IN_DB = 13.4;
 
 %% Auto-generated Parameters
 
-TX_ALT = getElevations(TX_LAT, TX_LON); 
+try
+    TX_ALT = getElevations(TX_LAT, TX_LON);
+catch
+    warning(['getElevations is not able to fetch alt from Google! ', ...
+        'Setting TX_ALT to the hard-coded default value...'])
+    TX_ALT = 1778.9871826;
+end
 
 % Necessary Unit Conversion
 TX_HEIGHT_M = distdim(TX_HEIGHT_FEET,'feet','meters');
