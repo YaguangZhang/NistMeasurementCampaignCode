@@ -19,8 +19,8 @@ cd('..'); setPath;
 % We will need the function genCalibrationFct.m for calibration.
 addpath(fullfile(pwd, '1_Calibration'));
 
-% The functions: 
-%   -  thresholdWaveform.m for noise elimination 
+% The functions:
+%   -  thresholdWaveform.m for noise elimination
 %    - antPatInter.m for antenna gain calculation
 % have been included in lib.
 
@@ -28,7 +28,7 @@ addpath(fullfile(pwd, '1_Calibration'));
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputationConti');
 % There is one case where we recorded the reflection of a spot without
-% moving the RX at all. The Tx info log for that one is left empty.
+% moving the RX at all at USNA. The Tx info log for that one is left empty.
 ABS_PATH_TO_SAVE_PLOTS_REF = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'reflection');
 
@@ -184,7 +184,7 @@ for idxContiOutFile = 1:numContiOutFiles
     if ~any(isnan([curTxInfoLog.txAz, curTxInfoLog.txEl, ...
             curTxInfoLog.rxAz, curTxInfoLog.rxEl]))
         [numPathLosses, ~] = size(curContiPathLossesWithGpsInfo);
-
+        
         disp(' ')
         disp('            Computing antenna gains in 3D...')
         for idxPathLoss = 1:numPathLosses
@@ -207,7 +207,7 @@ for idxContiOutFile = 1:numContiOutFiles
                 +RX_HEIGHT_M, ...
                 curTxInfoLog.rxAz, curTxInfoLog.rxEl, ...
                 TX_LAT, TX_LON, TX_ALT+TX_HEIGHT_M, ...
-                pat28GAzNorm, pat28GElNorm);            
+                pat28GAzNorm, pat28GElNorm);
             
             disp(['            Sample ', num2str(idxPathLoss), ...
                 '/', num2str(numPathLosses), ...
