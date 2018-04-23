@@ -81,7 +81,7 @@ disp('    Done!')
 disp(' ')
 disp('    Loading tree location information...')
 
-treeLocations = loadGpsMarkers(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
+treeLocations = loadGpsMarkersWithAlt(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
     pathToSaveTreeLocs);
 % Keep trying to fetch alts from Google until all needed info is available.
 numRetrial = 0;
@@ -89,7 +89,7 @@ while any(isnan(treeLocations(:,3)))
     numRetrial = numRetrial+1;
     disp(['Not all alts retrieved. Retry again ... (#', ...
         num2str(numRetrial), ')']);
-    treeLocations = loadGpsMarkers(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
+    treeLocations = loadGpsMarkersWithAlt(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
         pathToSaveTreeLocs);
 end
 disp('    Done!')
