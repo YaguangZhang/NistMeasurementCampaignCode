@@ -18,21 +18,9 @@ function [ waveformThresholded, boolsEliminatedPts, hDebugFig ] ...
 % Update: we will use 3.28*sigma shifted by the mean to determine the
 % threshold, so that more noise will be eliminated.
 %
-% Update 04/23/2018: Change the number of samples to examine according to
-% sample rate.
-%
 % Yaguang Zhang, Purdue, 08/14/2017
 
 %% Parameters
-
-% Sample rate used for GnuRadio.
-try
-    Fs = evalin('base', 'Fs');
-catch
-    warning('GnuRadio sample frequency Fs not found in the base workspace.')
-    warning('Will use the default value 1.04 * 10^6.')
-    Fs = 1.04 * 10^6;
-end
 
 % Set this to be true to first convert the wave form to dB.
 FLAG_PROCESS_IN_DB = true;
@@ -59,16 +47,24 @@ end
 % variable and is only used in this function.
 numStartSampsToDiscard = 0;
 % Maximum number of samples to consider for noise elimination.
-maxNumSampsToConsider = 10^6;
+maxNumSampsToConsider = 5*10^5;
 % Find the first peak after the sample index specified here to make sure
 % the noise sigma is computed from enough samples.
-idxMinPeak = 4000;
+idxMinPeak = 2000;
 % Relative range for computing noise sigma, from the start of considered
 % sample segment to the peak. Ideally, all the samples in the range should
 % be noise samples. Here we choose to use the samples from 45% to 55%
 % because the part right before the first peak found is more likely to be
 % noise.
 relativeRangeForNoise = [0.875, 0.975];
+% Sample rate used for GnuRadio.
+try
+    Fs = evalin('base', 'Fs');
+catch
+    warning('GnuRadio sample frequency Fs not found in the base workspace.')
+    warning('Will use the default value 1.04 * 10^6.')
+    Fs = 1.04 * 10^6;
+end
 
 hDebugFig = nan;
 if nargin < 2

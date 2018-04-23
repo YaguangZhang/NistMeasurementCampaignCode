@@ -32,8 +32,9 @@ FLAG_NOISE_ELI_VIA_AMP = true;
 % the original samples without post-processing will be used.
 FLAG_USE_FILTERED_OUTPUT_FILES = false;
 
-% We have two sets of reference data, with the Gnu Radio gain being set to
-% 1dB and 76dB, respectively.
+% For the USNA measurement campaign, we have two sets of reference data,
+% with the Gnu Radio gain being set to 1dB and 76dB, respectively. For the
+% NIST one, we only need one set of reference data (65 dB).
 rxGains = [65]; % In dB.
 % Each set of data is stored in a folder named as "Gain_xxx".
 calDataDirNamePrefix = 'Gain_';
@@ -42,17 +43,13 @@ calDataDirNamePrefix = 'Gain_';
 measPowers = {(-37:-2:-91)'};
 
 % Manually ignore some of the measurements.
-%   Update 20170927 - Remove point 1 from set 2 - Quote from Professor
-%   Anderson: "I would remove the first point from set #2 (Measured = -40,
-%   Calculated = -47), as I'm certain we were driving the receiver into
-%   compression (a non-linear area where a 1dB change in input results in
-%   less than 1dB change in output).  "
 BOOLS_MEAS_TO_FIT = {ones(1,28)};
 BOOLS_MEAS_TO_FIT{1}(end) = 0; % Ignore the last point.
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
-% Low pass filter for the PSD. Tried before: 46000; 39500.
+% Low pass filter for the power spectral density (PSD). 
+%   - Tried before: 46000; 39500.
 maxFreqPassed = 30000; % In Hz.
 % High pass filter to remove the DC component.
 minFreqPassed = 1; % In Hz.
@@ -64,7 +61,7 @@ minValidCalPower = -inf; % In dB. Before: -140.
 minValidEstSnr = 0; % Before: 1.5.
 
 % Number of samples to use (from the end) for each calibration recording.
-% We recorded >=8s of data for each recording.
+% At NIST, we recorded >=8s of data for each calibration recording.
 secToUsePerRecording = 3; % In seconds.
 % Number of samples to discard at the beginning. We do not need to discard
 % any samples at the begining for the NIST data because we've essentially
@@ -74,16 +71,16 @@ numStartSampsToDiscard = 0;
 % the signal for calibration.
 timeLengthAtCenterToUse = 1; % In second.
 
-% We only have one dataset for GunRadio gain 65 dB.
+% At NIST, We only have one dataset for GunRadio gain 65 dB.
 NUMS_SIGMA_FOR_THRESHOLD = [1].*3;
 
 % For any figure generated, a .pgn screen shot is always saved; Set this to
 % be true to also save a .fig version (which may dramatically slow down the
 % program).
-FLAG_SAVE_FIG_COPY = true;
+FLAG_SAVE_FIG_COPY = false;
 
 % Parameters to overwrite when using the 60 kHz / 5 kHz LPF implemented in
-% Matlab.
+% Matlab. Note: 10 kHz is optimal for the NIST implementation.
 if ~FLAG_USE_FILTERED_OUTPUT_FILES
     maxFreqPassed = 10000;
 end
@@ -184,7 +181,7 @@ for idxDataset = 1:numDatasets
             parseNistFlightFolder( ...
             curCalDataFlightFolders(idxCurMeas).name, secToUsePerRecording);
         assert(curGlobalSettings.core_sample_rate == Fs, ...
-            'The signal recorded for this flight is diferent from Fs!');
+            'The signal recorded for this flight is different from Fs!');
         if ~FLAG_USE_FILTERED_OUTPUT_FILES
             curCalData{idxCurMeas} = lpfComplex(curCalData{idxCurMeas});
         end
@@ -321,6 +318,13 @@ for idxDataset = 1:numDatasets
         powerSpectralDen = abs(Y).^2/L;
         
         % Plot the result for debugging.
+        hSigOverview = figure; hold on;
+        numSamplesToPlot = 2000000; % For 2 MSamples/s signal => 1 s.
+        plot(1:numSamplesToPlot, abs(curSignal(1:numSamplesToPlot)));
+        axis tight; grid on;
+        title('Signal Overview');
+        xlabel('Sample #'); ylabel('Amplitude');         
+        
         hPSD = figure; hold on;
         hPowerSpectralDen = plot(f,powerSpectralDen);
         curAxis = axis; curAxis(1) = f(1); curAxis(2) = f(end);
@@ -401,6 +405,9 @@ for idxDataset = 1:numDatasets
             num2str(idxDataset), ' Pt #', num2str(idxCurMeas)]);
         
         % Paths to save the plots.
+        pathSigOverviewToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), ...
+            '-sig-overview']);
         pathInputPSDdBFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), ...
             '-psd-input-dB']);
@@ -414,6 +421,7 @@ for idxDataset = 1:numDatasets
         pathNewCompNoiseSigmaToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
         % A .png figure for easy access.
+        saveas(hSigOverview, [pathSigOverviewToSave, '.png']);        
         saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.png']);
         saveas(hPSDInputInDbZoomedIn, [pathInputPSDdBFileToSave, '-zoomed-in.png']);
         saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
@@ -425,6 +433,7 @@ for idxDataset = 1:numDatasets
         saveas(hPSDdBZoomedIn, [pathNewPSDdBFileToSave, '-zoomed-in.png']);
         % Also a .fig copy.
         if FLAG_SAVE_FIG_COPY
+            saveas(hSigOverview, [pathSigOverviewToSave, '.fig']);   
             saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.fig']);
             saveas(hPSDInputInDbZoomedIn, [pathInputPSDdBFileToSave, '-zoomed-in.fig']);
             saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
@@ -438,7 +447,7 @@ for idxDataset = 1:numDatasets
         
         % Close the figures if we do not need to show them.
         if FLAG_GEN_PLOTS_SILENTLY
-            close([hPSDInputInDb hPSDInputInDbZoomedIn ...
+            close([hSigOverview hPSDInputInDb hPSDInputInDbZoomedIn ...
                 hPSDInputInDbWin hPSDInputInDbWinZoomedIn ...
                 hPSD hPSDdB hPSDdBZoomedIn]);
         end
