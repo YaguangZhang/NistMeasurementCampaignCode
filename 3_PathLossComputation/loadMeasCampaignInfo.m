@@ -59,7 +59,7 @@ try
 catch
     warning(['getElevations is not able to fetch alt from Google! ', ...
         'Setting TX_ALT to the hard-coded default value...'])
-    TX_ALT = 1778.9871826;
+    TX_ALT = 1778.9871826; % According to Google.
 end
 
 % Necessary Unit Conversion

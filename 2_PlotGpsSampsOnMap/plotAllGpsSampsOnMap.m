@@ -81,7 +81,7 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting 3D overview...')
 
-altTxGoogle = 1778.9871826;
+altTxGoogle = 1778.9871826; % According to Google.
 altRxMin = min(allAlts);
 
 hFigOverview3D = figure;

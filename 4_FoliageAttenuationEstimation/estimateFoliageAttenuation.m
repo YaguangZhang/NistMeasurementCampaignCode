@@ -131,10 +131,10 @@ save(pathToSaveUtmInfo, ...
 
 disp('    Done!')
 
-%% Plot an Overview in UTM
+%% Plot an Overview in UTM for the Path Losses
 
 disp(' ')
-disp('    Generating overview in UTM ...')
+disp('    Generating overview in UTM for path losses ...')
 
 pathToSaveOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'OverviewInUtm');
 hOverviewInUtm = figure;
@@ -144,15 +144,39 @@ allPathLosses = vertcat(contiPathLossesWithGpsInfo{:});
 allPathLosses = allPathLosses(:,1);
 boolsFinitePathLosses = ~isinf(allPathLosses);
 % Trees.
-hTrees = plot3(treeUtmXYHs(:,1), treeUtmXYHs(:,2), treeUtmXYHs(:,3), 'g*');
+hTrees = plot3(treeUtmXYHs(:,1), treeUtmXYHs(:,2), ...
+    treeUtmXYHs(:,3).*0, 'g*');
 % Pathlosses.
 plot3k(allPathLossUtmXYHs(boolsFinitePathLosses,:), ...
     'ColorData', allPathLosses(boolsFinitePathLosses));
-title('Samples in 3D (Colored by path losses) with trees');
-xlabel('x (m)'); ylabel('y (m)'); zlabel('altitude (m)');
+title('Samples in 3D (Colored by Path Losses) with Trees');
+view(0, 90);
+xlabel('x (m)'); ylabel('y (m)'); zlabel('Path loss (dB)');
 
 saveas(hOverviewInUtm, [pathToSaveOverviewPlot, '.fig']);
 saveas(hOverviewInUtm, [pathToSaveOverviewPlot, '.png']);
+
+disp('    Done!')
+
+%% Plot an Overview in UTM for GPS Samples
+
+disp(' ')
+disp('    Generating overview in UTM for GPS samples ...')
+
+pathToSaveGpsOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'OverviewInUtmGps');
+hOverviewInUtmGps = figure;
+hold on;
+% Trees.
+hTrees = plot3(treeUtmXYHs(:,1), treeUtmXYHs(:,2), treeUtmXYHs(:,3), 'g*');
+% TX.
+hTx = plot3(TX_LON, TX_LAT, TX_ALT, 'kx');
+% RX locations.
+hRxs = plot3k(allPathLossUtmXYHs);
+title('Samples in 3D (Colored by Altitudes) with Trees');
+xlabel('x (m)'); ylabel('y (m)'); zlabel('altitude (m)');
+
+saveas(hOverviewInUtmGps, [pathToSaveGpsOverviewPlot, '.fig']);
+saveas(hOverviewInUtmGps, [pathToSaveGpsOverviewPlot, '.png']);
 
 disp('    Done!')
 

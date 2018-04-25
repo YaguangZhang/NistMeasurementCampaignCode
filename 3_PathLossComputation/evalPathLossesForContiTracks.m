@@ -148,6 +148,8 @@ absPathsContiOutFiles = cell(numContiOutFiles, 1);
 % For indexing and storing the results into cells.
 contiOutFileCounter = 1;
 contiOutFileIndicesReflection = [];
+% We will use the Google service for RX altitudes.
+FLAG_USE_GOOGLE_FOR_ALT = true;
 for idxContiOutFile = 1:numContiOutFiles
     curContiOutFileDir = contiOutFilesDirs{idxContiOutFile};
     curContiGpsFilesDirs = contiGpsFilesDirs{idxContiOutFile};
@@ -166,7 +168,7 @@ for idxContiOutFile = 1:numContiOutFiles
     [ curContiPathLossesWithGpsInfo, absPathOutFile] ...
         = computePathLossesForContiOutFileDir(...
         curContiOutFileDir, curContiGpsFilesDirs, ...
-        noiseEliminationFct);
+        noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT);
     
     % Fetch the measurement campaign meta records.
     [absCurParDir, curSeries] = fileparts(curContiOutFileDir.folder);
@@ -220,7 +222,8 @@ for idxContiOutFile = 1:numContiOutFiles
             
             disp(['                PathLossBefore = ', ...
                 num2str(curContiPathLossesWithGpsInfo(idxPathLoss,1)), ...
-                ' dB; FinalPathLoss = ', num2str(rxGain), ' dB'])
+                ' dB; FinalPathLoss = ', ...
+                num2str(finalPathLossValue), ' dB'])
             
             curContiPathLossesWithGpsInfo(idxPathLoss,1) ...
                 = finalPathLossValue;

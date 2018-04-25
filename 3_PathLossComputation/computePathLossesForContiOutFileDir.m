@@ -1,7 +1,7 @@
 function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
     = computePathLossesForContiOutFileDir( ...
     curOutFileDir, contiGpsFilesDirs, ...
-    noiseEliminationFct)
+    noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT)
 %COMPUTEPATHLOSSFORCONTIOUTFILEDIR Load the Gnu Radio samples stored in the
 %.out file specified by the input dir struct outFileDir, and compute the
 %path loss for it.
@@ -24,6 +24,9 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
 % Update 04/01/2018: If the GnuRadio gain is set to a value that is not
 % calibratable (e.g. some recording segments for the NIST data set), the
 % computed path loss will be set to nan.
+%
+% Update 04/25/2018: Possible to use Google service to get altitudes for RX
+% locations.
 %
 % Yaguang Zhang, Purdue, 09/26/2017
 
@@ -58,6 +61,11 @@ catch
         'Please refer to 1_Calibration/calibrateRx.m for more detail.'])
 end
 
+% By default, we will use the altitude gotten by the GPS sensor.
+if ~exist('FLAG_USE_GOOGLE_FOR_ALT', 'var')
+    FLAG_USE_GOOGLE_FOR_ALT = false;
+end
+
 %% Load Data
 
 % All the GPS samples for this track.
@@ -68,6 +76,22 @@ for idxGpsSample = 1:numGpsSamples
     % Loading the GPS file.
     gpsLog = parseGpsLog(contiGpsFilesDirs(idxGpsSample).name);
     [lat, lon, alt, ~] = parseNmeaStr(gpsLog.gpsLocation);
+    
+    % Overwrite alt using informaiton from Google if necessary.
+    if FLAG_USE_GOOGLE_FOR_ALT
+        alt = nan;
+        while isnan(alt)
+            try
+                alt = getElevations(lat, lon);
+            catch
+                warning(['GPS sample #', ...
+                    num2str(idxGpsSample), '/', num2str(numGpsSamples), ...
+                    ': Unable to get elevation from Google!'])
+                disp('We will try again after waiting a littel bit.');
+                pause(0.5);
+            end
+        end
+    end
     
     % Store the results.
     lats(idxGpsSample) = lat;
