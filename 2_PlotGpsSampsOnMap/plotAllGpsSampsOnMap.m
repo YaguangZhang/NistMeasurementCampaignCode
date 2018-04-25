@@ -37,13 +37,14 @@ allGpsSamps = allGpsSamps(arrayfun(@(s) ~isempty(s.gpsLocation), allGpsSamps));
 
 % Parse the GPS log.
 numGpsSamps = length(allGpsSamps);
-[allLats, allLons] = deal(nan(numGpsSamps, 1));
+[allLats, allLons, allAlts] = deal(nan(numGpsSamps, 1));
 for idxS = 1:numGpsSamps
     gpsLog = allGpsSamps(idxS);
-    [lat, lon, ~, ~] = parseNmeaStr(gpsLog.gpsLocation);
+    [lat, lon, alt, ~] = parseNmeaStr(gpsLog.gpsLocation);
     
     allLats(idxS) = lat;
     allLons(idxS) = lon;
+    allAlts(idxS) = alt;
 end
 
 % Load the TX location.
@@ -55,10 +56,10 @@ lonTx = markerLons(idxTxMarker);
 
 disp('    Done!')
 
-%% Plot the Overview
+%% Plot 2D Overview
 
 disp(' ')
-disp('    Plotting overview...')
+disp('    Plotting 2D overview...')
 
 hFigOverview = figure;
 hold on;
@@ -67,10 +68,36 @@ hSamps = plot(allLons, allLats, 'r.');
 axis tight;
 plot_google_map('MapType', 'satellite');
 legend([hTx, hSamps], 'Tx', 'Measurements');
+title('GPS Sample Overview on Map');
 
 % Save the plot.
 pathToSaveOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview.png');
 saveas(hFigOverview, pathToSaveOverviewPlot);
+
+disp('    Done!')
+
+%% Plot 3D Overview
+
+disp(' ')
+disp('    Plotting 3D overview...')
+
+altTxGoogle = 1778.9871826;
+altRxMin = min(allAlts);
+
+hFigOverview3D = figure;
+hold on;
+% Two possible TX locaitons with different altitudes.
+hTxGoogle = plot3(lonTx, latTx, altTxGoogle, 'g^');
+hRxMin = plot3(lonTx, latTx, altRxMin, 'b^');
+hSamps = plot3(allLons, allLats, allAlts, 'r.');
+legend([hTxGoogle, hRxMin, hSamps], ...
+    'Tx By Google Alt', 'Tx by Rx Min Alt', 'Measurements');
+title('GPS Sample Overview in 3D'); view(15, 30); grid minor;
+xlabel('x (m)'); ylabel('y (m)'); zlabel('Altitude (m)');
+
+% Save the plot.
+pathToSaveOverview3DPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview3D.png');
+saveas(hFigOverview3D, pathToSaveOverview3DPlot);
 
 disp('    Done!')
 
