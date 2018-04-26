@@ -31,8 +31,8 @@ end
 
 %% Hard Coded Parameters
 
-% Tx Power in dBm. TODO: Update this according to the data sheet!
-TX_POWER_DBM = 20.9;
+% Tx Power in dBm. 
+TX_POWER_DBM = 23.4;
 % Tx tower height in feet.
 TX_HEIGHT_FEET = 5; % 60 inch.
 

@@ -1,7 +1,7 @@
 function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
     = computePathLossesForContiOutFileDir( ...
     curOutFileDir, contiGpsFilesDirs, ...
-    noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT)
+    noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT, GOOGLE_MAPS_API)
 %COMPUTEPATHLOSSFORCONTIOUTFILEDIR Load the Gnu Radio samples stored in the
 %.out file specified by the input dir struct outFileDir, and compute the
 %path loss for it.
@@ -18,6 +18,11 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
 %   - contiGpsFilesDirs
 %     A dir struct array specifying all the GPS log files corresponding to
 %     curOutFileDir.
+%   - FLAG_USE_GOOGLE_FOR_ALT, GOOGLE_MAPS_API
+%     Set the flag to be true to use altitude information from Google,
+%     instead of that from the GPS samples (because they may be too noisy).
+%     For this case, please also provide a valid Google Maps Elevation API
+%     key.
 %   - Other inputs
 %     Please refer to computePathLossForCurSignal.m for more detail.
 %
@@ -77,27 +82,28 @@ for idxGpsSample = 1:numGpsSamples
     gpsLog = parseGpsLog(contiGpsFilesDirs(idxGpsSample).name);
     [lat, lon, alt, ~] = parseNmeaStr(gpsLog.gpsLocation);
     
-    % Overwrite alt using informaiton from Google if necessary.
-    if FLAG_USE_GOOGLE_FOR_ALT
-        alt = nan;
-        while isnan(alt)
-            try
-                alt = getElevations(lat, lon);
-            catch
-                warning(['GPS sample #', ...
-                    num2str(idxGpsSample), '/', num2str(numGpsSamples), ...
-                    ': Unable to get elevation from Google!'])
-                disp('We will try again after waiting a littel bit.');
-                pause(0.5);
-            end
-        end
-    end
-    
     % Store the results.
     lats(idxGpsSample) = lat;
     lons(idxGpsSample) = lon;
     alts(idxGpsSample) = alt;
     gpsLogs{idxGpsSample} = gpsLog;
+end
+
+% Overwrite alts using informaiton from Google if necessary.
+if FLAG_USE_GOOGLE_FOR_ALT
+    alts = nan;
+    while isnan(alts)
+        try
+            alts = getElevations(lats, lons, 'key', GOOGLE_MAPS_API);
+        catch e
+            warning(['GPS sample #', ...
+                num2str(idxGpsSample), '/', num2str(numGpsSamples), ...
+                ': Unable to get elevation from Google!'])
+            disp(['    Error: ', e.identifier, '; Message: ', e.message]);
+            disp('We will try again after waiting a littel bit.');
+            pause(0.5);
+        end
+    end
 end
 
 % Compute b for the calibration line corresponding to the RX gain.
@@ -170,8 +176,8 @@ for idxGpsSample = 1:numGpsSamplesCovered
             curSigSegIdxRange = [sigSampIndicesByGps(1)+1, ...
                 sigSampIndicesByGps(2)];
         else
-            % For the last GPS sample, all the remaining signal samples will be
-            % assigned to it.
+            % For the last GPS sample, all the remaining signal samples
+            % will be assigned to it.
             sigSampIdxForCurGps = floor(Fs.*( ...
                 gpsTimes(idxGpsSample) ...
                 -gpsTimes(1)));
@@ -180,13 +186,14 @@ for idxGpsSample = 1:numGpsSamplesCovered
                 numComplexSamps];
         end
         
-        % Compute the path loss for the singal segment. We only need to discard
-        % a small account of the starting samples at the very begining to avoid
-        % the possible warm-up stage of the USRP.
+        % Compute the path loss for the singal segment. We only need to
+        % discard a small account of the starting samples at the very
+        % begining to avoid the possible warm-up stage of the USRP.
         FlagCutHead = (idxGpsSample==1);
         % function [ pathLossInDb ] ...
         %     = computePathLossForCurSignal(curSignal, txPower, ...
-        %       rxGain, noiseEliminationFct, powerShiftsForCali, FlagCutHead)
+        %       rxGain, noiseEliminationFct, powerShiftsForCali, ...
+        %        FlagCutHead)
         pathLossInDb = computePathLossForCurSignal( ...
             readComplexBinaryInRange(absPathOutFile, curSigSegIdxRange), ...
             txPower, usrpGains(idxGpsSample), noiseEliminationFct, ...
@@ -200,7 +207,7 @@ for idxGpsSample = 1:numGpsSamplesCovered
         warning('The GnuRadio gain for this sample is not calibratable!')
         pathLossInDb = nan;
     end
-
+    
     % Store the result as a [path loss (dB), lat, lon, alt] array.
     curContiPathLossesWithGpsInfo(idxGpsSample, :) ...
         = [pathLossInDb, ...
