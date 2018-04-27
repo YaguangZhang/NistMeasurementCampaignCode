@@ -94,7 +94,7 @@ if FLAG_USE_GOOGLE_FOR_ALT
     alts = nan;
     while isnan(alts)
         try
-            alts = getElevations(lats, lons, 'key', GOOGLE_MAPS_API);
+            alts = getElevationsFromGoogle(lats, lons, GOOGLE_MAPS_API);
         catch e
             warning(['GPS sample #', ...
                 num2str(idxGpsSample), '/', num2str(numGpsSamples), ...
