@@ -1,4 +1,4 @@
-function [ curContiPathLossesWithGpsInfo, absPathOutFile ] ...
+function [ curContiPathLossesWithGpsInfo, absPathOutFile, oriAlts ] ...
     = computePathLossesForContiOutFileDir( ...
     curOutFileDir, contiGpsFilesDirs, ...
     noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT, GOOGLE_MAPS_API)
@@ -89,8 +89,10 @@ for idxGpsSample = 1:numGpsSamples
     gpsLogs{idxGpsSample} = gpsLog;
 end
 
+oriAlts = [];
 % Overwrite alts using informaiton from Google if necessary.
 if FLAG_USE_GOOGLE_FOR_ALT
+    oriAlts = alts;
     alts = nan;
     while isnan(alts)
         try
@@ -220,6 +222,7 @@ boolsValidSamps = arrayfun(@(idx) ...
     1:numGpsSamplesCovered);
 curContiPathLossesWithGpsInfo ...
     = curContiPathLossesWithGpsInfo(boolsValidSamps, :);
+oriAlts = oriAlts(boolsValidSamps);
 
 end
 % EOF

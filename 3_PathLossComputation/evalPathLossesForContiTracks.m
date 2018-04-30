@@ -143,7 +143,9 @@ numContiOutFiles = sum(cellfun(@(d) length(d), contiOutFilesDirs));
 % More specifically, we will create one cell for each conti track to store
 % a matrix, where each row is a [path loss (dB), lat, lon, alt] array for a
 % GPS position.
-contiPathLossesWithGpsInfo = cell(numContiOutFiles, 1);
+[contiPathLossesWithGpsInfo, contiPathLossesExtraInfoTxGains, ...
+    contiPathLossesExtraInfoRxGains, contiPathLossesExtraInfoOriAlts] ...
+    = deal(cell(numContiOutFiles, 1));
 % Also save the meta info needed to map the path loss back to the
 % measurements. We choose to save the full file path to the .out file for
 % convenience.
@@ -167,7 +169,7 @@ for idxContiOutFile = 1:numContiOutFiles
     % track. We will use the amplitude version of thresholdWaveform.m
     % without plots for debugging as the noise eliminiation function.
     noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
-    [ curContiPathLossesWithGpsInfo, absPathOutFile] ...
+    [ curContiPathLossesWithGpsInfo, absPathOutFile, curContiOriAlts] ...
         = computePathLossesForContiOutFileDir(...
         curContiOutFileDir, curContiGpsFilesDirs, ...
         noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT, GOOGLE_MAPS_API);
@@ -183,12 +185,12 @@ for idxContiOutFile = 1:numContiOutFiles
     assert(curTxInfoLog.seriesNum==idxCurSer, ...
         'The series index number in the matched Tx info log does not agree with idxCurSer.');
     
+    [numPathLosses, ~] = size(curContiPathLossesWithGpsInfo);
+    [curContiTxGains, curContiRxGains] = deal(nan(numPathLosses, 1));
     % For the cases where TX orientation info is nan, we will ignore the
     % antenna gain calculation.
     if ~any(isnan([curTxInfoLog.txAz, curTxInfoLog.txEl, ...
             curTxInfoLog.rxAz, curTxInfoLog.rxEl]))
-        [numPathLosses, ~] = size(curContiPathLossesWithGpsInfo);
-        
         disp(' ')
         disp('            Computing antenna gains in 3D...')
         for idxPathLoss = 1:numPathLosses
@@ -229,6 +231,8 @@ for idxContiOutFile = 1:numContiOutFiles
             
             curContiPathLossesWithGpsInfo(idxPathLoss,1) ...
                 = finalPathLossValue;
+            curContiTxGains(idxPathLoss) = txGain;
+            curContiRxGains(idxPathLoss) = rxGain;
         end
     else
         warning('We not have enough information to extract antenna gains!');
@@ -239,6 +243,9 @@ for idxContiOutFile = 1:numContiOutFiles
     % Store the results.
     contiPathLossesWithGpsInfo{idxContiOutFile} ...
         = curContiPathLossesWithGpsInfo;
+    contiPathLossesExtraInfoTxGains{idxContiOutFile} = curContiTxGains;
+    contiPathLossesExtraInfoRxGains{idxContiOutFile} = curContiRxGains;
+    contiPathLossesExtraInfoOriAlts{idxContiOutFile} = curContiOriAlts;
     absPathsContiOutFiles{idxContiOutFile} = absPathOutFile;
 end
 assert(all(~isempty(vertcat(contiPathLossesWithGpsInfo{1:end}))));
@@ -251,8 +258,15 @@ contiOutFilesRelPathsUnderDataFolder = ...
     'tokens'), absPathsContiOutFiles);
 pathContiPathLossesFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'contiPathLossesWithGpsInfo.mat');
+% Extra info for debugging.
+contiPathLossesExtraInfo.contiTxGains = contiPathLossesExtraInfoTxGains;
+contiPathLossesExtraInfo.contiRxGains = contiPathLossesExtraInfoRxGains;
+contiPathLossesExtraInfo.FLAG_USE_GOOGLE_FOR_ALT = FLAG_USE_GOOGLE_FOR_ALT;
+contiPathLossesExtraInfo.contiOriAlts ...
+    = contiPathLossesExtraInfoOriAlts;
 save(pathContiPathLossesFileToSave, ...
     'contiPathLossesWithGpsInfo', ...
+    'contiPathLossesExtraInfo', ...
     'contiOutFilesRelPathsUnderDataFolder', ...
     'contiOutFileIndicesReflection');
 
