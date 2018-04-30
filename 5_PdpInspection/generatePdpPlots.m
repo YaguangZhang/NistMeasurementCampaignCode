@@ -1,5 +1,5 @@
-% GENERATEPDPPLOTS Generate the PDP overview .png plot for recorded signals and
-% save some of them as .fig file for further inspectation.
+% GENERATEPDPPLOTS Generate the PDP overview .png plot for recorded signals
+% and save some of them as .fig file for further inspectation.
 %
 % Yaguang Zhang, Purdue, 04/30/2018
 
@@ -24,7 +24,6 @@ ABS_PATH_TO_TX_INFO_LOGS_FILE= fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation', 'txInfoLogs.mat');
 
 % Which plots to also save as .fig files, besides the default .png plots.
-INDICES_CALI_PLOTS_TO_SAVE_AS_FIG = [];
 INDICES_MEAS_PLOTS_TO_SAVE_AS_FIG = [];
 
 %% Before Processing the Data
@@ -65,13 +64,9 @@ disp('    Done!')
 disp(' ')
 disp('    Locating signal recording files...')
 
-absPathToCaliDataDir = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, 'Data', ...
-    '20180330_Calibration');
-allSigOutFilesCali = locateFilteredOutFiles(absPathToSearch);
-
 absPathToMeasDataDir = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, 'Data', ...
     '20180331_NistFoliage');
-allSigOutFilesMeas = locateFilteredOutFiles(absPathToSearch);
+allSigOutFilesMeas = locateFilteredOutFiles(absPathToMeasDataDir);
 
 disp('    Done!')
 
@@ -80,8 +75,8 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting PDPs...')
 
-inspectPdps('cali', allSigOutFilesCali, ABS_PATH_TO_SAVE_PLOTS, ...
-    INDICES_CALI_PLOTS_TO_SAVE_AS_FIG, F_S);
+inspectPdps('Meas', allSigOutFilesMeas, ABS_PATH_TO_SAVE_PLOTS, ...
+    INDICES_MEAS_PLOTS_TO_SAVE_AS_FIG, F_S);
 
 disp('    Done!')
 

@@ -42,5 +42,7 @@ for idxSig = 1:numSigOutFiles
     if ismember(idxSig, indicesPlotsToSaveFigCopies)
         saveas(hFig, fullfile(absPathToSavePlot, [plotFileName, '.fig']));
     end
+
+    close(hFig); 
 end
 %EOF
