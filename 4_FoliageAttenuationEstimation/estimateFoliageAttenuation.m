@@ -145,7 +145,7 @@ allPathLosses = allPathLosses(:,1);
 boolsFinitePathLosses = ~isinf(allPathLosses);
 % Trees.
 hTrees = plot3(treeUtmXYHs(:,1), treeUtmXYHs(:,2), ...
-    treeUtmXYHs(:,3).*0, 'g*');
+    treeUtmXYHs(:,3).*min(allPathLosses), 'g*');
 % Pathlosses.
 plot3k(allPathLossUtmXYHs(boolsFinitePathLosses,:), ...
     'ColorData', allPathLosses(boolsFinitePathLosses));
@@ -169,9 +169,12 @@ hold on;
 % Trees.
 hTrees = plot3(treeUtmXYHs(:,1), treeUtmXYHs(:,2), treeUtmXYHs(:,3), 'g*');
 % TX.
-hTx = plot3(TX_LON, TX_LAT, TX_ALT, 'kx');
+hTx = plot3(xTx, yTx, TX_ALT+TX_HEIGHT_M, 'kx');
 % RX locations.
-hRxs = plot3k(allPathLossUtmXYHs);
+allPathLossUtmXYHsShifted = allPathLossUtmXYHs;
+allPathLossUtmXYHsShifted(:,3) ...
+    = allPathLossUtmXYHsShifted(:,3)+RX_HEIGHT_M;
+hRxs = plot3k(allPathLossUtmXYHsShifted);
 title('Samples in 3D (Colored by Altitudes) with Trees');
 xlabel('x (m)'); ylabel('y (m)'); zlabel('altitude (m)');
 
@@ -259,7 +262,7 @@ plot_google_map('MapType', 'satellite');
 view(95, 70);
 title({'Number of Trees in the 1st Fresnel Zone', 'for Each RX Location'});
 xlabel(' '); ylabel(' '); xticks([]); yticks([]);
-zlabel('Number of Trees'); 
+zlabel('Number of Trees');
 
 saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.fig']);
 saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.png']);
@@ -268,7 +271,7 @@ saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.png']);
 hTreeNumAndExceLoss = figure;
 hold on;
 allTxRxLosDists = vertcat(txRxLosDists{:});
-[sortedLosDist, indicesForSortedDist] = sort(allTxRxLosDists); 
+[sortedLosDist, indicesForSortedDist] = sort(allTxRxLosDists);
 allExceLossRefFreeSpace = vertcat(exceLossRefFreeSpace{:});
 % Tree numbers.
 yyaxis left;
@@ -305,6 +308,25 @@ saveas(hMeasAndFreeSpaceLosses, ...
 saveas(hMeasAndFreeSpaceLosses, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'MeasAndFreeSpaceLosses.png'));
 
+% Measured path losses and free-space path losses over linear distance.
+hMeasAndFreeSpaceLossesLinearDist = figure; hold on;
+allFreeSpacePathLosses = vertcat(freeSpacePathLosses{:});
+% Measured path losses.
+plot(sortedLosDist, ...
+    allContiPathLossesWithGpsInfo(indicesForSortedDist,1));
+ylabel('Measured Path Loss (dB)');
+% Free-space path losses
+plot(sortedLosDist, allFreeSpacePathLosses(indicesForSortedDist));
+title({'Measured and Free-Space Path Losses'});
+xlabel('RX Distance (m)'); ylabel('Free-Space Path Loss (dB)'); grid on;
+
+saveas(hMeasAndFreeSpaceLossesLinearDist, ...
+    fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'MeasAndFreeSpaceLossesLinearDist.fig'));
+saveas(hMeasAndFreeSpaceLossesLinearDist, ...
+    fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'MeasAndFreeSpaceLossesLinearDist.png'));
+
 % Measured path losses and free-space path losses sharing the same y axis.
 hMeasAndFreeSpaceLossesSameY = figure;
 hold on;
@@ -327,7 +349,7 @@ saveas(hMeasAndFreeSpaceLossesSameY, ...
 hExcePathLossOverTreeNum = figure;
 plot(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, '.');
 title({'Excessive Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
-xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)'); 
+xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
 axis tight; grid on;
 
 saveas(hExcePathLossOverTreeNum, ...
@@ -339,13 +361,120 @@ saveas(hExcePathLossOverTreeNum, ...
 hExcePathLossOverLogTreeNum = figure;
 semilogx(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, '.');
 title({'Excessive Path Losses vs. Log Number of Trees in the 1st Fresnel Zone'});
-xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)'); 
+xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
 axis tight; grid on;
 
 saveas(hExcePathLossOverLogTreeNum, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'ExceLossOverLogTreeNum.fig'));
 saveas(hExcePathLossOverLogTreeNum, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'ExceLossOverLogTreeNum.png'));
+
+disp('    Done!')
+
+%% Plot an Overview Comparing GPS Alts with Google Elevations
+disp(' ')
+disp('    Generating overview in UTM for comparing GPS alts with Google eles ...')
+
+if contiPathLossesExtraInfo.FLAG_USE_GOOGLE_FOR_ALT
+    
+    allContiOriAltsShifted ...
+        = vertcat(contiPathLossesExtraInfo.contiOriAlts{:}) + RX_HEIGHT_M;
+    
+    pathToSaveGpsOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'OverviewInUtmGpsComp');
+    hOverviewInUtmGpsComp = figure;
+    hold on;
+    % Trees.
+    hTrees = plot3(treeUtmXYHs(:,1), treeUtmXYHs(:,2), treeUtmXYHs(:,3), 'g*');
+    % TX.
+    hTx = plot3(xTx, yTx, TX_ALT+TX_HEIGHT_M, 'kx');
+    % RX locations according to Google.
+    hRxsG = plot3(allPathLossUtmXYHsShifted(:,1), ...
+        allPathLossUtmXYHsShifted(:,2), allPathLossUtmXYHsShifted(:,3), ...
+        'b.');
+    % RX locations according to GPS samples.
+    hRxs = plot3(...
+        allPathLossUtmXYHsShifted(:,1), allPathLossUtmXYHsShifted(:,2), ...
+        allContiOriAltsShifted, 'r.');
+    title('Comparing GPS Alts with Google Elevations in 3D with Trees');
+    legend([hTx, hTrees, hRxs, hRxsG], 'TX', 'Trees', ...
+        'RX with GPS Alts', 'RX with Google Eles');
+    transparentizeCurLegends; grid minor; view(40, 5);
+    xlabel('UTM x (m)'); ylabel('UTM y (m)'); zlabel('Altitude (m)');
+    
+    saveas(hOverviewInUtmGpsComp, [pathToSaveGpsOverviewPlot, '.fig']);
+    saveas(hOverviewInUtmGpsComp, [pathToSaveGpsOverviewPlot, '.png']);
+    
+    % Plot the difference (alts - eles) vs distance.
+    pathToSaveGpsAltAndGoogleEleDiffVsDist = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'OverviewGpsAltAndGoogleEleDiffVsDist');
+    hOverviewGpsAltAndGoogleEleDiffVsDist = figure;
+    plot(sortedLosDist, allContiOriAltsShifted(indicesForSortedDist) ...
+        - allPathLossUtmXYHsShifted(indicesForSortedDist,3));
+    title('Difference between GPS Alts and Google Elevations over Distance');
+    xlabel('Distance (m)'); ylabel('GPS Alts - Google Eles (m)');
+    grid minor; axis tight;
+    
+    saveas(hOverviewGpsAltAndGoogleEleDiffVsDist, ...
+        [pathToSaveGpsAltAndGoogleEleDiffVsDist, '.fig']);
+    saveas(hOverviewGpsAltAndGoogleEleDiffVsDist, ...
+        [pathToSaveGpsAltAndGoogleEleDiffVsDist, '.png']);
+    
+    % Plot the difference (alts - eles).
+    pathToSaveGpsAltAndGoogleEleDiffBin = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'OverviewGpsAltAndGoogleEleDiffBin');
+    hOverviewGpsAltAndGoogleEleDiffBin = figure;
+    histogram( allContiOriAltsShifted - allPathLossUtmXYHsShifted(:,3));
+    
+    title('Histogram for Difference between GPS Alts and Google Elevations');
+    xlabel('GPS Alts - Google Eles (m)'); ylabel('#'); grid minor;
+    
+    saveas(hOverviewGpsAltAndGoogleEleDiffBin, ...
+        [pathToSaveGpsAltAndGoogleEleDiffBin, '.fig']);
+    saveas(hOverviewGpsAltAndGoogleEleDiffBin, ...
+        [pathToSaveGpsAltAndGoogleEleDiffBin, '.png']);
+    
+else
+    disp('        Google elevations were not retreived. Abortting...')
+end
+
+disp('    Done!')
+
+%% Plot Path Loss Results with Antenna Gains.
+disp(' ')
+disp('    Plotting path loss results with antenna gains ...')
+
+alphaForResultsExcludingAntGains = 0.8;
+
+allContiPathTxGains = vertcat(contiPathLossesExtraInfo.contiTxGains{:});
+allContiPathRxGains = vertcat(contiPathLossesExtraInfo.contiRxGains{:});
+
+pathToSavePathLossWithAntGains = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'PathLossWithAntGainsOverDist');
+hPathLossWithAntGainsOverDist = figure; hold on;
+hMeas = plot(sortedLosDist, ...
+    allContiPathLossesWithGpsInfo(indicesForSortedDist,1), '--');
+hMeasMinusRxGains = plot(sortedLosDist, ...
+    allContiPathLossesWithGpsInfo(indicesForSortedDist,1) ...
+    - allContiPathRxGains(indicesForSortedDist), '-');
+hMeasMinusRxAndTxGains = plot(sortedLosDist, ...
+    allContiPathLossesWithGpsInfo(indicesForSortedDist,1) ...
+    - allContiPathRxGains(indicesForSortedDist) ...
+    - allContiPathTxGains(indicesForSortedDist), '-.');
+hMeasMinusRxGains.Color(4) = alphaForResultsExcludingAntGains; 
+hMeasMinusRxAndTxGains.Color(4) = alphaForResultsExcludingAntGains;
+legend([hMeas, hMeasMinusRxGains, hMeasMinusRxAndTxGains], ...
+    'Measurements', 'Measurements excluding RX gain', ...
+    'Measurements excluding RX and TX gain'); 
+transparentizeCurLegends;
+title({'Path Losses with Antenna Gains over Distance'});
+xlabel('Distance (m)'); ylabel('Path Losses (dB)');
+axis tight; grid minor;
+
+saveas(hPathLossWithAntGainsOverDist, ...
+    [pathToSavePathLossWithAntGains, '.fig']);
+saveas(hPathLossWithAntGainsOverDist, ...
+    [pathToSavePathLossWithAntGains, '.png']);
 
 disp('    Done!')
 
