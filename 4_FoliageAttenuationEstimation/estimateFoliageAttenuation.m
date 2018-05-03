@@ -25,10 +25,8 @@ ABS_PATH_TO_TREE_LOCS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
 pathToSaveTreeLocs = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'treeLocs.mat');
 pathToSaveUtmInfo = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'utmInfoForPathLossesAndTrees.mat');
-pathToSaveNumsOfTreesInFirstFresnel = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'numsTreesInFirstFresnel.mat');
-pathToSaveFreeSpacePathLosses = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'freeSpacePathLossResults.mat');
+pathToSaveFoliageAttenResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'foliageAttenAnalysisResults.mat');
 
 % Reuse results from evalPathLossesForContiTracks.m and
 % loadMeasCampaignInfo.m.
@@ -205,7 +203,7 @@ for idxS = 1:numOfSeries
     end
 end
 
-save(pathToSaveNumsOfTreesInFirstFresnel, 'numsOfTreesInFirstFresnel');
+save(pathToSaveFoliageAttenResults, 'numsOfTreesInFirstFresnel');
 
 disp('    Done!')
 
@@ -232,8 +230,8 @@ for idxS = 1:numOfSeries
         - freeSpacePathLosses{idxS};
 end
 
-save(pathToSaveFreeSpacePathLosses, 'freeSpacePathLosses', ...
-    'exceLossRefFreeSpace');
+save(pathToSaveFoliageAttenResults, 'freeSpacePathLosses', ...
+    'exceLossRefFreeSpace', '-append');
 
 disp('    Done!')
 
@@ -307,25 +305,6 @@ saveas(hMeasAndFreeSpaceLosses, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'MeasAndFreeSpaceLosses.fig'));
 saveas(hMeasAndFreeSpaceLosses, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'MeasAndFreeSpaceLosses.png'));
-
-% Measured path losses and free-space path losses over linear distance.
-hMeasAndFreeSpaceLossesLinearDist = figure; hold on;
-allFreeSpacePathLosses = vertcat(freeSpacePathLosses{:});
-% Measured path losses.
-plot(sortedLosDist, ...
-    allContiPathLossesWithGpsInfo(indicesForSortedDist,1));
-ylabel('Measured Path Loss (dB)');
-% Free-space path losses
-plot(sortedLosDist, allFreeSpacePathLosses(indicesForSortedDist));
-title({'Measured and Free-Space Path Losses'});
-xlabel('RX Distance (m)'); ylabel('Free-Space Path Loss (dB)'); grid on;
-
-saveas(hMeasAndFreeSpaceLossesLinearDist, ...
-    fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'MeasAndFreeSpaceLossesLinearDist.fig'));
-saveas(hMeasAndFreeSpaceLossesLinearDist, ...
-    fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'MeasAndFreeSpaceLossesLinearDist.png'));
 
 % Measured path losses and free-space path losses sharing the same y axis.
 hMeasAndFreeSpaceLossesSameY = figure;
@@ -461,11 +440,11 @@ hMeasMinusRxAndTxGains = plot(sortedLosDist, ...
     allContiPathLossesWithGpsInfo(indicesForSortedDist,1) ...
     - allContiPathRxGains(indicesForSortedDist) ...
     - allContiPathTxGains(indicesForSortedDist), '-.');
-hMeasMinusRxGains.Color(4) = alphaForResultsExcludingAntGains; 
+hMeasMinusRxGains.Color(4) = alphaForResultsExcludingAntGains;
 hMeasMinusRxAndTxGains.Color(4) = alphaForResultsExcludingAntGains;
 legend([hMeas, hMeasMinusRxGains, hMeasMinusRxAndTxGains], ...
     'Measurements', 'Measurements excluding RX gain', ...
-    'Measurements excluding RX and TX gain'); 
+    'Measurements excluding RX and TX gain');
 transparentizeCurLegends;
 title({'Path Losses with Antenna Gains over Distance'});
 xlabel('Distance (m)'); ylabel('Path Losses (dB)');
@@ -478,4 +457,66 @@ saveas(hPathLossWithAntGainsOverDist, ...
 
 disp('    Done!')
 
+%% Apply the Partition-Dependent Model
+% Essentially we will get one fixed value for the extra path loss caused by
+% each tree inside the 1st Fresnel zone.
+
+disp(' ')
+disp('    Computing the extra path loss caused by each tree in the 1st Fresnel zone...')
+
+excePathLossPerTree ...
+    = pinv(allTreeNumsInFirstFresnel)*allExceLossRefFreeSpace;
+
+disp('    Making predictions accordingly ...')
+shiftedFreeSpacePathLosses = cell(numOfSeries, 1);
+for idxS = 1:numOfSeries
+    disp(['        Series ', ...
+        num2str(idxS), '/' num2str(numOfSeries), '...']);
+    
+    shiftedFreeSpacePathLosses{idxS} = freeSpacePathLosses{idxS} ...
+        + numsOfTreesInFirstFresnel{idxS}.*excePathLossPerTree;
+end
+
+save(pathToSaveFoliageAttenResults, 'excePathLossPerTree', ...
+    'shiftedFreeSpacePathLosses', '-append');
+
+%% Plot the Pathloss Results
+
+allShiftedFreeSpacePathLosses = vertcat(shiftedFreeSpacePathLosses{:});
+
+% Measured path losses and free-space path losses over linear distance.
+hMeasAndFreeSpaceLossesLinearDist = figure; hold on;
+allFreeSpacePathLosses = vertcat(freeSpacePathLosses{:});
+% Measured path losses.
+hMeas = plot(sortedLosDist, ...
+    allContiPathLossesWithGpsInfo(indicesForSortedDist,1), '-');
+% Free-space path losses.
+hFreeSpace = plot(sortedLosDist, ...
+    allFreeSpacePathLosses(indicesForSortedDist), '-');
+% Shifted free-space path losses.
+hShiftedFreeSpace ...
+    = plot(sortedLosDist, ...
+    allShiftedFreeSpacePathLosses(indicesForSortedDist), '-');
+legend([hMeas, hFreeSpace, hShiftedFreeSpace], ...
+    'Measurements', 'Free Space Path Loss', ...
+    'Shifted Free Space Path Loss', 'Location', 'southeast');
+axis tight; transparentizeCurLegends;
+
+% RMSE
+rmseShiftVsMeas = sqrt(sum((allShiftedFreeSpacePathLosses ...
+    - allContiPathLossesWithGpsInfo(:,1)).^2)...
+    /length(allShiftedFreeSpacePathLosses));
+
+title(['Foilage Analysis Results: RMSE = ', ...
+    num2str(rmseShiftVsMeas, '%.4f'), ' dB']); 
+xlabel('RX Distance (m)'); ylabel('Free-Space Path Loss (dB)'); grid on;
+
+saveas(hMeasAndFreeSpaceLossesLinearDist, ...
+    fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'MeasAndFreeSpaceLossesAndShiftedOverLinearDist.fig'));
+saveas(hMeasAndFreeSpaceLossesLinearDist, ...
+    fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'MeasAndFreeSpaceLossesAndShiftedOverLinearDist.png'));
+
+disp('    Done!')
 % EOF
