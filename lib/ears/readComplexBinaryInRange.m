@@ -8,7 +8,8 @@ function [ samples] = readComplexBinaryInRange (filename, range)
 
 fid = fopen (filename, 'rb');
 % In a GnuRadio .out file, we have:
-%     Complex - 32 bit floating point for both I and 32 Q
+%     Complex - 32 bit floating point for both I and 32 Q (8 bytes in
+%     total per sample).
 offset = (range(1)-1).*8;
 fseek(fid, offset, 'bof');
 data = fread (fid, [2, range(2)-range(1)+1], 'float');

@@ -1,4 +1,5 @@
-function [ curContiPathLossesWithGpsInfo, absPathOutFile, oriAlts ] ...
+function [ curContiPathLossesWithGpsInfo, absPathOutFile, oriAlts, ...
+    outFileSampleRanges ] ...
     = computePathLossesForContiOutFileDir( ...
     curOutFileDir, contiGpsFilesDirs, ...
     noiseEliminationFct, FLAG_USE_GOOGLE_FOR_ALT, GOOGLE_MAPS_API)
@@ -32,6 +33,9 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile, oriAlts ] ...
 %
 % Update 04/25/2018: Possible to use Google service to get altitudes for RX
 % locations.
+%
+% Update 05/07/2018: Now also keep track of sample indices for the signal
+% recording segement of each path loss value.
 %
 % Yaguang Zhang, Purdue, 09/26/2017
 
@@ -162,6 +166,7 @@ if(~isempty(idxFirstGpsSamplesNotCovered))
 end
 
 curContiPathLossesWithGpsInfo = nan(numGpsSamplesCovered,4);
+outFileSampleRanges = nan(numGpsSamplesCovered,2);
 for idxGpsSample = 1:numGpsSamplesCovered
     disp('curContiPathLossesWithGpsInfo: ');
     disp(['    Computing path loss for segment ', num2str(idxGpsSample), '/', ...
@@ -201,6 +206,8 @@ for idxGpsSample = 1:numGpsSamplesCovered
             txPower, usrpGains(idxGpsSample), noiseEliminationFct, ...
             powerShiftsForCalis(idxGpsSample), FlagCutHead);
         
+        outFileSampleRanges(idxGpsSample, :) = curSigSegIdxRange;
+        
         if isinf(pathLossInDb)
             warning('The resulting pathloss is +/- inf! Resetting it to nan...')
             pathLossInDb = nan;
@@ -223,6 +230,7 @@ boolsValidSamps = arrayfun(@(idx) ...
 curContiPathLossesWithGpsInfo ...
     = curContiPathLossesWithGpsInfo(boolsValidSamps, :);
 oriAlts = oriAlts(boolsValidSamps);
+outFileSampleRanges = outFileSampleRanges(boolsValidSamps, :);
 
 end
 % EOF
