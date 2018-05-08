@@ -188,7 +188,7 @@ disp(' ')
 disp('    Counting trees in Fresnel zones ...')
 
 numsOfTreesInFirstFresnel = cell(numOfSeries, 1);
-tx3D = [xTx, yTx, TX_ALT];
+tx3D = [xTx, yTx, TX_ALT+TX_HEIGHT_M];
 for idxS = 1:numOfSeries
     disp(['        Series ', ...
         num2str(idxS), '/' num2str(numOfSeries), '...']);
@@ -197,6 +197,8 @@ for idxS = 1:numOfSeries
     
     for idxSamp = 1:curNumSamps
         rx3D = pathLossUtmXYHs{idxS}(idxSamp, :);
+        % Considering the RX height over the ground.
+        rx3D(:, 3) = rx3D(:, 3)+RX_HEIGHT_M;
         numsOfTreesInFirstFresnel{idxS}(idxSamp) ...
             = countNumOfTreesInFirstFresnelZone(tx3D, rx3D, ...
             treeUtmXYHs, F_C_IN_GHZ);

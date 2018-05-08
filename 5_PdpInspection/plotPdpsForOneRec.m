@@ -1,4 +1,4 @@
-function [ hFig ] = plotPdpsForOneRec(sigOutFile, F_S)
+function [ hFig ] = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
 %PLOTPDPSFORONEREC Plot the PDP overview plot for one signal recording
 %file.
 %
@@ -9,18 +9,32 @@ function [ hFig ] = plotPdpsForOneRec(sigOutFile, F_S)
 %       - F_S
 %         The GnuRadio sample rate for the singal recordings. The x axis
 %         will be converted from sample # to time accordingly.
+%       - segmentRange
+%         Optional. [idxStart, idxEnd] for what segment to look at
+%         (including the start and end samples). If not specified, the
+%         whole recording will be looked at.
+%
+% Update 05/07/2018: Added support for segment of the signal.
 %
 % Yaguang Zhang, Purdue, 04/30/2018
 
-% We will only load in ~1 second, if possible, of the signal from the
-% center of the recording.
-numSam = countComplexBinary(sigOutFile.name); % Total number of samples.
-countSam = min(F_S, numSam); % At most 10s of the signal.
+if exist('segmentRange', 'var')
+    % We will load in ~1 second, if possible, of the signal recording
+    % segment from the center.
+    numSam = segmentRange(2) - segmentRange(1) + 1;
+    centerSam = segmentRange(1)+floor(numSam/2);
+else
+    % We will load in ~1 second, if possible, of the whoe signal recording
+    % from the center.
+    numSam = countComplexBinary(sigOutFile.name); % Total number of samples.
+    centerSam = floor(numSam/2);
+end
+% Number of samples to load.
+countSam = min(F_S, numSam); % At most 1s of the signal.
 
-centerSam = floor(numSam/2);
 shiftSam = floor(countSam/2);
-
 range = [centerSam-shiftSam, centerSam+shiftSam];
+
 curSignal = readComplexBinaryInRange (sigOutFile.name, range);
 [~, figureSupTitle, ~] = fileparts(sigOutFile.name);
 
