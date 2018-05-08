@@ -122,6 +122,9 @@ for idxRange = 1:length(distRangesToInsp)
                     '_Seg_', num2str(idxSeg)];
                 saveas(hFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
                     [plotFileName, '.png']));
+                
+                % Close the figure.
+                close(hFig);
             end
         end
     end

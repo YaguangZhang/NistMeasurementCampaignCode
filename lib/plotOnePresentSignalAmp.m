@@ -43,6 +43,10 @@ if(maxIdxToPlot>length(signal))
     minIdxToPlot = length(signal);
 end
 
+% Disable the interpreter temperorily.
+curDefulatTextInt = get(0,'DefaultTextInterpreter');
+set(0,'DefaultTextInterpreter','none');
+
 if nargin>3
     hFig = figure('Name',figureName);
 else
@@ -63,4 +67,6 @@ hold off; legend(hAmp, 'Amplitude'); axis tight;
 if nargin>3
     suptitle(figureName);
 end
+
+set(0,'DefaultTextInterpreter',curDefulatTextInt);
 % EOF
