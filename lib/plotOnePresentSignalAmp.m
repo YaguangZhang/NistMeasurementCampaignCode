@@ -40,7 +40,7 @@ if(minIdxToPlot<1)
 end
 maxIdxToPlot = idxRefSample + numPostSamples;
 if(maxIdxToPlot>length(signal))
-    minIdxToPlot = length(signal);
+    maxIdxToPlot = length(signal);
 end
 
 % Disable the interpreter temperorily.
@@ -57,7 +57,7 @@ end
 msToPlot = (1:(maxIdxToPlot-minIdxToPlot+1))./Fs.*1000;
 
 subplot(1,1,1); hold on;
-signalAmp = abs(signalImag(minIdxToPlot:maxIdxToPlot));
+signalAmp = abs(signal(minIdxToPlot:maxIdxToPlot));
 hAmp = plot(msToPlot, signalAmp, 'b.');
 if FLAG_SUBTITLES
     title('First Detected Signal (Amplitude in Volt)')

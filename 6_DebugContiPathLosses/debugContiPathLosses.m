@@ -7,7 +7,7 @@ clear; clc; close all;
 
 %% Configurations
 
-warning('on');
+warning('on'); dbstop if error;
 
 % Add libs to current path and set ABS_PATH_TO_NIST_SHARED_FOLDER according
 % to the machine name.
