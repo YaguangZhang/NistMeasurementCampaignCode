@@ -128,6 +128,13 @@ end
 curSignalEliminated = curSignal;
 curSignalEliminated(boolsEliminatedPts) = 0;
 
+% Also get rid of everything below the USRP noise floor if
+% USRP_NOISE_FLOOR_V is specified in the base workspace.
+if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
+    USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
+    curSignalEliminated(curSignalEliminated<USRP_NOISE_FLOOR_V) = 0;
+end
+
 %% Calculate Power
 
 % For the signal to process, i.e. the noise eliminiated signal, compute the

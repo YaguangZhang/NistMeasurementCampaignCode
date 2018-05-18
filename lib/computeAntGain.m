@@ -1,4 +1,4 @@
-function [ gain, hDebugFig, hDebugFigMap] ...
+function [ gain, hDebugFig, hDebugFigMap, distM] ...
     = computeAntGain(lat0, lon0, alt0, ...
     az0, el0, ...
     lat, lon, alt, ...
@@ -19,6 +19,8 @@ function [ gain, hDebugFig, hDebugFigMap] ...
 %         The linear amplitudes of the samples.
 %       - phases
 %         The phases of the samples.
+%
+% Update 20180518: Also output the distance between the TX and the RX.
 %
 % Yaguang Zhang, Purdue, 10/04/2017
 
@@ -51,6 +53,13 @@ y = -xEasting;
 
 if ~strcmp(zone0, zone)
     error('computeAntGain: The two locations specified are not in the same UTM zone!');
+end
+
+if nargout>3
+    % Compute the distance if necessary.
+    distM = sqrt(sum( ...
+        ([x0Easting, y0Northing, alt0] - [xEasting, yNorthing, alt]).^2 ...
+        ));
 end
 
 az0R = deg2rad(az0);

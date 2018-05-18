@@ -52,6 +52,22 @@ TX_LON = -105.2746385;
 % The downconverter gain at the RX side.
 DOWNCONVERTER_GAIN_IN_DB = 13.4;
 
+% The psuedo-noise sequence generator clock frequencies in MHz for the TX
+% and the RX, respectively.
+TX_PN_CLK_MHz = 400;
+RX_PN_CLK_MHz = 399.995;
+
+% Set this flag to true if the PDP's are actually time-reversed. This is a
+% consequence of running the sliding correlator "backwards", that is with
+% the slower PN clock at the transmitter rather than the receiver. If this
+% is present and true, the path loss computation and PDP plotting functions
+% will inverse the input samples first.
+FLAG_PDP_TIME_REVERSED = true;
+
+% Set this variable if it is necessary to get rid of singal samples less
+% than this floor.
+USRP_NOISE_FLOOR_V = 0.003; % In V.
+
 %% Auto-generated Parameters
 
 try
@@ -64,6 +80,8 @@ end
 
 % Necessary Unit Conversion
 TX_HEIGHT_M = distdim(TX_HEIGHT_FEET,'feet','meters');
+
+SLIDE_FACTOR = TX_PN_CLK_MHz/(TX_PN_CLK_MHz-RX_PN_CLK_MHz);
 
 %% Load Records from TxInfo.txt Files
 
@@ -85,7 +103,8 @@ save(pathFileToSaveResults, 'TX_POWER_DBM', ...
     'TX_HEIGHT_FEET', 'RX_HEIGHT_M', 'TX_HEIGHT_M', ...
     'F_S', 'F_C_IN_GHZ', 'TX_LAT', 'TX_LON', 'TX_ALT', ...
     'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS', ...
-    'DOWNCONVERTER_GAIN_IN_DB');
+    'DOWNCONVERTER_GAIN_IN_DB', 'TX_PN_CLK_MHz', 'RX_PN_CLK_MHz', ...
+    'FLAG_PDP_TIME_REVERSED', 'SLIDE_FACTOR', 'USRP_NOISE_FLOOR_V');
 
 %% Generate plotInfo.mat
 % This is needed for the path loss computation scripts.

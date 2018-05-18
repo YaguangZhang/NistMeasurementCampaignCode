@@ -302,6 +302,14 @@ for idxDataset = 1:numDatasets
             curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
         end
         
+        % Also get rid of everything below the USRP noise floor if
+        % USRP_NOISE_FLOOR_V is specified in the base workspace.
+        if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
+            USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
+            curCalDataThr{idxCurMeas}...
+                (curCalDataThr{idxCurMeas}<USRP_NOISE_FLOOR_V) = 0;
+        end
+
         % Signal (noise eliminiated) to process.
         X = curCalDataThr{idxCurMeas};
         L = length(X);

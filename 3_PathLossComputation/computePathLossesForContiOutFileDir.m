@@ -34,6 +34,11 @@ function [ curContiPathLossesWithGpsInfo, absPathOutFile, oriAlts, ...
 % Update 04/25/2018: Possible to use Google service to get altitudes for RX
 % locations.
 %
+% New output:
+%   - oriAlts
+%     The original altitudes read from the GPS samples, if we use the
+%     elevation information from Google instead.
+%
 % Update 05/07/2018: Now also keep track of sample indices for the signal
 % recording segement of each path loss value.
 %

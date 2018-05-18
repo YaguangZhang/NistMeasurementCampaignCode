@@ -59,8 +59,15 @@ curSignal = lpfComplex(curSignal);
 numPreSamples = floor(F_S*0.02); % 0.02s
 numPostSamples = floor(F_S*0.04); % 0.04s
 
-hFig = plotOnePresentSignalAmp(curSignal, ...
-    numPreSamples, numPostSamples, figureSupTitle, F_S);
+
+if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
+    SLIDE_FACTOR = evalin('base', 'SLIDE_FACTOR');
+    hFig = plotOnePresentSignalAmp(curSignal, ...
+        numPreSamples, numPostSamples, figureSupTitle, F_S, SLIDE_FACTOR);
+else
+    hFig = plotOnePresentSignalAmp(curSignal, ...
+        numPreSamples, numPostSamples, figureSupTitle, F_S);
+end
 transparentizeCurLegends; grid on; xlabel('Time (ms)');
 
 end
