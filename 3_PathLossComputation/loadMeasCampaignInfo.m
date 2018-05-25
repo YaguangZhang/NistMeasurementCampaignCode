@@ -60,8 +60,10 @@ RX_PN_CLK_MHz = 399.995;
 % Set this flag to true if the PDP's are actually time-reversed. This is a
 % consequence of running the sliding correlator "backwards", that is with
 % the slower PN clock at the transmitter rather than the receiver. If this
-% is present and true, the path loss computation and PDP plotting functions
-% will inverse the input samples first.
+% is present and true, the PDP plotting functions will inverse the input
+% samples only for visalizing the PDP in the traditional way. However, path
+% loss computation will not be changed as the reversed signal should have
+% the same energy as the original one.
 FLAG_PDP_TIME_REVERSED = true;
 
 % Set this variable if it is necessary to get rid of singal samples less

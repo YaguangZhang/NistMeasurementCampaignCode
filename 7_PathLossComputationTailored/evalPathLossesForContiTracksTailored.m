@@ -9,6 +9,9 @@
 %   - Discard points too close (<50m) to TX;
 %   - Get rid of everything smaller than the USRP noise floor (<3 mV).
 %
+% Note that the resulted from evalPathLossesForContiTracks.m will be
+% over-written if this script is successfully run. 
+%
 % Yaguang Zhang, Purdue, 04/09/2018
 
 clear; clc; close all;
