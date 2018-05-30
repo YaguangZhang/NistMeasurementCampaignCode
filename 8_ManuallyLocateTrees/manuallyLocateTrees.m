@@ -10,7 +10,6 @@
 %
 % Yaguang Zhang, Purdue, 04/09/2018
 
-
 clear; clc; close all;
 
 %% Configurations
@@ -44,7 +43,16 @@ end
 % The absolute path to save elevation information for the lidar data.
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'ManuallyLocateTrees');
+% The tree location GPS records exported from an Android app.
+ABS_PATH_TO_TREE_LOCS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+    'Data', 'NIST foliage analysis tree locations.csv');
 
+% Set this to be true to also show the tree locations recorded by the
+% Android app.
+FLAG_SHOW_RECOREDED_TREE_LOCS = true;
+pathToSaveTreeLocsRecorded = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+    'PostProcessingResults', 'FoliageAttenuationEstimation', ...
+    'treeLocs.mat');
 % Set this to be true to try to fetch elevation data from Google Maps.
 % Currently, we do not have enough quote for this.
 FLAG_FTECH_ELE_FROM_GOOGLE = false;
@@ -171,8 +179,8 @@ disp('    Generating interactive plot for marking trees ...')
 % For filtering out outliers and samples we do not care.
 
 zRangeToShow = [1660, 1920]; % Hard coded.
-latRangeToShow = [39.988623, 39.992223];
-lonRangeToShow = [-105.279528, -105.273414];
+latRangeToShow = [39.989188, 39.992223];
+lonRangeToShow = [-105.278014, -105.273414];
 
 lidarLonLatZToShow = [lidarLons, lidarLats, lidarData.z];
 lidarLonLatZToShow((lidarLonLatZToShow(:,1)<lonRangeToShow(1) ...
@@ -211,6 +219,15 @@ else
     save(ABS_PATH_TO_SAVE_TREE_LOCS, 'markLocs');
 end
 
+if FLAG_SHOW_RECOREDED_TREE_LOCS
+    [numTreeLocations, ~] = size(treeLocations);
+    treeLocations = loadGpsMarkersWithAlt(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
+    pathToSaveTreeLocsRecorded);
+    hTreeLocationRecords = plot3(treeLocations(:,2), treeLocations(:,1), ...
+        ones(numTreeLocations,1), ...
+        'bo', 'LineWidth', 2);
+end
+
 % Overlay trees on top of the figure.
 [numTrees, ~] = size(markLocs);
 if numTrees>0
@@ -227,6 +244,10 @@ hInteractiveArea = fill3([lonRangeToShow(1), lonRangeToShow(1), ...
     lonRangeToShow(2), lonRangeToShow(2)], ...
     [latRangeToShow, latRangeToShow(end:-1:1)], ...
     ones(1,4), 'r', 'FaceColor','none'); 
+if FLAG_SHOW_RECOREDED_TREE_LOCS
+    legend([hTreeLocs, hTreeLocationRecords], ...
+        'Manual Labels', 'Android GPS');
+end
 set(hInteractiveArea, 'EdgeColor', 'r', 'LineWidth', 2);
 set(hInteractiveArea,'ButtonDownFcn', @(src,evnt) ...
     updateTreeMarkerState(src, evnt), ...
@@ -235,6 +256,13 @@ set(hInteractiveArea,'ButtonDownFcn', @(src,evnt) ...
 % Show the figure.
 set(hInterTreeMarker, 'visible','on');
 
+disp('    The interactive tool for manually marking the tree locations is ready!')
+disp('    Please (left) click on the plot to add new tree locations ...')
+disp(' ')
+disp('    It''s OK to zoom in the figure and move around if necessary. ')
+disp('    It''s also OK to manually modify the tree locations stored in the variable markLocs in the base workspace. ')
+disp('    The variable markLocs will eventually be saved into a .mat file when the figure is closed. ')
+disp(' ')
 disp('    Done!')
 
 % EOF
