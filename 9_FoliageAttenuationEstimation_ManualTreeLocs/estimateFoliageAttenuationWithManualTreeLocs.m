@@ -1,7 +1,15 @@
 % ESTIMATEFOLIAGEATTENUATION Estimate the extra path losses caused by trees
 % for the NIST dataset.
 %
-% Yaguang Zhang, Purdue, 04/16/2018
+%   This script is based on:
+%
+%       4_FoliageAttenuationEstimation/estimateFoliageAttenuation.m
+%
+%   Tree locations manually marked on a map with satellite images and lidar
+%   data for NIST, instead of the records made by the GPS marker Android
+%   app is used here.
+%
+% Yaguang Zhang, Purdue, 05/31/2018
 
 clear; clc; close all;
 
@@ -15,14 +23,18 @@ cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
+% Need functions from 4_FoliageAttenuationEstimation.
+addpath(fullfile(pwd, '4_FoliageAttenuationEstimation'));
+
 % Configure other paths accordingly.
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
-    'PostProcessingResults', 'FoliageAttenuationEstimation');
-ABS_PATH_TO_TREE_LOCS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
-    'Data', 'NIST foliage analysis tree locations.csv');
+    'PostProcessingResults', 'FoliageAttenuationEstimation_ManualTreeLocs');
+ABS_PATH_TO_MANUAL_TREE_LOCS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+    'PostProcessingResults', 'ManuallyLocateTrees', 'treeLocs.mat');
 % The loaded tree info only has lat and lon. We will fetch alt accordingly
 % and save the results here.
-pathToSaveTreeLocs = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'treeLocs.mat');
+pathToSaveTreeLocs = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'treeLocsWithAlts.mat');
 pathToSaveUtmInfo = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'utmInfoForPathLossesAndTrees.mat');
 pathToSaveFoliageAttenResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
@@ -35,6 +47,8 @@ ABS_PATH_TO_PATH_LOSSES = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'contiPathLossesWithGpsInfo.mat');
 ABS_PATH_TO_TX_INFO_LOGS_FILE= fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation', 'txInfoLogs.mat');
+
+GOOGLE_MAPS_API = 'AIzaSyDlkaE_QJxvRJpTutWG0N-LCvoT0e7FPHE';
 
 %% Before Processing the Data
 
@@ -53,9 +67,12 @@ end
 
 disp(' ')
 disp('    Loading results from: ')
+disp('      - treeLocs.mat')
 disp('      - contiPathLossesWithGpsInfo.mat')
 disp('      - txInfoLogs.mat')
 
+assert(exist(ABS_PATH_TO_MANUAL_TREE_LOCS, 'file')==2, ...
+    'Couldn''t find treeLocs.mat! Please run PostProcessing/8_ManuallyLocateTrees/manuallyLocateTrees.m first.');
 assert(exist(ABS_PATH_TO_PATH_LOSSES, 'file')==2, ...
     'Couldn''t find plotInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
 assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
@@ -64,6 +81,8 @@ assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
 % The data have been processed before and the result files have been found.
 disp('    Found all .mat files required.');
 disp('        Loading the results...')
+% Get 'markLocs'.
+load(ABS_PATH_TO_MANUAL_TREE_LOCS);
 % Get 'contiPathLossesWithGpsInfo', 'contiOutFilesRelPathsUnderDataFolder'
 % and 'contiOutFileIndicesReflection'.
 load(ABS_PATH_TO_PATH_LOSSES);
@@ -77,18 +96,22 @@ disp('    Done!')
 %% Load the Tree Info
 
 disp(' ')
-disp('    Loading tree location information...')
+disp('    Fetching altitudes for tree locations ...')
 
-treeLocations = loadGpsMarkersWithAlt(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
-    pathToSaveTreeLocs);
+[numTrees, ~] = size(markLocs);
+treeLocations = [markLocs nan(numTrees,1)];
 % Keep trying to fetch alts from Google until all needed info is available.
 numRetrial = 0;
-while any(isnan(treeLocations(:,3)))
+curBoolsNanAlt = isnan(treeLocations(:,3));
+while any(curBoolsNanAlt)
     numRetrial = numRetrial+1;
     disp(['Not all alts retrieved. Retry again ... (#', ...
         num2str(numRetrial), ')']);
-    treeLocations = loadGpsMarkersWithAlt(ABS_PATH_TO_TREE_LOCS, 'Marker*', ...
-        pathToSaveTreeLocs);
+    
+    treeLocations(curBoolsNanAlt, 3) = getElevationsFromGoogle( ...
+        treeLocations(curBoolsNanAlt, 1), ...
+        treeLocations(curBoolsNanAlt, 2), GOOGLE_MAPS_API);
+    curBoolsNanAlt = isnan(treeLocations(:,3));
 end
 disp('    Done!')
 
@@ -510,7 +533,7 @@ rmseShiftVsMeas = sqrt(sum((allShiftedFreeSpacePathLosses ...
     /length(allShiftedFreeSpacePathLosses));
 
 title(['Foilage Analysis Results: RMSE = ', ...
-    num2str(rmseShiftVsMeas, '%.4f'), ' dB']); 
+    num2str(rmseShiftVsMeas, '%.4f'), ' dB']);
 xlabel('RX Distance (m)'); ylabel('Free-Space Path Loss (dB)'); grid on;
 
 saveas(hMeasAndFreeSpaceLossesLinearDist, ...
