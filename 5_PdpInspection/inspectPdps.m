@@ -1,4 +1,5 @@
-function [ ] = inspectPdps(dataTag, allSigOutFiles, absPathToSavePlot, ...
+function [ timeMsInPlots, signalAmpInPlots, plotFileNames ] ...
+    = inspectPdps(dataTag, allSigOutFiles, absPathToSavePlot, ...
     indicesPlotsToSaveFigCopies, F_S)
 %INSPECTPDPS Generate PDP .png images for signal recording .out files.
 %
@@ -18,29 +19,48 @@ function [ ] = inspectPdps(dataTag, allSigOutFiles, absPathToSavePlot, ...
 %         The GnuRadio sample rate for the singal recordings. The x axis
 %         will be converted from sample # to time accordingly.
 %
+%   Outputs:
+%       - timeMsInPlots, signalAmpInPlots
+%         The time points in ms and the corresponding signal amplitude for
+%         data shown in the generated plots.
+%       - plotFileNames
+%         The filenames used for saving the plots.
+%
+% Update 06/06/2018: Also returned the data in the plots for future
+% analysis if necessary.
+%
 % Yaguang Zhang, Purdue, 04/30/2018
 
 disp(['inspectPdps: Processing ', dataTag, ' data...']);
 numSigOutFiles = length(allSigOutFiles);
+
+[timeMsInPlots, signalAmpInPlots, plotFileNames] ...
+    = deal(cell(numSigOutFiles,1));
+
 for idxSig = 1:numSigOutFiles
     disp(['             ', num2str(idxSig), '/', num2str(numSigOutFiles)]);
     
     if exist('F_S', 'var')
         % Convert x axis unit to time if possible.
-        hFig = plotPdpsForOneRec(allSigOutFiles(idxSig), F_S);
+        [hFig, timeMsInPlots{idxSig}, signalAmpInPlots{idxSig}] ...
+            = plotPdpsForOneRec(allSigOutFiles(idxSig), F_S);
     else
-        hFig = plotPdpsForOneRec(allSigOutFiles(idxSig));
+        [hFig, timeMsInPlots{idxSig}, signalAmpInPlots{idxSig}] ...
+            = plotPdpsForOneRec(allSigOutFiles(idxSig));
         xlabel('Time (ms)');
         xticklabels(arrayfun(@(n) num2str(n/F_S*1000, '%.2f'), xticks, ...
             'UniformOutput', false));
     end
     
-    plotFileName = ['PdpOverview_', dataTag, '_', num2str(idxSig)];
+    plotFileNames{idxSig} ...
+        = ['PdpOverview_', dataTag, '_', num2str(idxSig)];
     
-    saveas(hFig, fullfile(absPathToSavePlot, [plotFileName, '.png']));
+    saveas(hFig, fullfile(absPathToSavePlot, ...
+        [plotFileNames{idxSig}, '.png']));
     % Also save a .fig copy if necessary.
     if ismember(idxSig, indicesPlotsToSaveFigCopies)
-        saveas(hFig, fullfile(absPathToSavePlot, [plotFileName, '.fig']));
+        saveas(hFig, fullfile(absPathToSavePlot, ...
+            [plotFileNames{idxSig}, '.fig']));
     end
 
     close(hFig); 

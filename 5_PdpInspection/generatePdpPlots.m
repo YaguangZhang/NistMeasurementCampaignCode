@@ -57,6 +57,9 @@ disp('        Loading the results...')
 % 'TX_INFO_LOGS' and 'TX_INFO_LOGS_ABS_PAR_DIRS'.
 load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
 
+% Parameters need for signal noise elimination.
+Fs = F_S;
+
 disp('    Done!')
 
 %% Locate All Signal Recordings
@@ -75,8 +78,23 @@ disp('    Done!')
 disp(' ')
 disp('    Plotting PDPs...')
 
-inspectPdps('Meas', allSigOutFilesMeas, ABS_PATH_TO_SAVE_PLOTS, ...
+[timeMsInPlots, signalAmpInPlots, plotFileNames] ...
+    = inspectPdps('Meas', allSigOutFilesMeas, ABS_PATH_TO_SAVE_PLOTS, ...
     INDICES_MEAS_PLOTS_TO_SAVE_AS_FIG, F_S);
+
+disp('    Done!')
+
+%% Estimate the Energy Ratio of LOS Signals
+
+disp(' ')
+disp('    Estimate the energy ratio of LOS signals for the PDPs...')
+
+fullPathsToSavePlots = cellfun(@(p) fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    [p, '_EnergyRatio.png']), plotFileNames);
+energyRatiosForLosSig ...
+    = cellfun(@(ts, as, p) ...
+    estimateEnergyRatioInOnePdpForLosSig(ts, as, p), ...
+    timeMsInPlots, signalAmpInPlots, fullPathsToSavePlots);
 
 disp('    Done!')
 

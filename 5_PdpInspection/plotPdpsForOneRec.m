@@ -1,4 +1,5 @@
-function [ hFig ] = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
+function [ hFig, msToPlot, signalAmp ] ...
+    = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
 %PLOTPDPSFORONEREC Plot the PDP overview plot for one signal recording
 %file.
 %
@@ -14,9 +15,33 @@ function [ hFig ] = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
 %         (including the start and end samples). If not specified, the
 %         whole recording will be looked at.
 %
+%   Optional parameters in the base workspace:
+%       - FLAG_PDP_TIME_REVERSED
+%         If present and set to be true, the PDP plot will be generated
+%         with time reversed back.
+%       - SLIDE_FACTOR
+%         If present, the value will be used to adjust the labels for the
+%         time (x) axis.
+%
+%   Outputs:
+%       - hFig
+%         The handler to the figure generated.
+%       - msToPlot, signalAmp
+%         Time points in ms and the cooresponding signal sample amplitudes
+%         in the plot. If everything works as expected, these should
+%         capture the tallest peak in the signal.
+%
+% Update 06/06/2018: Added noise eliminate before plotting.
+%
+% Update 05/31/2018: Added extra plotting functions controled by optional
+% parameters in the base workspace.
+%
 % Update 05/07/2018: Added support for segment of the signal.
 %
 % Yaguang Zhang, Purdue, 04/30/2018
+
+% Add path to thresholdWaveForm.m.
+addpath(fullfile(fileparts(mfilename('fullpath')), '..', '1_Calibration'));
 
 if exist('segmentRange', 'var')
     % We will load in ~1 second, if possible, of the signal recording
@@ -54,27 +79,41 @@ lpfComplex = dsp.LowpassFilter('SampleRate', F_S, ...
 release(lpfComplex);
 curSignal = lpfComplex(curSignal);
 
+% Noise elimination.
+noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
+[~, boolsEliminatedPts] = ...
+    noiseEliminationFct(curSignal);
+curSignalEliminated = curSignal;
+curSignalEliminated(boolsEliminatedPts) = 0;
+
+% Also get rid of everything below the USRP noise floor if
+% USRP_NOISE_FLOOR_V is specified in the base workspace.
+if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
+    USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
+    curSignalEliminated...
+        (curSignalEliminated<USRP_NOISE_FLOOR_V) = 0;
+end
+
 % Plot the signals. We will try to find the "tallest" bump for each
 % measurement.
 numPreSamples = floor(F_S*0.02); % 0.02s
 numPostSamples = floor(F_S*0.04); % 0.04s
 
-
 % Reverse the signal if necessary.
-signalToShow = curSignal;
+signalToShow = curSignalEliminated;
 if evalin('base','exist(''FLAG_PDP_TIME_REVERSED'', ''var'')')
     FLAG_PDP_TIME_REVERSED = evalin('base', 'FLAG_PDP_TIME_REVERSED');
     if FLAG_PDP_TIME_REVERSED
-        signalToShow = curSignal(end:-1:1);
+        signalToShow = curSignalEliminated(end:-1:1);
     end
 end
 
 if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
     SLIDE_FACTOR = evalin('base', 'SLIDE_FACTOR');
-    hFig = plotOnePresentSignalAmp(signalToShow, ...
+    [hFig, msToPlot, signalAmp] = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S, SLIDE_FACTOR);
 else
-    hFig = plotOnePresentSignalAmp(signalToShow, ...
+    [hFig, msToPlot, signalAmp] = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S);
 end
 transparentizeCurLegends; grid on; xlabel('Time (ms)');
