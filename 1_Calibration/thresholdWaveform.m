@@ -23,7 +23,8 @@ function [ waveformThresholded, boolsEliminatedPts, hDebugFig ] ...
 %% Parameters
 
 % Set this to be true to first convert the wave form to dB.
-FLAG_PROCESS_IN_DB = true;
+%FLAG_PROCESS_IN_DB = true;
+
 % Different ways to find the first present signal / peak.
 %   - 'TallEnoughPositive'
 %     The first one taller than 90% of the tallest peak.

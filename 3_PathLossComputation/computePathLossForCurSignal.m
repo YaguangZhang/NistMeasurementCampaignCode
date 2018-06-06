@@ -132,7 +132,7 @@ curSignalEliminated(boolsEliminatedPts) = 0;
 % USRP_NOISE_FLOOR_V is specified in the base workspace.
 if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
     USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
-    curSignalEliminated(curSignalEliminated<USRP_NOISE_FLOOR_V) = 0;
+    curSignalEliminated(abs(curSignalEliminated)<USRP_NOISE_FLOOR_V) = 0;
 end
 
 %% Calculate Power

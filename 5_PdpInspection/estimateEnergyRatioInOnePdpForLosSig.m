@@ -24,14 +24,19 @@ function [ energyRatioForLosSig ] ...
 %
 % Yaguang Zhang, Purdue, 06/06/2018
 
-[pks, locs] = findpeaks(samAmpsForOnePdp);
-energyRatioForLosSig = (pks(1)).^2/sum(pks.^2);
+if isempty(samAmpsForOnePdp)
+    energyRatioForLosSig=nan;
+    [pks, locs] = deal([]);
+else
+    [pks, locs] = findpeaks(samAmpsForOnePdp);
+    energyRatioForLosSig = (pks(1)).^2/sum(pks.^2);
+end
 
 if exist('fullPathToSavePlot', 'var')
     % Generate a plot for the zoomed-in version of the PDP and the
     % estimated energy ratio for the LOS signal labeld.
     extraNumSampsPerSide = 10;
-    indicesSampsToShow = max([0, min(locs)-extraNumSampsPerSide]): ...
+    indicesSampsToShow = max([1, min(locs)-extraNumSampsPerSide]): ...
         min([max(locs)+extraNumSampsPerSide, length(samAmpsForOnePdp)]);
     timesToShow = timesForOnePdp(indicesSampsToShow);
     samAmpsToShow = samAmpsForOnePdp(indicesSampsToShow);

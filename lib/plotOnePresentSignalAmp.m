@@ -39,12 +39,11 @@ end
 
 RATIO_VS_TALLEST = 0.9;
 
-signalReal = real(signal);
-signalImag = imag(signal);
+signalAmp = abs(signal);
 
-[valueMax, ~] = max(real(signal));
+[valueMax, ~] = max(signalAmp);
 % Find the first peak that is tall enough.
-idxRefSample = find(signalReal>RATIO_VS_TALLEST.*valueMax, 1);
+idxRefSample = find(signalAmp>RATIO_VS_TALLEST.*valueMax, 1);
 
 minIdxToPlot = idxRefSample - numPreSamples;
 if(minIdxToPlot<1)

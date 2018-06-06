@@ -81,8 +81,7 @@ curSignal = lpfComplex(curSignal);
 
 % Noise elimination.
 noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
-[~, boolsEliminatedPts] = ...
-    noiseEliminationFct(curSignal);
+[~, boolsEliminatedPts] = noiseEliminationFct(curSignal);
 curSignalEliminated = curSignal;
 curSignalEliminated(boolsEliminatedPts) = 0;
 
@@ -91,7 +90,7 @@ curSignalEliminated(boolsEliminatedPts) = 0;
 if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
     USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
     curSignalEliminated...
-        (curSignalEliminated<USRP_NOISE_FLOOR_V) = 0;
+        (abs(curSignalEliminated)<USRP_NOISE_FLOOR_V) = 0;
 end
 
 % Plot the signals. We will try to find the "tallest" bump for each

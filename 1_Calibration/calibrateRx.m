@@ -307,7 +307,7 @@ for idxDataset = 1:numDatasets
         if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
             USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
             curCalDataThr{idxCurMeas}...
-                (curCalDataThr{idxCurMeas}<USRP_NOISE_FLOOR_V) = 0;
+                (abs(curCalDataThr{idxCurMeas})<USRP_NOISE_FLOOR_V) = 0;
         end
 
         % Signal (noise eliminiated) to process.
