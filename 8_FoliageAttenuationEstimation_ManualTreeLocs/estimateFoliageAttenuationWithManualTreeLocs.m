@@ -72,7 +72,7 @@ disp('      - contiPathLossesWithGpsInfo.mat')
 disp('      - txInfoLogs.mat')
 
 assert(exist(ABS_PATH_TO_MANUAL_TREE_LOCS, 'file')==2, ...
-    'Couldn''t find treeLocs.mat! Please run PostProcessing/8_ManuallyLocateTrees/manuallyLocateTrees.m first.');
+    'Couldn''t find treeLocs.mat! Please run PostProcessing/7_ManuallyLocateTrees/manuallyLocateTrees.m first.');
 assert(exist(ABS_PATH_TO_PATH_LOSSES, 'file')==2, ...
     'Couldn''t find plotInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
 assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
@@ -107,7 +107,7 @@ while any(curBoolsNanAlt)
     numRetrial = numRetrial+1;
     disp(['Not all alts retrieved. Retry again ... (#', ...
         num2str(numRetrial), ')']);
-    
+
     treeLocations(curBoolsNanAlt, 3) = getElevationsFromGoogle( ...
         treeLocations(curBoolsNanAlt, 1), ...
         treeLocations(curBoolsNanAlt, 2), GOOGLE_MAPS_API);
@@ -217,7 +217,7 @@ for idxS = 1:numOfSeries
         num2str(idxS), '/' num2str(numOfSeries), '...']);
     [curNumSamps, ~] = size(pathLossUtmXYHs{idxS});
     numsOfTreesInFirstFresnel{idxS} = nan(curNumSamps, 1);
-    
+
     for idxSamp = 1:curNumSamps
         rx3D = pathLossUtmXYHs{idxS}(idxSamp, :);
         % Considering the RX height over the ground.
@@ -384,10 +384,10 @@ disp(' ')
 disp('    Generating overview in UTM for comparing GPS alts with Google eles ...')
 
 if contiPathLossesExtraInfo.FLAG_USE_GOOGLE_FOR_ALT
-    
+
     allContiOriAltsShifted ...
         = vertcat(contiPathLossesExtraInfo.contiOriAlts{:}) + RX_HEIGHT_M;
-    
+
     pathToSaveGpsOverviewPlot = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         'OverviewInUtmGpsComp');
     hOverviewInUtmGpsComp = figure;
@@ -409,10 +409,10 @@ if contiPathLossesExtraInfo.FLAG_USE_GOOGLE_FOR_ALT
         'RX with GPS Alts', 'RX with Google Eles');
     transparentizeCurLegends; grid minor; view(40, 5);
     xlabel('UTM x (m)'); ylabel('UTM y (m)'); zlabel('Altitude (m)');
-    
+
     saveas(hOverviewInUtmGpsComp, [pathToSaveGpsOverviewPlot, '.fig']);
     saveas(hOverviewInUtmGpsComp, [pathToSaveGpsOverviewPlot, '.png']);
-    
+
     % Plot the difference (alts - eles) vs distance.
     pathToSaveGpsAltAndGoogleEleDiffVsDist = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         'OverviewGpsAltAndGoogleEleDiffVsDist');
@@ -422,26 +422,26 @@ if contiPathLossesExtraInfo.FLAG_USE_GOOGLE_FOR_ALT
     title('Difference between GPS Alts and Google Elevations over Distance');
     xlabel('Distance (m)'); ylabel('GPS Alts - Google Eles (m)');
     grid minor; axis tight;
-    
+
     saveas(hOverviewGpsAltAndGoogleEleDiffVsDist, ...
         [pathToSaveGpsAltAndGoogleEleDiffVsDist, '.fig']);
     saveas(hOverviewGpsAltAndGoogleEleDiffVsDist, ...
         [pathToSaveGpsAltAndGoogleEleDiffVsDist, '.png']);
-    
+
     % Plot the difference (alts - eles).
     pathToSaveGpsAltAndGoogleEleDiffBin = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         'OverviewGpsAltAndGoogleEleDiffBin');
     hOverviewGpsAltAndGoogleEleDiffBin = figure;
     histogram( allContiOriAltsShifted - allPathLossUtmXYHsShifted(:,3));
-    
+
     title('Histogram for Difference between GPS Alts and Google Elevations');
     xlabel('GPS Alts - Google Eles (m)'); ylabel('#'); grid minor;
-    
+
     saveas(hOverviewGpsAltAndGoogleEleDiffBin, ...
         [pathToSaveGpsAltAndGoogleEleDiffBin, '.fig']);
     saveas(hOverviewGpsAltAndGoogleEleDiffBin, ...
         [pathToSaveGpsAltAndGoogleEleDiffBin, '.png']);
-    
+
 else
     disp('        Google elevations were not retreived. Abortting...')
 end
@@ -489,7 +489,7 @@ numTracks = length(exceLossRefFreeSpace);
 for idxTrack = 1:numTracks
     curExceLossRefFreeSpace = exceLossRefFreeSpace{idxTrack};
     curNumsOfTreesInFirstFresnel = numsOfTreesInFirstFresnel{idxTrack};
-    
+
     hExcePathLossOverTreeNumCurTrack = figure; hold on;
     curNumPtsToShow = length(curNumsOfTreesInFirstFresnel);
     scatter(curNumsOfTreesInFirstFresnel, curExceLossRefFreeSpace, ...
@@ -502,7 +502,7 @@ for idxTrack = 1:numTracks
     axis tight; grid minor;
     % Extend the x range a little bit to better show the dots on x = 0.
     curAxis = axis; axis([-0.5 curAxis(2:end)]);
-    
+
     saveas(hExcePathLossOverTreeNumCurTrack, ...
         fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         ['ExceLossOverTreeNumTrack_', num2str(idxTrack), '.fig']));
@@ -528,7 +528,7 @@ shiftedFreeSpacePathLosses = cell(numOfSeries, 1);
 for idxS = 1:numOfSeries
     disp(['        Series ', ...
         num2str(idxS), '/' num2str(numOfSeries), '...']);
-    
+
     shiftedFreeSpacePathLosses{idxS} = freeSpacePathLosses{idxS} ...
         + numsOfTreesInFirstFresnel{idxS}.*excePathLossPerTree;
 end
@@ -579,7 +579,7 @@ saveas(hMeasAndFreeSpaceLossesLinearDist, ...
 hExcePathLossOverTreeNumMore = figure; hold on;
 numPtsToShow = length(allTreeNumsInFirstFresnel);
 hExcePathLosses ...
-    = scatter(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, ... 
+    = scatter(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, ...
     ones(numPtsToShow, 1) .* 8, ...
     'MarkerFaceColor','b','MarkerEdgeColor','none',...
     'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
@@ -620,7 +620,7 @@ legend([hExcePathLosses, hExcePathLossMeans, hExcePathLossMedians, ...
     'Location','southeast');
 title({'Excessive Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
 xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
-axis tight; 
+axis tight;
 % Extend the x range a little bit to better show the dots on x = 0.
 curAxis = axis; axis([-0.5 curAxis(2:end)]);
 grid minor; transparentizeCurLegends;
@@ -644,7 +644,7 @@ allConstShiftedFreeSpacePathLosses ...
     = vertcat(constShiftedFreeSpacePathLosses{:});
 
 % Measured path losses and free-space path losses over linear distance.
-hMeasAndFreeSpaceLossesLogDist = figure; 
+hMeasAndFreeSpaceLossesLogDist = figure;
 % Free-space path losses.
 hFreeSpace = semilogx(sortedLosDist, ...
     allFreeSpacePathLosses(indicesForSortedDist), '-k', 'LineWidth', 1);
