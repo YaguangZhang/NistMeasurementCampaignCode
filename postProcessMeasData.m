@@ -39,7 +39,7 @@ else
     evalPathLossesForContiTracks;
 end
 
-%% 4_FoliageAttenuationEstimation: Estimate Excessive Path Losses
+%% 4_FoliageAttenuationEstimation: Estimate Excess Path Losses
 addpath(fullfile(pwd, '4_FoliageAttenuationEstimation'));
 estimateFoliageAttenuation;
 

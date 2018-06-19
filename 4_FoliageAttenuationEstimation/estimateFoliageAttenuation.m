@@ -218,7 +218,7 @@ disp('    Computing free-space path losses ...')
 txRxLosDists = cell(numOfSeries, 1);
 % Free-space path losses in dB.
 freeSpacePathLosses = cell(numOfSeries, 1);
-% The excessive path losses in dB (measured path losses -  free space path
+% The excess path losses in dB (measured path losses -  free space path
 % losses).
 exceLossRefFreeSpace = cell(numOfSeries, 1);
 for idxS = 1:numOfSeries
@@ -271,7 +271,7 @@ hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
 saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.fig']);
 saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.png']);
 
-% Tree numbers and excessive path losses over TX-RX distance.
+% Tree numbers and excess path losses over TX-RX distance.
 hTreeNumAndExceLoss = figure;
 hold on;
 allTxRxLosDists = vertcat(txRxLosDists{:});
@@ -281,12 +281,12 @@ allExceLossRefFreeSpace = vertcat(exceLossRefFreeSpace{:});
 yyaxis left;
 plot(sortedLosDist, allTreeNumsInFirstFresnel(indicesForSortedDist));
 ylabel('Number of Trees');
-% Excessive path losses.
+% Excess path losses.
 yyaxis right;
 plot(sortedLosDist, allExceLossRefFreeSpace(indicesForSortedDist));
 title({'Number of Trees in the 1st Fresnel Zone', ...
-    'with Excessive Path Losses (Over Free-Space Losses)'});
-xlabel('RX Distance (m)'); ylabel('Excessive Path Loss (dB)'); grid on;
+    'with Excess Path Losses (Over Free-Space Losses)'});
+xlabel('RX Distance (m)'); ylabel('Excess Path Loss (dB)'); grid on;
 
 saveas(hTreeNumAndExceLoss, ...
     [pathToSaveTreeNumPlots, 'AndExcePathLosses.fig']);
@@ -330,11 +330,11 @@ saveas(hMeasAndFreeSpaceLossesSameY, ...
 saveas(hMeasAndFreeSpaceLossesSameY, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'MeasAndFreeSpaceLosses.png'));
 
-% Excessive path loss over number of trees in the 1st Fresnel zone.
+% Excess path loss over number of trees in the 1st Fresnel zone.
 hExcePathLossOverTreeNum = figure;
 plot(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, '.');
-title({'Excessive Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
-xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
+title({'Excess Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
+xlabel('Number of Trees'); ylabel('Excess Path Losses (dB)');
 axis tight; grid on;
 
 saveas(hExcePathLossOverTreeNum, ...
@@ -342,11 +342,11 @@ saveas(hExcePathLossOverTreeNum, ...
 saveas(hExcePathLossOverTreeNum, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, 'ExceLossOverTreeNum.png'));
 
-% Excessive path loss over log number of trees in the 1st Fresnel zone.
+% Excess path loss over log number of trees in the 1st Fresnel zone.
 hExcePathLossOverLogTreeNum = figure;
 semilogx(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, '.');
-title({'Excessive Path Losses vs. Log Number of Trees in the 1st Fresnel Zone'});
-xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
+title({'Excess Path Losses vs. Log Number of Trees in the 1st Fresnel Zone'});
+xlabel('Number of Trees'); ylabel('Excess Path Losses (dB)');
 axis tight; grid on;
 
 saveas(hExcePathLossOverLogTreeNum, ...
@@ -461,7 +461,7 @@ saveas(hPathLossWithAntGainsOverDist, ...
 saveas(hPathLossWithAntGainsOverDist, ...
     [pathToSavePathLossWithAntGains, '.png']);
 
-% The excessive path loss vs tree number for each track.
+% The excess path loss vs tree number for each track.
 numTracks = length(exceLossRefFreeSpace);
 for idxTrack = 1:numTracks
     curExceLossRefFreeSpace = exceLossRefFreeSpace{idxTrack};
@@ -473,9 +473,9 @@ for idxTrack = 1:numTracks
         ones(curNumPtsToShow, 1) .* 8, ...
         'MarkerFaceColor','b','MarkerEdgeColor','none',...
         'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
-    title({'Excessive Path Losses vs. Number of Trees in the 1st Fresnel Zone', ...
+    title({'Excess Path Losses vs. Number of Trees in the 1st Fresnel Zone', ...
         ['Track ', num2str(idxTrack)]});
-    xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
+    xlabel('Number of Trees'); ylabel('Excess Path Losses (dB)');
     axis tight; grid minor;
     % Extend the x range a little bit to better show the dots on x = 0.
     curAxis = axis; axis([-0.5 curAxis(2:end)]);
@@ -551,7 +551,7 @@ saveas(hMeasAndFreeSpaceLossesLinearDist, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'MeasAndFreeSpaceLossesAndShiftedOverLinearDist.png'));
 
-% Excessive path loss over number of trees in the 1st Fresnel zone with
+% Excess path loss over number of trees in the 1st Fresnel zone with
 % some analysis information overlaid.
 hExcePathLossOverTreeNumMore = figure; hold on;
 numPtsToShow = length(allTreeNumsInFirstFresnel);
@@ -592,11 +592,11 @@ hExcePathLossFlatLine = plot([treeNumValues(1); treeNumValues(end)], ...
 legend([hExcePathLosses, hExcePathLossMeans, hExcePathLossMedians, ...
     hExcePathLossFittedCurve, hExcePathLossFittedLine, ...
     hExcePathLossFlatLine], ...
-    'Excessive path losses', 'Mean', 'Median', ...
+    'Excess path losses', 'Mean', 'Median', ...
     'Fitted curve', 'Fitted line through (0,0)', 'Mean for all data', ...
     'Location','southeast');
-title({'Excessive Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
-xlabel('Number of Trees'); ylabel('Excessive Path Losses (dB)');
+title({'Excess Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
+xlabel('Number of Trees'); ylabel('Excess Path Losses (dB)');
 axis tight; 
 % Extend the x range a little bit to better show the dots on x = 0.
 curAxis = axis; axis([-0.5 curAxis(2:end)]);
