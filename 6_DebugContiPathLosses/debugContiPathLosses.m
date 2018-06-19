@@ -76,6 +76,10 @@ load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
 % treeUtmZones.
 load(ABS_PATH_TO_UTM_INFO);
 
+% Parameters need for signal noise elimination.
+Fs = F_S;
+NUM_SIGMA_FOR_THRESHOLD = 3;
+
 disp('    Done!')
 
 %% Inspect PDP's within Specified Diantance Ranges

@@ -59,6 +59,7 @@ load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
 
 % Parameters need for signal noise elimination.
 Fs = F_S;
+NUM_SIGMA_FOR_THRESHOLD = 3;
 
 disp('    Done!')
 

@@ -3,6 +3,10 @@ function [ hFig, msToPlot, signalAmp ] ...
 %PLOTPDPSFORONEREC Plot the PDP overview plot for one signal recording
 %file.
 %
+% Note: for applying noise elimination before showing the signal,
+% parameters like Fs and NUM_SIGMA_FOR_THRESHOLD need to be defined in the
+% base workspace.
+%
 %   Inputs:
 %       - sigOutFile
 %         One struct of the output array from rdir specifying where the
@@ -91,6 +95,8 @@ if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
     USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
     curSignalEliminated...
         (abs(curSignalEliminated)<USRP_NOISE_FLOOR_V) = 0;
+else
+    disp('USRP_NOISE_FLOOR_V is not defined.')
 end
 
 % Plot the signals. We will try to find the "tallest" bump for each
@@ -105,6 +111,9 @@ if evalin('base','exist(''FLAG_PDP_TIME_REVERSED'', ''var'')')
     if FLAG_PDP_TIME_REVERSED
         signalToShow = curSignalEliminated(end:-1:1);
     end
+    
+else
+    disp('FLAG_PDP_TIME_REVERSED is not defined.')
 end
 
 if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
@@ -112,6 +121,7 @@ if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
     [hFig, msToPlot, signalAmp] = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S, SLIDE_FACTOR);
 else
+    disp('SLIDE_FACTOR is not defined.')
     [hFig, msToPlot, signalAmp] = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S);
 end
