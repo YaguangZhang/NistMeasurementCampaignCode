@@ -29,7 +29,11 @@ if isempty(samAmpsForOnePdp)
     [pks, locs] = deal([]);
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
-    energyRatioForLosSig = (pks(1)).^2/sum(pks.^2);
+    % The LoS peak should be at least 20% of the highest signal received.
+    idxLoSPeak = find(pks./max(pks)>=0.2, 1);
+    % The LoS peak should be the first meaningful signal received.    
+    energyRatioForLosSig = (pks(idxLoSPeak)).^2 ...
+        /sum(pks(idxLoSPeak:end).^2);
 end
 
 if exist('fullPathToSavePlot', 'var')
