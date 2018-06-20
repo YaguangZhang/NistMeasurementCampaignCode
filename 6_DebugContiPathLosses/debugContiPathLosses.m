@@ -113,6 +113,9 @@ for idxRange = 1:numDistRangesToInsp
         curContiOutFilesRelPathsUnderDataFolder ...
             = contiOutFilesRelPathsUnderDataFolder{idxTrack}{1};
         parfor idxSeg = 1:numCurSegs
+            % Make Fs and USRP_NOISE_FLOOR_V available for the workers.
+            assignin('base', 'Fs', Fs);
+            assignin('base', 'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V);
             curRx3D = curPathLossUtmXYHs(idxSeg, :);
             curRx3D(:,3) = curRx3D(:,3) + RX_HEIGHT_M;
             
