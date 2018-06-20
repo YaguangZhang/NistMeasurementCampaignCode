@@ -27,6 +27,7 @@ function [ energyRatioForLosSig ] ...
 if isempty(samAmpsForOnePdp)
     energyRatioForLosSig=nan;
     [pks, locs] = deal([]);
+    idxLoSPeak = 1;
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
     % The LoS peak should be at least 20% of the highest signal received.
@@ -50,7 +51,8 @@ if exist('fullPathToSavePlot', 'var')
     % Plot.
     hZoomedInPdp = figure; hold on;
     hAmp = plot(timesToShow, samAmpsToShow, 'b.');
-    hPeaks = plot(timeLocs, pks, 'ro');
+    % Hide peaks before the LoS one.
+    hPeaks = plot(timeLocs(idxLoSPeak:end), pks(idxLoSPeak:end), 'ro');
     legend([hAmp, hPeaks], 'Sample amplitude', 'Peaks');
     title({'Peaks Detected (Amplitude in Volt)'; ...
         ['Energy ratio for the first peak = ', ...
