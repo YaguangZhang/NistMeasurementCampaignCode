@@ -96,28 +96,32 @@ for idxRange = 1:numDistRangesToInsp
     curRange = distRangesToInsp{idxRange};
     curNumTracks = length(contiPathLossesWithGpsInfo);
     
-    losPeakEnergyR = nan(curNumTracks, 1);
+    losPeakEnergyRsTracks = cell(curNumTracks, 1);
     disp(['        Range: ', ...
         num2str(idxRange), '/', num2str(length(distRangesToInsp))]);
     
     for idxTrack = 1:curNumTracks
+        [numCurSegs, ~] = size(contiPathLossesWithGpsInfo{idxTrack});
         
+        losPeakEnergyRsSegs = nan(numCurSegs, 1);
         disp(['            Track: ', ...
             num2str(idxTrack), '/', ...
-            num2str(length(contiPathLossesWithGpsInfo))]);
+            num2str(length(contiPathLossesWithGpsInfo))]);        
         
-        [numCurSegs, ~] = size(contiPathLossesWithGpsInfo{idxTrack});
         % Take advantage of parallel computing for speed.
+        curPathLossUtmXYHs = pathLossUtmXYHs{idxTrack};
+        curContiOutFilesRelPathsUnderDataFolder ...
+            = contiOutFilesRelPathsUnderDataFolder{idxTrack}{1};
         parfor idxSeg = 1:numCurSegs
-            curRx3D = pathLossUtmXYHs{idxTrack}(idxSeg, :);
+            curRx3D = curPathLossUtmXYHs(idxSeg, :);
             curRx3D(:,3) = curRx3D(:,3) + RX_HEIGHT_M;
             
             curDist = norm([xTx, yTx, TX_ALT+TX_HEIGHT_M] - curRx3D);
             
-            if(curDist>=curRange(1) && curDist<=curRange(2))
+            if(curDist>=curRange(1) && curDist<=curRange(2)) %#ok<PFBNS>
                 % Plot and save the PDP.
                 curSigOutFileRelPath ...
-                    = contiOutFilesRelPathsUnderDataFolder{idxTrack}{1};
+                    = curContiOutFilesRelPathsUnderDataFolder;
                 curSigOutFile = rdir(...
                     fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, 'Data', ...
                     curSigOutFileRelPath));
@@ -136,7 +140,7 @@ for idxRange = 1:numDistRangesToInsp
                     [plotFileName, '.jpg']));
                 
                 % Also estimate the energy ratio of the LoS peak.
-                losPeakEnergyR(idxSeg) ...
+                losPeakEnergyRsSegs(idxSeg) ...
                     = estimateEnergyRatioInOnePdpForLosSig( ...
                     timeMsInPlot, signalAmpsInPlot, ...
                     fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
@@ -147,8 +151,10 @@ for idxRange = 1:numDistRangesToInsp
             end
         end
         
-        losPeakEnergyRs{idxTrack} = losPeakEnergyR;
+        losPeakEnergyRsTracks{idxTrack} = losPeakEnergyRsSegs;
     end
+    
+    losPeakEnergyRs{idxRange} = losPeakEnergyRsTracks;
 end
 
 % Save and plot the distribution of the LoS peak energy ratios.
@@ -156,7 +162,9 @@ save(fullfile(ABS_PATH_TO_SAVE_PLOTS, 'losPeakEnergyRs.mat'), ...
     'losPeakEnergyRs');
 for idxRange = 1:numDistRangesToInsp
     curRange = distRangesToInsp{idxRange};
-    curPeakEngergyRs = losPeakEnergyRs{idxTrack};
+    % Get all the energy ratio results (from all segments of different
+    % tracks) within that range.
+    curPeakEngergyRs = vertcat(losPeakEnergyRs{idxRange}{:});
     
     % Empirical CDF.
     [r,x] = ecdf(curPeakEngergyRs);
