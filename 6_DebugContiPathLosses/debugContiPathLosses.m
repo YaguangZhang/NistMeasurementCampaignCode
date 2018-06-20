@@ -107,7 +107,8 @@ for idxRange = 1:numDistRangesToInsp
             num2str(length(contiPathLossesWithGpsInfo))]);
         
         [numCurSegs, ~] = size(contiPathLossesWithGpsInfo{idxTrack});
-        for idxSeg = 1:numCurSegs
+        % Take advantage of parallel computing for speed.
+        parfor idxSeg = 1:numCurSegs
             curRx3D = pathLossUtmXYHs{idxTrack}(idxSeg, :);
             curRx3D(:,3) = curRx3D(:,3) + RX_HEIGHT_M;
             
