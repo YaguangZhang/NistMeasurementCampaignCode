@@ -114,8 +114,12 @@ for idxRange = 1:numDistRangesToInsp
             = contiOutFilesRelPathsUnderDataFolder{idxTrack}{1};
         parfor idxSeg = 1:numCurSegs
             % Make Fs and USRP_NOISE_FLOOR_V available for the workers.
-            assignin('base', 'Fs', Fs);
-            assignin('base', 'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V);
+            assignin('base', 'Fs', Fs); %#ok<PFEVB>
+            assignin('base', ...
+                'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V); %#ok<PFEVB>
+            assignin('base', 'FLAG_PDP_TIME_REVERSED', ...
+                FLAG_PDP_TIME_REVERSED); %#ok<PFEVB>
+            assignin('base', 'SLIDE_FACTOR', SLIDE_FACTOR); %#ok<PFEVB>
             curRx3D = curPathLossUtmXYHs(idxSeg, :);
             curRx3D(:,3) = curRx3D(:,3) + RX_HEIGHT_M;
             
