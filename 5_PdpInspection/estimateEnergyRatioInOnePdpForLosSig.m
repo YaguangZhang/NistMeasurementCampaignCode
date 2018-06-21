@@ -31,10 +31,11 @@ if isempty(samAmpsForOnePdp)
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
     % The LoS peak should be at least 20% of the highest signal received.
-    idxLoSPeak = find(pks./max(pks)>=0.2, 1);
+    boolsValidSigPeaks = pks./max(pks)>=0.2;
+    idxLoSPeak = find(boolsValidSigPeaks, 1);
     % The LoS peak should be the first meaningful signal received.    
     energyRatioForLosSig = (pks(idxLoSPeak)).^2 ...
-        /sum(pks(idxLoSPeak:end).^2);
+        /sum(pks(boolsValidSigPeaks).^2);
 end
 
 if exist('fullPathToSavePlot', 'var')
@@ -50,15 +51,20 @@ if exist('fullPathToSavePlot', 'var')
     
     % Plot.
     hZoomedInPdp = figure; hold on;
-    hAmp = plot(timesToShow, samAmpsToShow, 'b.');
-    % Hide peaks before the LoS one.
-    hPeaks = plot(timeLocs(idxLoSPeak:end), pks(idxLoSPeak:end), 'ro');
+    % Only plot valid signal peaks.
+    hPeaks = plot(timeLocs(boolsValidSigPeaks), ...
+        pks(boolsValidSigPeaks), 'ro', 'LineWidth', 1);
+    curAxis = axis;
+    hAmp = plot(timesToShow, samAmpsToShow, 'b.');    
     legend([hAmp, hPeaks], 'Sample amplitude', 'Peaks');
     title({'Peaks Detected (Amplitude in Volt)'; ...
         ['Energy ratio for the first peak = ', ...
         num2str(energyRatioForLosSig, '%.4f')]});
     hold off; axis tight; transparentizeCurLegends;
     grid on; xlabel('Time (ms)'); ylabel('Amplitude (Volage)');
+    % Focus on the peaks.
+    axis([curAxis(1:2) 0 curAxis(4)]);
+    uistack(hPeaks, 'top')
     
     saveas(hZoomedInPdp, fullPathToSavePlot);
     close(hZoomedInPdp);
