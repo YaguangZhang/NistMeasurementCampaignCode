@@ -27,7 +27,7 @@ function [ energyRatioForLosSig ] ...
 if isempty(samAmpsForOnePdp)
     energyRatioForLosSig=nan;
     [pks, locs] = deal([]);
-    idxLoSPeak = 1;
+    boolsValidSigPeaks = ones(1, length(pks));
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
     % The LoS peak should be at least 20% of the highest signal received.
