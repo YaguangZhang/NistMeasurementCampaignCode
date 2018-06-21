@@ -120,6 +120,8 @@ for idxRange = 1:numDistRangesToInsp
             assignin('base', 'FLAG_PDP_TIME_REVERSED', ...
                 FLAG_PDP_TIME_REVERSED); %#ok<PFEVB>
             assignin('base', 'SLIDE_FACTOR', SLIDE_FACTOR); %#ok<PFEVB>
+            assignin('base', ...
+                'NUM_SIGMA_FOR_THRESHOLD', NUM_SIGMA_FOR_THRESHOLD); %#ok<PFEVB>
             curRx3D = curPathLossUtmXYHs(idxSeg, :);
             curRx3D(:,3) = curRx3D(:,3) + RX_HEIGHT_M;
             
