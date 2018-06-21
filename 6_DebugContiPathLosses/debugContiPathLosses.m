@@ -106,7 +106,7 @@ for idxRange = 1:numDistRangesToInsp
         losPeakEnergyRsSegs = nan(numCurSegs, 1);
         disp(['            Track: ', ...
             num2str(idxTrack), '/', ...
-            num2str(length(contiPathLossesWithGpsInfo))]);        
+            num2str(length(contiPathLossesWithGpsInfo))]);
         
         % Take advantage of parallel computing for speed.
         curPathLossUtmXYHs = pathLossUtmXYHs{idxTrack};
@@ -172,12 +172,14 @@ for idxRange = 1:numDistRangesToInsp
     % Empirical CDF.
     [r,x] = ecdf(curPeakEngergyRs);
     
-    hPeakEnRsFig = figure; hold on;    
-    plot(x, r, 'b.-'); 
-    xlabel('LoS Peak Energy Ratio'); ylabel('Empirical CDF');
+    hPeakEnRsFig = figure; hold on;
+    plot(x, r, 'b.-');
+    xlabel('LoS Peak Energy Ratio'); ylabel('Empirical CDF'); grid on;
     plotFileName = [...
         'losPeakEnergyRs_Range_', num2str(curRange(1)), ...
-        '_to_', num2str(curRange(2))];    
+        '_to_', num2str(curRange(2))];
+    saveas(hPeakEnRsFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        [plotFileName, '.fig']));
     saveas(hPeakEnRsFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         [plotFileName, '.jpg']));
 end
