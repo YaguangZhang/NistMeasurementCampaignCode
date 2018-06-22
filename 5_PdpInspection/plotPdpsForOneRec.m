@@ -134,7 +134,12 @@ else
         = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S);
 end
-lowPassedSig = lowPassedSig(signalIdxRange(1):signalIdxRange(2));
+if isempty(signalAmp)
+    lowPassedSig = signalAmp;
+else
+    lowPassedSig = lowPassedSig(signalIdxRange(1):signalIdxRange(2));
+end
+
 transparentizeCurLegends; grid on; xlabel('Time (ms)');
 
 end

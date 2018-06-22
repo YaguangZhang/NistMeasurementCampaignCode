@@ -29,18 +29,20 @@ function [ energyRatioForLosSig ] ...
 %
 % Yaguang Zhang, Purdue, 06/06/2018
 
-boolsValidSigPeaks = true(1, length(pks));
+numSamAmpsForOnePdp = length(samAmpsForOnePdp);
+
 if isempty(samAmpsForOnePdp)
     energyRatioForLosSig=nan;
     [pks, locs] = deal([]);
+    boolsValidSigPeaks = true(1, length(pks));
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
+    boolsValidSigPeaks = true(1, length(pks));
     % The LoS peak should be at least 20% of the highest signal received.
     idxLoSPeak = find(pks./max(pks)>=0.2, 1);
     boolsValidSigPeaks(1:(idxLoSPeak-1)) = false;
     % Peaks after LoS should not be isolated. We get rid of samples next to
     % any zero samples.
-    numSamAmpsForOnePdp = length(samAmpsForOnePdp);
     for idxPeak = (idxLoSPeak+1):length(pks)
         if boolsValidSigPeaks(idxPeak)
             samIdxPrev = locs(idxPeak)-1;
@@ -61,7 +63,7 @@ end
 if exist('fullPathToSavePlot', 'var')
     % Generate a plot for the zoomed-in version of the PDP and the
     % estimated energy ratio for the LOS signal labeld.
-    extraNumSampsPerSide = 500; % Only plot a little more samples.
+    extraNumSampsPerSide = 1000; % Only plot a little more samples.
     indicesSampsToShow = max([1, min(locs)-extraNumSampsPerSide]): ...
         min([max(locs)+extraNumSampsPerSide, numSamAmpsForOnePdp]);
     timesToShow = timesForOnePdp(indicesSampsToShow);
@@ -89,10 +91,15 @@ if exist('fullPathToSavePlot', 'var')
         curAxis = axis;
     end
     
-    hOri = plot(timesToShow, abs(lowPassedSigForOnePdp), '.', ...
-        'Color', ones(1,3)*0.7);
+    if exist('lowPassedSigForOnePdp', 'var')
+        hOri = plot(timesForOnePdp, abs(lowPassedSigForOnePdp), '.', ...
+            'Color', ones(1,3)*0.7);
+        legend([hAmp, hPeaks, hOri], ...
+            'Sample amplitude', 'Peaks', 'Eliminated');
+    else
+        legend([hAmp, hPeaks], 'Sample amplitude', 'Peaks');
+    end
     
-    legend([hAmp, hPeaks, hOri], 'Sample amplitude', 'Peaks', 'Eliminated');
     title({'Peaks Detected (Amplitude in Volt)'; ...
         ['Energy ratio for the first peak = ', ...
         num2str(energyRatioForLosSig, '%.4f')]});
