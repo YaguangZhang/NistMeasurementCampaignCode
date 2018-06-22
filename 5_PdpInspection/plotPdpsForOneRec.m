@@ -1,4 +1,4 @@
-function [ hFig, msToPlot, signalAmp ] ...
+function [ hFig, msToPlot, signalAmp, lowPassedSig ] ...
     = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
 %PLOTPDPSFORONEREC Plot the PDP overview plot for one signal recording
 %file.
@@ -34,6 +34,11 @@ function [ hFig, msToPlot, signalAmp ] ...
 %         Time points in ms and the cooresponding signal sample amplitudes
 %         in the plot. If everything works as expected, these should
 %         capture the tallest peak in the signal.
+%       - lowPassedSig
+%         The original signal, cooresponding to signalAmp, before noise
+%         elimination and amplitude computation. 
+%
+% Update 06/22/2018: Added a new output (lowPassedSig) for debugging.
 %
 % Update 06/06/2018: Added noise eliminate before plotting.
 %
@@ -82,6 +87,8 @@ lpfComplex = dsp.LowpassFilter('SampleRate', F_S, ...
     );
 release(lpfComplex);
 curSignal = lpfComplex(curSignal);
+% Output for extra visualization if necessary.
+lowPassedSig = curSignal;
 
 % Noise elimination.
 noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
@@ -109,22 +116,25 @@ signalToShow = curSignalEliminated;
 if evalin('base','exist(''FLAG_PDP_TIME_REVERSED'', ''var'')')
     FLAG_PDP_TIME_REVERSED = evalin('base', 'FLAG_PDP_TIME_REVERSED');
     if FLAG_PDP_TIME_REVERSED
-        signalToShow = curSignalEliminated(end:-1:1);
+        signalToShow = signalToShow(end:-1:1);
+        lowPassedSig = lowPassedSig(end:-1:1);
     end
-    
 else
     disp('FLAG_PDP_TIME_REVERSED is not defined.')
 end
 
 if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
     SLIDE_FACTOR = evalin('base', 'SLIDE_FACTOR');
-    [hFig, msToPlot, signalAmp] = plotOnePresentSignalAmp(signalToShow, ...
+    [hFig, msToPlot, signalAmp, signalIdxRange] ...
+        = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S, SLIDE_FACTOR);
 else
     disp('SLIDE_FACTOR is not defined.')
-    [hFig, msToPlot, signalAmp] = plotOnePresentSignalAmp(signalToShow, ...
+    [hFig, msToPlot, signalAmp, signalIdxRange] ...
+        = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S);
 end
+lowPassedSig = lowPassedSig(signalIdxRange(1):signalIdxRange(2));
 transparentizeCurLegends; grid on; xlabel('Time (ms)');
 
 end

@@ -1,7 +1,7 @@
 function [ energyRatioForLosSig ] ...
     = estimateEnergyRatioInOnePdpForLosSig(...
     timesForOnePdp, samAmpsForOnePdp, ...
-    fullPathToSavePlot)
+    fullPathToSavePlot, lowPassedSigForOnePdp)
 %ESTIMATEENERGYRATIOFORLOSSIG Estimate the energy ratio of the LOS signal
 %(the first arrival peak) for one PDP.
 %
@@ -13,6 +13,8 @@ function [ energyRatioForLosSig ] ...
 %       - fullPathToSavePlot
 %         Optional. The full path, including the file name, to save a debug
 %         figure. If absent, no figure will be generated.
+%       - lowPassedSigForOnePdp
+%
 %
 %   Output:
 %       - energyRatioForLosSig
@@ -22,18 +24,36 @@ function [ energyRatioForLosSig ] ...
 %   We will find the peaks in the PDP and then estimate each peak's energy
 %   simply by (peak amplitude)^2.
 %
+%   Update 20180622: also show the oringinal singal amplitude for
+%   debugging.
+%
 % Yaguang Zhang, Purdue, 06/06/2018
 
+boolsValidSigPeaks = true(1, length(pks));
 if isempty(samAmpsForOnePdp)
     energyRatioForLosSig=nan;
     [pks, locs] = deal([]);
-    boolsValidSigPeaks = ones(1, length(pks));
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
     % The LoS peak should be at least 20% of the highest signal received.
-    boolsValidSigPeaks = pks./max(pks)>=0.2;
-    idxLoSPeak = find(boolsValidSigPeaks, 1);
-    % The LoS peak should be the first meaningful signal received.    
+    idxLoSPeak = find(pks./max(pks)>=0.2, 1);
+    boolsValidSigPeaks(1:(idxLoSPeak-1)) = false;
+    % Peaks after LoS should not be isolated. We get rid of samples next to
+    % any zero samples.
+    numSamAmpsForOnePdp = length(samAmpsForOnePdp);
+    for idxPeak = (idxLoSPeak+1):length(pks)
+        if boolsValidSigPeaks(idxPeak)
+            samIdxPrev = locs(idxPeak)-1;
+            samIdxPost = locs(idxPeak)+1;
+            if ((samIdxPrev>0 && samAmpsForOnePdp(samIdxPrev)==0) ...
+                    || (samIdxPost<=numSamAmpsForOnePdp ...
+                    && samAmpsForOnePdp(samIdxPost)==0))
+                boolsValidSigPeaks(idxPeak) = false;
+            end
+        end
+    end
+    
+    % The LoS peak should be the first meaningful signal received.
     energyRatioForLosSig = (pks(idxLoSPeak)).^2 ...
         /sum(pks(boolsValidSigPeaks).^2);
 end
@@ -41,9 +61,9 @@ end
 if exist('fullPathToSavePlot', 'var')
     % Generate a plot for the zoomed-in version of the PDP and the
     % estimated energy ratio for the LOS signal labeld.
-    extraNumSampsPerSide = 10;
+    extraNumSampsPerSide = 500; % Only plot a little more samples.
     indicesSampsToShow = max([1, min(locs)-extraNumSampsPerSide]): ...
-        min([max(locs)+extraNumSampsPerSide, length(samAmpsForOnePdp)]);
+        min([max(locs)+extraNumSampsPerSide, numSamAmpsForOnePdp]);
     timesToShow = timesForOnePdp(indicesSampsToShow);
     samAmpsToShow = samAmpsForOnePdp(indicesSampsToShow);
     
@@ -54,9 +74,25 @@ if exist('fullPathToSavePlot', 'var')
     % Only plot valid signal peaks.
     hPeaks = plot(timeLocs(boolsValidSigPeaks), ...
         pks(boolsValidSigPeaks), 'ro', 'LineWidth', 1);
-    curAxis = axis;
-    hAmp = plot(timesToShow, samAmpsToShow, 'b.');    
-    legend([hAmp, hPeaks], 'Sample amplitude', 'Peaks');
+    
+    % Double the x range if there are multiple peaks.
+    if sum(boolsValidSigPeaks)>1
+        curAxis = axis;
+        curAxis(1:2) = curAxis(1:2) ...
+            + [-1, 1].*0.5.*(curAxis(2)-curAxis(1));
+    end
+    
+    hAmp = plot(timesToShow, samAmpsToShow, 'b.');
+    % Set x range according to extraNumSampsPerSide if there is not enough
+    % peaks.
+    if sum(boolsValidSigPeaks)<=1
+        curAxis = axis;
+    end
+    
+    hOri = plot(timesToShow, abs(lowPassedSigForOnePdp), '.', ...
+        'Color', ones(1,3)*0.7);
+    
+    legend([hAmp, hPeaks, hOri], 'Sample amplitude', 'Peaks', 'Eliminated');
     title({'Peaks Detected (Amplitude in Volt)'; ...
         ['Energy ratio for the first peak = ', ...
         num2str(energyRatioForLosSig, '%.4f')]});
@@ -64,7 +100,7 @@ if exist('fullPathToSavePlot', 'var')
     grid on; xlabel('Time (ms)'); ylabel('Amplitude (Volage)');
     % Focus on the peaks.
     axis([curAxis(1:2) 0 curAxis(4)]);
-    uistack(hPeaks, 'top')
+    uistack(hAmp, 'top'); uistack(hPeaks, 'top')
     
     saveas(hZoomedInPdp, fullPathToSavePlot);
     close(hZoomedInPdp);

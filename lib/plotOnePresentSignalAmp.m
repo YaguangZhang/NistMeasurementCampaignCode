@@ -1,4 +1,4 @@
-function [ hFig, msToPlot, signalAmp ] ...
+function [ hFig, msToPlot, signalAmp, signalIdxRange ] ...
     = plotOnePresentSignalAmp( signal, ...
     numPreSamples, numPostSamples, figureName, Fs, slideFactor)
 %PLOTONEPRESENTSIGNALAMP Plot the tallest bump of the signal in amplitude.
@@ -28,6 +28,9 @@ function [ hFig, msToPlot, signalAmp ] ...
 %     generator clock frequencies for the TX and the RX. When this is
 %     present, the time line (x axis) will be adjusted according to
 %     compensate for the slider factor.
+%
+% Update 20180622: Also output the index range for the signal to be
+% plotted.
 %
 % Yaguang Zhang, Purdue, 04/30/2018
 
@@ -69,6 +72,9 @@ msToPlot = (1:(maxIdxToPlot-minIdxToPlot+1))./Fs.*1000;
 if nargin>5
     msToPlot = msToPlot./slideFactor;
 end
+
+% Output the index range of the signal of interest.
+signalIdxRange = [minIdxToPlot, maxIdxToPlot];
 
 subplot(1,1,1); hold on;
 signalAmp = abs(signal(minIdxToPlot:maxIdxToPlot));
