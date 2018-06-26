@@ -29,6 +29,11 @@ function [ energyRatioForLosSig ] ...
 %
 % Yaguang Zhang, Purdue, 06/06/2018
 
+% If one peak is too close to the previous one, and they are of similar
+% height, we will ignore it.
+MIN_NUM_SAMPS_BETWEEN_VALID_PEAKS = 10;
+MAX_HEIGHT_PERCENT_DIFF_OK_TO_IGNORE = 0.01;
+
 numSamAmpsForOnePdp = length(samAmpsForOnePdp);
 
 if isempty(samAmpsForOnePdp)
@@ -41,17 +46,32 @@ else
     % The LoS peak should be at least 20% of the highest signal received.
     idxLoSPeak = find(pks./max(pks)>=0.2, 1);
     boolsValidSigPeaks(1:(idxLoSPeak-1)) = false;
-    % Peaks after LoS should not be isolated. We get rid of samples next to
-    % any zero samples.
+    
+    locPreValidPeak = locs(idxLoSPeak);
     for idxPeak = (idxLoSPeak+1):length(pks)
-        if boolsValidSigPeaks(idxPeak)
-            samIdxPrev = locs(idxPeak)-1;
-            samIdxPost = locs(idxPeak)+1;
+        if boolsValidSigPeaks(idxPeak)  
+            curLoc = locs(idxPeak);
+            samIdxPrev = curLoc-1;
+            samIdxPost = curLoc+1;
+            % Peaks after LoS should not be isolated. We get rid of samples
+            % next to any zero samples.
             if ((samIdxPrev>0 && samAmpsForOnePdp(samIdxPrev)==0) ...
                     || (samIdxPost<=numSamAmpsForOnePdp ...
                     && samAmpsForOnePdp(samIdxPost)==0))
                 boolsValidSigPeaks(idxPeak) = false;
             end
+            % We also get rid of peaks too close to each other.
+            if ((curLoc-locPreValidPeak)...
+                    <MIN_NUM_SAMPS_BETWEEN_VALID_PEAKS) ...
+                    && (abs(samAmpsForOnePdp(curLoc) ...
+                    -samAmpsForOnePdp(locPreValidPeak)) ...
+                    ./min(samAmpsForOnePdp(curLoc), ...
+                    samAmpsForOnePdp(locPreValidPeak))...
+                    <MAX_HEIGHT_PERCENT_DIFF_OK_TO_IGNORE)...                    
+                boolsValidSigPeaks(idxPeak) = false;
+            else
+                locPreValidPeak = curLoc;
+            end            
         end
     end
     
