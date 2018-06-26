@@ -49,7 +49,7 @@ else
     
     locPreValidPeak = locs(idxLoSPeak);
     for idxPeak = (idxLoSPeak+1):length(pks)
-        if boolsValidSigPeaks(idxPeak)  
+        if boolsValidSigPeaks(idxPeak)
             curLoc = locs(idxPeak);
             samIdxPrev = curLoc-1;
             samIdxPost = curLoc+1;
@@ -67,11 +67,11 @@ else
                     -samAmpsForOnePdp(locPreValidPeak)) ...
                     ./min(samAmpsForOnePdp(curLoc), ...
                     samAmpsForOnePdp(locPreValidPeak))...
-                    <MAX_HEIGHT_PERCENT_DIFF_OK_TO_IGNORE)...                    
-                boolsValidSigPeaks(idxPeak) = false;
+                    <MAX_HEIGHT_PERCENT_DIFF_OK_TO_IGNORE)...
+                    boolsValidSigPeaks(idxPeak) = false;
             else
                 locPreValidPeak = curLoc;
-            end            
+            end
         end
     end
     
@@ -98,18 +98,17 @@ if exist('fullPathToSavePlot', 'var')
         pks(boolsValidSigPeaks), 'ro', 'LineWidth', 1);
     
     % Double the x range if there are multiple peaks.
-    if sum(boolsValidSigPeaks)>1
-        curAxis = axis;
-        curAxis(1:2) = curAxis(1:2) ...
-            + [-1, 1].*0.5.*(curAxis(2)-curAxis(1));
-    end
+    %     if sum(boolsValidSigPeaks)>1
+    %         curAxis = axis; curAxis(1:2) = curAxis(1:2) ...
+    %             + [-1, 1].*0.5.*(curAxis(2)-curAxis(1));
+    %     end
     
     hAmp = plot(timesToShow, samAmpsToShow, 'b.');
     % Set x range according to extraNumSampsPerSide if there is not enough
     % peaks.
-    if sum(boolsValidSigPeaks)<=1
-        curAxis = axis;
-    end
+    %     if sum(boolsValidSigPeaks)<=1
+    curAxis = axis;
+    %     end
     
     if exist('lowPassedSigForOnePdp', 'var')
         hOri = plot(timesForOnePdp, abs(lowPassedSigForOnePdp), '.', ...

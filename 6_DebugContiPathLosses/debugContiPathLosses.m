@@ -92,11 +92,15 @@ distRangesToInsp = {[50, 500], [0, 50], [175, 180]}; % In meter.
 numDistRangesToInsp = length(distRangesToInsp);
 
 losPeakEnergyRs = cell(numDistRangesToInsp, 1);
+% We need (lat, lon) for the segments for illustrating results on a map.
+losPeakEstiLatLon = cell(numDistRangesToInsp, 1);
 for idxRange = 1:numDistRangesToInsp
     curRange = distRangesToInsp{idxRange};
     curNumTracks = length(contiPathLossesWithGpsInfo);
     
     losPeakEnergyRsTracks = cell(curNumTracks, 1);
+    estiLatLonSegsTracks = cell(curNumTracks, 1);
+    
     disp(['        Range: ', ...
         num2str(idxRange), '/', num2str(length(distRangesToInsp))]);
     
@@ -104,6 +108,8 @@ for idxRange = 1:numDistRangesToInsp
         [numCurSegs, ~] = size(contiPathLossesWithGpsInfo{idxTrack});
         
         losPeakEnergyRsSegs = nan(numCurSegs, 1);
+        estiLatLonSegs = nan(numCurSegs, 2);
+        
         disp(['            Track: ', ...
             num2str(idxTrack), '/', ...
             num2str(length(contiPathLossesWithGpsInfo))]);
@@ -112,6 +118,8 @@ for idxRange = 1:numDistRangesToInsp
         curPathLossUtmXYHs = pathLossUtmXYHs{idxTrack};
         curContiOutFilesRelPathsUnderDataFolder ...
             = contiOutFilesRelPathsUnderDataFolder{idxTrack}{1};
+        curContiPathLossesWithGpsInfo ...
+            = contiPathLossesWithGpsInfo{idxTrack};
         parfor idxSeg = 1:numCurSegs
             % Make Fs and USRP_NOISE_FLOOR_V available for the workers.
             assignin('base', 'Fs', Fs); %#ok<PFEVB>
@@ -161,36 +169,72 @@ for idxRange = 1:numDistRangesToInsp
                 
                 % Close the figure.
                 close(hPdpsFig);
+                
+                estiLatLonSegs(idxSeg) = curContiPathLossesWithGpsInfo(...
+                    floor(mean(curSegRange)), 2:3);
             end
         end
         
         losPeakEnergyRsTracks{idxTrack} = losPeakEnergyRsSegs;
+        estiLatLonSegsTracks{idxTrack} = estiLatLonSegs;
     end
     
     losPeakEnergyRs{idxRange} = losPeakEnergyRsTracks;
+    losPeakEstiLatLon{idxRange} = estiLatLonSegsTracks;
 end
 
 % Save and plot the distribution of the LoS peak energy ratios.
 save(fullfile(ABS_PATH_TO_SAVE_PLOTS, 'losPeakEnergyRs.mat'), ...
-    'losPeakEnergyRs');
+    'losPeakEnergyRs', 'losPeakEstiLatLon');
 for idxRange = 1:numDistRangesToInsp
     curRange = distRangesToInsp{idxRange};
     % Get all the energy ratio results (from all segments of different
     % tracks) within that range.
-    curPeakEngergyRs = vertcat(losPeakEnergyRs{idxRange}{:});
+    curLosPeakEngergyRs = vertcat(losPeakEnergyRs{idxRange}{:});
     
     % Empirical CDF.
-    [r,x] = ecdf(curPeakEngergyRs);
+    [r,x] = ecdf(curLosPeakEngergyRs);
     
-    hPeakEnRsFig = figure; hold on;
+    hPeakEnRsCdfFig = figure; hold on;
     plot(x, r, 'b.-');
     xlabel('LoS Peak Energy Ratio'); ylabel('Empirical CDF'); grid on;
     plotFileName = [...
-        'losPeakEnergyRs_Range_', num2str(curRange(1)), ...
+        'losPeakEnergyRs_CDF_Range_', num2str(curRange(1)), ...
         '_to_', num2str(curRange(2))];
-    saveas(hPeakEnRsFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    saveas(hPeakEnRsCdfFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         [plotFileName, '.fig']));
-    saveas(hPeakEnRsFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    saveas(hPeakEnRsCdfFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        [plotFileName, '.jpg']));
+    
+    % Plot the LoS peak energy ratio results on a map to show their
+    % locations.
+    curLosPeakEstiLatLon = vertcat(losPeakEstiLatLon{idxRange}{:});
+    
+    hPeakEnRsOnMapFig = figure; hold on;
+    boolsNanLosPeakRs = isnan(curLosPeakEngergyRs);
+    % Valid results.
+    plot3k([curLosPeakEstiLatLon(~boolsNanLosPeakRs,2), ...
+        curLosPeakEstiLatLon(~boolsNanLosPeakRs,1), ...
+        curLosPeakEngergyRs(~boolsNanLosPeakRs)]);
+    plot3(curLosPeakEstiLatLon(boolsNanLosPeakRs,2), ...
+        curLosPeakEstiLatLon(boolsNanLosPeakRs,1), ...
+        curLosPeakEngergyRs(boolsNanLosPeakRs), 'xk');
+    plot_google_map('MapType', 'satellite');
+    xlabel('Longitude'); ylabel('Latitude');
+    xtick([]); ytick([]); grid on; view(2);
+    
+    % The command plot_google_map messes up the color legend of plot3k, so
+    % we will have to fix it here.
+    hCb = findall( allchild(hPeakEnRsOnMapFig), 'type', 'colorbar');
+    hCb.Ticks = linspace(1,length(hPeakEnRsOnMapFig), ...
+        length(hCb.TickLabels));
+    
+    plotFileName = [...
+        'losPeakEnergyRs_map_Range_', num2str(curRange(1)), ...
+        '_to_', num2str(curRange(2))];
+    saveas(hPeakEnRsOnMapFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        [plotFileName, '.fig']));
+    saveas(hPeakEnRsOnMapFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         [plotFileName, '.jpg']));
 end
 
