@@ -108,7 +108,6 @@ for idxRange = 1:numDistRangesToInsp
         [numCurSegs, ~] = size(contiPathLossesWithGpsInfo{idxTrack});
         
         losPeakEnergyRsSegs = nan(numCurSegs, 1);
-        estiLatLonSegs = nan(numCurSegs, 2);
         
         disp(['            Track: ', ...
             num2str(idxTrack), '/', ...
@@ -120,6 +119,7 @@ for idxRange = 1:numDistRangesToInsp
             = contiOutFilesRelPathsUnderDataFolder{idxTrack}{1};
         curContiPathLossesWithGpsInfo ...
             = contiPathLossesWithGpsInfo{idxTrack};
+        
         parfor idxSeg = 1:numCurSegs
             % Make Fs and USRP_NOISE_FLOOR_V available for the workers.
             assignin('base', 'Fs', Fs); %#ok<PFEVB>
@@ -169,14 +169,12 @@ for idxRange = 1:numDistRangesToInsp
                 
                 % Close the figure.
                 close(hPdpsFig);
-                
-                estiLatLonSegs(idxSeg) = curContiPathLossesWithGpsInfo(...
-                    floor(mean(curSegRange)), 2:3);
             end
         end
         
         losPeakEnergyRsTracks{idxTrack} = losPeakEnergyRsSegs;
-        estiLatLonSegsTracks{idxTrack} = estiLatLonSegs;
+        estiLatLonSegsTracks{idxTrack} ...
+            = curContiPathLossesWithGpsInfo(:, 2:3);
     end
     
     losPeakEnergyRs{idxRange} = losPeakEnergyRsTracks;
