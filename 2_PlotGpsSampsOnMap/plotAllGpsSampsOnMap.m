@@ -118,7 +118,7 @@ allSigOutFiles = rdir(fullfile(ABS_PATH_TO_FOLIAGE_DATA, '**', '*.out'));
 allSigOutFiles = allSigOutFiles(arrayfun(@(p) ...
     ~isempty(regexp(p.name, '\d+.out','match')), allSigOutFiles));
 numAllSigOutFiles = length(allSigOutFiles);
-[allCurLats, allCurLons] = cell(numAllSigOutFiles, 1);
+[allCurLats, allCurLons] = deal(cell(numAllSigOutFiles, 1));
 for idxRec = 1:numAllSigOutFiles
     curSeriesFolderPath = allSigOutFiles(idxRec).folder;
     
@@ -169,6 +169,8 @@ hTx = plot(lonTx, latTx, 'g^');
 for idxRec = 1:numAllSigOutFiles
     plot(allCurLons{idxRec}, allCurLats{idxRec}, '.');
 end
+% Manually adjust the visible area.
+axis([-105.2776 -105.2743 39.9892 39.9917]);
 plot_google_map('MapType', 'satellite');
 xticks([]); yticks([]); legend(hTx, 'Tx');
 xlabel('Longitude'); ylabel('Latitude');

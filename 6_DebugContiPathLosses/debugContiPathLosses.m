@@ -15,6 +15,8 @@ cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
+% For loading TX location.
+addpath(fullfile(pwd, '2_PlotGpsSampsOnMap'));
 % We will take advantage of the scripts for inspecting PDPs.
 addpath(fullfile(pwd, '5_PdpInspection'));
 
@@ -184,6 +186,14 @@ end
 % Save and plot the distribution of the LoS peak energy ratios.
 save(fullfile(ABS_PATH_TO_SAVE_PLOTS, 'losPeakEnergyRs.mat'), ...
     'losPeakEnergyRs', 'losPeakEstiLatLon');
+
+%% Generate an Overview Figure
+% Load the TX location.
+[markerLats, markerLons, markerNames] ...
+    = loadGpsMarkers(absPathToGpsMarkerCsvFile);
+idxTxMarker = find(strcmp(markerNames, 'Tx'));
+latTx = markerLats(idxTxMarker);
+lonTx = markerLons(idxTxMarker);
 for idxRange = 1:numDistRangesToInsp
     curRange = distRangesToInsp{idxRange};
     % Get all the energy ratio results (from all segments of different
@@ -211,20 +221,27 @@ for idxRange = 1:numDistRangesToInsp
     hPeakEnRsOnMapFig = figure; hold on;
     boolsNanLosPeakRs = isnan(curLosPeakEngergyRs);
     % Valid results.
+    %     colormap('jet');
     plot3k([curLosPeakEstiLatLon(~boolsNanLosPeakRs,2), ...
         curLosPeakEstiLatLon(~boolsNanLosPeakRs,1), ...
         curLosPeakEngergyRs(~boolsNanLosPeakRs)]);
     plot3(curLosPeakEstiLatLon(boolsNanLosPeakRs,2), ...
         curLosPeakEstiLatLon(boolsNanLosPeakRs,1), ...
         curLosPeakEngergyRs(boolsNanLosPeakRs), 'xk');
-    plot_google_map('MapType', 'satellite');
-    xlabel('Longitude'); ylabel('Latitude');
+    hTx = plot3(lonTx, latTx, 0, 'g^');
+    legend(hTx, 'Tx'); xlabel('Longitude'); ylabel('Latitude');
     xticks([]); yticks([]); grid on; view(2);
+    
+    % Manually adjust the visible area.
+    axis([-105.2776 -105.2743 39.9892 39.9917]);    
+    plot_google_map('MapType', 'satellite');
     
     % The command plot_google_map messes up the color legend of plot3k, so
     % we will have to fix it here.
     hCb = findall( allchild(hPeakEnRsOnMapFig), 'type', 'colorbar');
-    hCb.Ticks = linspace(1,length(hPeakEnRsOnMapFig), ...
+    hCbTicksToSet = 0:0.1:1;
+    hCb.TickLabels = arrayfun(@(n) {num2str(n)}, hCbTicksToSet)';
+    hCb.Ticks = linspace(1,length(colormap)+1, ...
         length(hCb.TickLabels));
     
     plotFileName = [...
