@@ -50,11 +50,12 @@ end
 disp(' ')
 disp('    Loading results from: ')
 disp('      - txInfoLogs.mat')
+disp('      - contiPathLossesWithGpsInfo.mat')
 
 assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
     'Couldn''t find txInfoLogs.mat! Please run PostProcessing/3_PathLossComputation/loadMeasCampaignInfo.m first.');
 assert(exist(ABS_PATH_TO_PATH_LOSSES, 'file')==2, ...
-    'Couldn''t find plotInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
+    'Couldn''t find contiPathLossesWithGpsInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
 
 % The data have been processed before and the result files have been found.
 disp('    Found all .mat files required.');
