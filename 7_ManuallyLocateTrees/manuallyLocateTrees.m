@@ -203,8 +203,12 @@ if exist('hInterTreeMarker', 'var') && isvalid(hInterTreeMarker)
     close(hInterTreeMarker);
 end
 
-hInterTreeMarker = figure('CloseRequestFcn',@saveMarkLocs, ...
-    'visible','off');
+if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
+    hInterTreeMarker = figure('visible','off');
+else
+    hInterTreeMarker = figure('CloseRequestFcn',@saveMarkLocs, ...
+        'visible','off');
+end
 hold on;
 plot3k(lidarLonLatZToShow, 'Marker',{'.',1});
 grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
@@ -288,7 +292,7 @@ if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
     axisValuesForOverviews = { ...
         [-105.27824323, -105.27319200, 39.98900606, 39.99241554]; ...
         [-105.27701930, -105.27483020, 39.99008676, 39.99156435]; ...
-        [-105.27661236, -105.27555726, 39.99085158, 39.99156374]};    
+        [-105.27661236, -105.27555726, 39.99085158, 39.99156374]};
     
     % For plotting the areas indicated by the next axis vector.
     hNextArea = nan;
