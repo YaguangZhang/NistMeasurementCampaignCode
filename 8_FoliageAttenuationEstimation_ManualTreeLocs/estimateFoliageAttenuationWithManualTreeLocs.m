@@ -289,7 +289,7 @@ zlabel('Number of Trees');
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
 hCb = findall( allchild(hTreeNumOnMap), 'type', 'colorbar');
-hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
+hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
 
 saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.fig']);
 saveas(hTreeNumOnMap, [pathToSaveTreeNumPlots, 'OnMap.png']);

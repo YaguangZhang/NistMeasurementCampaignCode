@@ -49,7 +49,7 @@ ABS_PATH_TO_TREE_LOCS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
 
 % Set this to be true to also show the tree locations recorded by the
 % Android app.
-FLAG_SHOW_RECOREDED_TREE_LOCS = true;
+FLAG_SHOW_RECOREDED_TREE_LOCS = false;
 pathToSaveTreeLocsRecorded = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'FoliageAttenuationEstimation', ...
     'treeLocs.mat');
@@ -63,6 +63,10 @@ ABS_PATH_TO_SAVE_ELEVATIONS = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     [NIST_LIDAR_LAS_FILENAME, '_Elevations.mat']);
 ABS_PATH_TO_SAVE_TREE_LOCS = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'treeLocs.mat');
+
+% Set this flag to be true to disable the interactive function of the
+% collector and generate overview plots instead.
+FLAG_GENERATE_OVERVIEW_PLOTS_ONLY = true;
 
 %% Before Processing the Data
 
@@ -204,9 +208,14 @@ hInterTreeMarker = figure('CloseRequestFcn',@saveMarkLocs, ...
 hold on;
 plot3k(lidarLonLatZToShow, 'Marker',{'.',1});
 grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
-title('Selected LiDAR Z in 3D'); xticks([]); yticks([]);
+title('Tree Locations with Colored LiDAR z Values'); xticks([]); yticks([]);
 axis([lonRangeToShow, latRangeToShow, 0, 1]);
 plot_google_map('MapType', 'satellite');
+
+% The command plot_google_map messes up the color legend of plot3k, so we
+% will have to fix it here.
+hCb = findall( allchild(hInterTreeMarker), 'type', 'colorbar');
+hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
 
 pathToSaveFig = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'lidarZSelected.png');
 saveas(hInterTreeMarker, pathToSaveFig);
@@ -246,23 +255,51 @@ hInteractiveArea = fill3([lonRangeToShow(1), lonRangeToShow(1), ...
     ones(1,4), 'r', 'FaceColor','none');
 if FLAG_SHOW_RECOREDED_TREE_LOCS
     legend([hTreeLocs, hTreeLocationRecords], ...
-        'Manual Labels', 'Android GPS');
+        'Manual Labels', 'Android GPS', 'Location', 'southeast');
+else
+    legend(hTreeLocs, 'Manual Labels', 'Location', 'southeast');
 end
-set(hInteractiveArea, 'EdgeColor', 'r', 'LineWidth', 2);
-set(hInteractiveArea,'ButtonDownFcn', @(src,evnt) ...
-    updateTreeMarkerState(src, evnt), ...
-    'PickableParts','all', 'HitTest','on');
+set(hInteractiveArea, 'EdgeColor', ones(3,1).*0.9, 'LineWidth', 2);
+uistack(hTreeLocs,'top');
+if ~FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
+    set(hInteractiveArea,'ButtonDownFcn', @(src,evnt) ...
+        updateTreeMarkerState(src, evnt), ...
+        'PickableParts','all', 'HitTest','on');
+    
+    disp('    The interactive tool for manually marking the tree locations is ready!')
+    disp('    Please (left) click on the plot to add new tree locations ...')
+    disp(' ')
+    disp('    It''s OK to zoom in the figure and move around if necessary. ')
+    disp('    It''s also OK to manually modify the tree locations stored in the variable markLocs in the base workspace. ')
+    disp('    The variable markLocs will eventually be saved into a .mat file when the figure is closed. ')
+    disp(' ')
+    disp('    Done!')
+end
 
 % Show the figure.
 set(hInterTreeMarker, 'visible','on');
 
-disp('    The interactive tool for manually marking the tree locations is ready!')
-disp('    Please (left) click on the plot to add new tree locations ...')
-disp(' ')
-disp('    It''s OK to zoom in the figure and move around if necessary. ')
-disp('    It''s also OK to manually modify the tree locations stored in the variable markLocs in the base workspace. ')
-disp('    The variable markLocs will eventually be saved into a .mat file when the figure is closed. ')
-disp(' ')
-disp('    Done!')
+if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
+    disp('    Generating overview plots ... ')
+    disp('        (Please set FLAG_GENERATE_OVERVIEW_PLOTS_ONLY to be ')
+    disp('        false if you would like to use the interactive tree ')
+    disp('        marker tool instead)')
+    
+    axisValuesForOverviews = { ...
+        [-105.27824323, -105.27319200, 39.98900606, 39.99241554]; ...
+        [-105.27701930, -105.27483020, 39.99008676, 39.99156435]; ...
+        [-105.27661236, -105.27555726, 39.99085158, 39.99156374]};
+    for idxOverview = 1:length(axisValuesForOverviews)
+        pathToSaveOverviews = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            ['Overview_', num2str(idxOverview)]);
+        
+        axis(axisValuesForOverviews{idxOverview});
+        drawnow;
+        saveas(hInterTreeMarker, [pathToSaveOverviews, '.png']);
+    end
+    
+    disp('    Overview plots have been generated ')
+    disp(' ')
+end
 
 % EOF

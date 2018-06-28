@@ -360,7 +360,7 @@ for idxTrack = 1:numTracks
     % The command plot_google_map messes up the color legend of plot3k, so
     % we will have to fix it here.
     hCb = findall( allchild(hPathLossesOnMap), 'type', 'colorbar');
-    hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
+    hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
     hold off; grid on; view(0, 90); legend(hTx, 'TX');
     curTitleLabel = strrep(curFileName, '_', '-');
     if ismember(idxTrack, contiOutFileIndicesReflection)
@@ -447,7 +447,7 @@ plot3k([validNonRefPathLossesWithValidGps(:,3), ...
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
 hCb = findall( allchild(hNonRefPathLossesOnMap), 'type', 'colorbar');
-hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
+hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
 plot_google_map('MapType','satellite');
 hold off; grid on; view(0, 90);
 legend(hTx, 'TX', ...
