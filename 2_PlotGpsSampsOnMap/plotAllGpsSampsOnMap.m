@@ -167,14 +167,15 @@ pathToSaveColorOverview = fullfile(pathToSaveSeparateRecs, ...
 hColorOverview = figure; hold on;
 hTx = plot(lonTx, latTx, 'g^');
 for idxRec = 1:numAllSigOutFiles
-    plot(allCurLons{idxRec}, allCurLats{idxRec}, '.');
+    plot(allCurLons{idxRec}, allCurLats{idxRec}, '.', 'Color', rand(1,3));
 end
 % Manually adjust the visible area.
 axis([-105.2776 -105.2743 39.9892 39.9917]);
 plot_google_map('MapType', 'satellite');
 xticks([]); yticks([]); legend(hTx, 'Tx');
 xlabel('Longitude'); ylabel('Latitude');
-saveas(hColorOverview,  pathToSaveColorOverview);
+saveas(hColorOverview, [pathToSaveColorOverview, '.fig']);
+saveas(hColorOverview, [pathToSaveColorOverview, '.jpg']);
 
 disp('    Done!')
 
