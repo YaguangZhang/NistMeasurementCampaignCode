@@ -1,4 +1,4 @@
-function [ hFig, msToPlot, signalAmp, lowPassedSig ] ...
+function [ hFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown] ...
     = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
 %PLOTPDPSFORONEREC Plot the PDP overview plot for one signal recording
 %file.
@@ -37,6 +37,11 @@ function [ hFig, msToPlot, signalAmp, lowPassedSig ] ...
 %       - lowPassedSig
 %         The original signal, cooresponding to signalAmp, before noise
 %         elimination and amplitude computation. 
+%       - indexRangeShown
+%         The sample index range for PDP segment captured in the original
+%         signal file.
+%
+% Update 06/28/2018: Added a new output (indexRangeShown) for debugging.
 %
 % Update 06/22/2018: Added a new output (lowPassedSig) for debugging.
 %
@@ -67,9 +72,9 @@ end
 countSam = min(F_S, numSam); % At most 1s of the signal.
 
 shiftSam = floor(countSam/2);
-range = [centerSam-shiftSam, centerSam+shiftSam];
+indexRangeShown = [centerSam-shiftSam, centerSam+shiftSam];
 
-curSignal = readComplexBinaryInRange (sigOutFile.name, range);
+curSignal = readComplexBinaryInRange (sigOutFile.name, indexRangeShown);
 [~, figureSupTitle, ~] = fileparts(sigOutFile.name);
 
 % For constructing the LPF, which will be applied to the signal loaded
