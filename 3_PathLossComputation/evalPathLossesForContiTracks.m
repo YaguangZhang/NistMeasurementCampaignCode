@@ -376,6 +376,7 @@ end
 disp('    Done!')
 disp('')
 
+%% Overview
 % Plot all non-reflection tracks on the same plot.
 disp('    Plotting all non-reflection tracks on the same map...');
 
@@ -417,6 +418,8 @@ xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
 % will have to fix it here.
 hCb = findall( allchild(hNonRefPathLossesOnMap), 'type', 'colorbar');
 hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
+% Manually adjust the visible area.
+axis([-105.2776 -105.2743 39.9892 39.9917]);
 plot_google_map('MapType','satellite');
 hold off; view(2);
 legend(hTx, 'TX', 'Location','northeast');
