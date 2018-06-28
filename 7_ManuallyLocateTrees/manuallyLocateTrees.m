@@ -288,14 +288,29 @@ if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
     axisValuesForOverviews = { ...
         [-105.27824323, -105.27319200, 39.98900606, 39.99241554]; ...
         [-105.27701930, -105.27483020, 39.99008676, 39.99156435]; ...
-        [-105.27661236, -105.27555726, 39.99085158, 39.99156374]};
-    for idxOverview = 1:length(axisValuesForOverviews)
+        [-105.27661236, -105.27555726, 39.99085158, 39.99156374]};    
+    
+    % For plotting the areas indicated by the next axis vector.
+    hNextArea = nan;
+    numOverviewAreas = length(axisValuesForOverviews);
+    for idxOverview = 1:numOverviewAreas
+        if isgraphics(hNextArea) && isvalid(hNextArea)
+            delete(hNextArea);
+        end
+        
         pathToSaveOverviews = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['Overview_', num2str(idxOverview)]);
         
         axis(axisValuesForOverviews{idxOverview});
-        drawnow;
         saveas(hInterTreeMarker, [pathToSaveOverviews, '.png']);
+        
+        if idxOverview<numOverviewAreas
+            hNextArea = plot3(...
+                axisValuesForOverviews{idxOverview+1}([1 1 2 2 1]), ...
+                axisValuesForOverviews{idxOverview+1}([3 4 4 3 3]), ...
+                ones(1,5), '-.', 'LineWidth', 1, 'Color', ones(3,1));
+            saveas(hInterTreeMarker, [pathToSaveOverviews, '_WithNextArea.png']);
+        end
     end
     
     disp('    Overview plots have been generated ')
