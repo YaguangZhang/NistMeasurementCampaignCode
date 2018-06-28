@@ -72,9 +72,9 @@ end
 countSam = min(F_S, numSam); % At most 1s of the signal.
 
 shiftSam = floor(countSam/2);
-indexRangeShown = [centerSam-shiftSam, centerSam+shiftSam];
+range = [centerSam-shiftSam, centerSam+shiftSam];
 
-curSignal = readComplexBinaryInRange (sigOutFile.name, indexRangeShown);
+curSignal = readComplexBinaryInRange (sigOutFile.name, range);
 [~, figureSupTitle, ~] = fileparts(sigOutFile.name);
 
 % For constructing the LPF, which will be applied to the signal loaded
@@ -147,5 +147,6 @@ end
 
 transparentizeCurLegends; grid on; xlabel('Time (ms)');
 
+indexRangeShown = range([signalIdxRange(1), signalIdxRange(2)]);
 end
 % EOF
