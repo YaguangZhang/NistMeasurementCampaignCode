@@ -219,7 +219,7 @@ for idxRange = 1:numDistRangesToInsp
         curLosPeakEngergyRs(boolsNanLosPeakRs), 'xk');
     plot_google_map('MapType', 'satellite');
     xlabel('Longitude'); ylabel('Latitude');
-    xtick([]); ytick([]); grid on; view(2);
+    xticks([]); yticks([]); grid on; view(2);
     
     % The command plot_google_map messes up the color legend of plot3k, so
     % we will have to fix it here.

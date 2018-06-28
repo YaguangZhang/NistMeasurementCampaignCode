@@ -118,6 +118,7 @@ allSigOutFiles = rdir(fullfile(ABS_PATH_TO_FOLIAGE_DATA, '**', '*.out'));
 allSigOutFiles = allSigOutFiles(arrayfun(@(p) ...
     ~isempty(regexp(p.name, '\d+.out','match')), allSigOutFiles));
 numAllSigOutFiles = length(allSigOutFiles);
+[allCurLats, allCurLons] = cell(numAllSigOutFiles, 1);
 for idxRec = 1:numAllSigOutFiles
     curSeriesFolderPath = allSigOutFiles(idxRec).folder;
     
@@ -126,12 +127,12 @@ for idxRec = 1:numAllSigOutFiles
     seriesNum = str2double(matchedSeriesNums{1}{1});
     
     % Find all the GPS logs in the current folder.
-    curOutFilePath = allSigOutFiles(idxRec).name;    
+    curOutFilePath = allSigOutFiles(idxRec).name;
     curGpsLogs = rdir(fullfile(curSeriesFolderPath, '*.log'));
-
+    
     % Fetch the (lat, lon) from these GPS logs.
     [curLats, curLons, ~, ~] = parseGpsLogs(curGpsLogs);
-
+    
     % Plot.
     hContiRec = figure;
     hold on;
@@ -142,12 +143,36 @@ for idxRec = 1:numAllSigOutFiles
     plot_google_map('MapType', 'satellite');
     legend([hTx, hCurRec, hSamps], ...
         'Tx', ['Route #', num2str(seriesNum)], 'Other measurements');
-
+    
     % Save the plot.
     pathToSaveCurRecPlot = fullfile(pathToSaveSeparateRecs, ...
         ['Overview_', num2str(seriesNum), '.png']);
     saveas(hContiRec,  pathToSaveCurRecPlot);
+    
+    allCurLats{idxRec} = curLats;
+    allCurLons{idxRec} = curLons;
 end
+
+disp('    Done!')
+
+%% Plot an Overview with GPS Points Colored by Tracks
+
+disp(' ')
+disp('    Plotting an overview for all tracks (with different colors) ...')
+
+pathToSaveColorOverview = fullfile(pathToSaveSeparateRecs, ...
+    'OverviewColoredByTrack');
+
+% Plot.
+hColorOverview = figure; hold on;
+hTx = plot(lonTx, latTx, 'g^');
+for idxRec = 1:numAllSigOutFiles
+    plot(allCurLons{idxRec}, allCurLats{idxRec}, '.');
+end
+plot_google_map('MapType', 'satellite');
+xticks([]); yticks([]); legend(hTx, 'Tx');
+xlabel('Longitude'); ylabel('Latitude');
+saveas(hColorOverview,  pathToSaveColorOverview);
 
 disp('    Done!')
 

@@ -412,26 +412,21 @@ end
 plot3k([validNonRefPathLossesWithValidGps(:,3), ...
     validNonRefPathLossesWithValidGps(:,2), ...
     validNonRefPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
+xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
 hCb = findall( allchild(hNonRefPathLossesOnMap), 'type', 'colorbar');
 hCb.Ticks = linspace(1,length(colormap),length(hCb.TickLabels));
 plot_google_map('MapType','satellite');
-hold off; grid on; view(0, 90);
-legend(hTx, 'TX', ...
-    'Location','northeast');
-curTitleLabel = strrep(curFileName, '_', '-');
-if ismember(idxTrack, contiOutFileIndicesReflection)
-    title({'Path Losses on Map (Reflection)', curTitleLabel});
-else
-    title({'Path Losses on Map (Conti. Track)', curTitleLabel});
-end
-xlabel('Lon'); ylabel('Lat'); zlabel('Path Loss (dB)');
+hold off; view(2);
+legend(hTx, 'TX', 'Location','northeast');
+title('Basic Transmission Losses on Map');
+xlabel('Longitude'); ylabel('Latitude'); zlabel('Path Loss (dB)');
 
 % Save the plot.
 pathPathossesOnMapFileToSave = fullfile(...
     ABS_PATH_TO_SAVE_PLOTS, ...
-    'allNonReflectionTracks');
+    'allContiTracks');
 saveas(hNonRefPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.png']);
 saveas(hNonRefPathLossesOnMap, [pathPathossesOnMapFileToSave, '_map.fig']);
 
