@@ -66,9 +66,13 @@ RX_PN_CLK_MHz = 399.995;
 % the same energy as the original one.
 FLAG_PDP_TIME_REVERSED = true;
 
-% Set this variable if it is necessary to get rid of singal samples less
-% than this floor.
-USRP_NOISE_FLOOR_V = 0.003; % In V.
+% Set this variable to be a positive value if it is necessary to get rid of
+% singal samples less than a hard-coded floor.
+USRP_NOISE_FLOOR_V = nan; % 0.003; % In V.
+
+% Number of sigma to automatically set the noise floor in the noise
+% elimiation process. If not set, a default value of 3 will be used.
+NUM_SIGMA_FOR_THRESHOLD = 3.6;
 
 %% Auto-generated Parameters
 
@@ -106,7 +110,13 @@ save(pathFileToSaveResults, 'TX_POWER_DBM', ...
     'F_S', 'F_C_IN_GHZ', 'TX_LAT', 'TX_LON', 'TX_ALT', ...
     'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS', ...
     'DOWNCONVERTER_GAIN_IN_DB', 'TX_PN_CLK_MHz', 'RX_PN_CLK_MHz', ...
-    'FLAG_PDP_TIME_REVERSED', 'SLIDE_FACTOR', 'USRP_NOISE_FLOOR_V');
+    'FLAG_PDP_TIME_REVERSED', 'SLIDE_FACTOR');
+if exist('USRP_NOISE_FLOOR_V', 'var')
+    save(pathFileToSaveResults, 'USRP_NOISE_FLOOR_V', '-append');
+end
+if exist('NUM_SIGMA_FOR_THRESHOLD', 'var')
+    save(pathFileToSaveResults, 'NUM_SIGMA_FOR_THRESHOLD', '-append');
+end
 
 %% Generate plotInfo.mat
 % This is needed for the path loss computation scripts.
