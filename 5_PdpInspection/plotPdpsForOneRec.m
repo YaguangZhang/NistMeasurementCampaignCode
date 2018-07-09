@@ -147,6 +147,11 @@ end
 
 transparentizeCurLegends; grid on; xlabel('Time (ms)');
 
-indexRangeShown = range([signalIdxRange(1), signalIdxRange(2)]);
+rangeIndices = range(1):range(2);
+if ~isempty(signalIdxRange)
+    indexRangeShown = rangeIndices([signalIdxRange(1), signalIdxRange(2)]);
+else
+    indexRangeShown = [];
+end
 end
 % EOF
