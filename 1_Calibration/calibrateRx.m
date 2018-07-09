@@ -72,7 +72,7 @@ numStartSampsToDiscard = 0;
 timeLengthAtCenterToUse = 1; % In second.
 
 % At NIST, We only have one dataset for GunRadio gain 65 dB.
-NUMS_SIGMA_FOR_THRESHOLD = [1].*3;
+NUMS_SIGMA_FOR_THRESHOLD = [1].*3.6;
 
 % For any figure generated, a .pgn screen shot is always saved; Set this to
 % be true to also save a .fig version (which may dramatically slow down the
