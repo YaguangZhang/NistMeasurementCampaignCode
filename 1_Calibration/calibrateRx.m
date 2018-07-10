@@ -48,7 +48,7 @@ BOOLS_MEAS_TO_FIT = {ones(1,28)};
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
-% Low pass filter for the power spectral density (PSD). 
+% Low pass filter for the power spectral density (PSD).
 %   - Tried before: 46000; 39500.
 maxFreqPassed = 30000; % In Hz.
 % High pass filter to remove the DC component.
@@ -72,7 +72,7 @@ numStartSampsToDiscard = 0;
 timeLengthAtCenterToUse = 1; % In second.
 
 % At NIST, We only have one dataset for GunRadio gain 65 dB.
-NUMS_SIGMA_FOR_THRESHOLD = [1].*3.6;
+NUMS_SIGMA_FOR_THRESHOLD = [1].*3.9;
 
 % For any figure generated, a .pgn screen shot is always saved; Set this to
 % be true to also save a .fig version (which may dramatically slow down the
@@ -173,7 +173,7 @@ for idxDataset = 1:numDatasets
     % Load all the calibration data.
     curNumMeas = length(curCalDataFlightFolders);
     curCalData = cell(curNumMeas,1);
-    for idxCurMeas = 1:curNumMeas
+    parfor idxCurMeas = 1:curNumMeas
         disp(['        Loading measurement ', num2str(idxCurMeas), ...
             '/', num2str(curNumMeas), ' for set #', num2str(idxDataset)]);
         % We will only read in the last 3 seconds of each recording.
@@ -209,7 +209,13 @@ for idxDataset = 1:numDatasets
     
     NUM_SIGMA_FOR_THRESHOLD = NUMS_SIGMA_FOR_THRESHOLD(idxDataset);
     
-    for idxCurMeas = 1:curNumMeas
+    curCalData = calData{idxDataset};
+    
+    % For getting rid of everything below the USRP noise floor if
+    % USRP_NOISE_FLOOR_V is specified in the base workspace.
+    FLAG_USRP_NOISE_FLOOR_AVAILABLE = exist('USRP_NOISE_FLOOR_V', 'var');
+    
+    parfor idxCurMeas = 1:curNumMeas
         % Display the progress.
         disp(['        Set: ', num2str(idxDataset),'/',...
             num2str(numDatasets), ...
@@ -217,7 +223,7 @@ for idxDataset = 1:numDatasets
             num2str(curNumMeas)]);
         
         % Prepare the samples for calibration.
-        curSignal = calData{idxDataset}{idxCurMeas};
+        curSignal = curCalData{idxCurMeas};
         % Discard the first numStartSampsToDiscard of samples.
         curSignal = curSignal((numStartSampsToDiscard+1):end);
         % Further more, only keep the middle part for calibration.
@@ -302,14 +308,11 @@ for idxDataset = 1:numDatasets
             curCalDataThr{idxCurMeas} = signalReal+1i.*signalImag;
         end
         
-        % Also get rid of everything below the USRP noise floor if
-        % USRP_NOISE_FLOOR_V is specified in the base workspace.
-        if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
-            USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
+        if FLAG_USRP_NOISE_FLOOR_AVAILABLE
             curCalDataThr{idxCurMeas}...
                 (abs(curCalDataThr{idxCurMeas})<USRP_NOISE_FLOOR_V) = 0;
         end
-
+        
         % Signal (noise eliminiated) to process.
         X = curCalDataThr{idxCurMeas};
         L = length(X);
@@ -331,7 +334,7 @@ for idxDataset = 1:numDatasets
         plot(1:numSamplesToPlot, abs(curSignal(1:numSamplesToPlot)));
         axis tight; grid on;
         title('Signal Overview');
-        xlabel('Sample #'); ylabel('Amplitude');         
+        xlabel('Sample #'); ylabel('Amplitude');
         
         hPSD = figure; hold on;
         hPowerSpectralDen = plot(f,powerSpectralDen);
@@ -429,7 +432,7 @@ for idxDataset = 1:numDatasets
         pathNewCompNoiseSigmaToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
             ['set-',num2str(idxDataset),'-pt-',num2str(idxCurMeas), '-noise-sigma-']);
         % A .png figure for easy access.
-        saveas(hSigOverview, [pathSigOverviewToSave, '.png']);        
+        saveas(hSigOverview, [pathSigOverviewToSave, '.png']);
         saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.png']);
         saveas(hPSDInputInDbZoomedIn, [pathInputPSDdBFileToSave, '-zoomed-in.png']);
         saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
@@ -441,7 +444,7 @@ for idxDataset = 1:numDatasets
         saveas(hPSDdBZoomedIn, [pathNewPSDdBFileToSave, '-zoomed-in.png']);
         % Also a .fig copy.
         if FLAG_SAVE_FIG_COPY
-            saveas(hSigOverview, [pathSigOverviewToSave, '.fig']);   
+            saveas(hSigOverview, [pathSigOverviewToSave, '.fig']);
             saveas(hPSDInputInDb, [pathInputPSDdBFileToSave, '.fig']);
             saveas(hPSDInputInDbZoomedIn, [pathInputPSDdBFileToSave, '-zoomed-in.fig']);
             saveas(hPSDInputInDbWin, [pathWindowedInputPSDdBFileToSave, ...
@@ -739,7 +742,8 @@ if ~all([BOOLS_MEAS_TO_FIT{1:end}])
         ignoreStrSet1 = [num2str(sum(~BOOLS_MEAS_TO_FIT{1})), '_1st'];
     end
     % if ~all(BOOLS_MEAS_TO_FIT{2})
-    %     ignoreStrSet2 = ['_', num2str(sum(~BOOLS_MEAS_TO_FIT{2})), '_2nd'];
+    %     ignoreStrSet2 = ['_', num2str(sum(~BOOLS_MEAS_TO_FIT{2})),
+    %     '_2nd'];
     % end
 end
 pathCalFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...

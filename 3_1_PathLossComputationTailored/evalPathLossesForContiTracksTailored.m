@@ -6,8 +6,9 @@
 %   ../3_PathLossComputation/evalPathLossesForContiTracks.m
 % Some modifications have been made according to the NIST data set
 % characteristics:
-%   - Discard points too close (<50m) to TX;
-%   - Get rid of everything smaller than the USRP noise floor (<3 mV).
+%   -  Discard points too close (<50m) to TX;
+%    - Get rid of everything smaller than the USRP noise floor (e.g. <3 mV,
+%    when properly set).
 %
 % Note that the resulted from evalPathLossesForContiTracks.m will be
 % over-written if this script is successfully run. 
