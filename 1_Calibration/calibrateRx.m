@@ -44,7 +44,7 @@ measPowers = {(-37:-2:-91)'};
 
 % Manually ignore some of the measurements.
 BOOLS_MEAS_TO_FIT = {ones(1,28)};
-BOOLS_MEAS_TO_FIT{1}(end) = 0; % Ignore the last point.
+% BOOLS_MEAS_TO_FIT{1}(end) = 0; % Ignore the last point.
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
