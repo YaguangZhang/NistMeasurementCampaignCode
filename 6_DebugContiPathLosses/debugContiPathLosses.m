@@ -51,6 +51,14 @@ if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
     mkdir(ABS_PATH_TO_SAVE_PLOTS);
 end
 
+% Delete all files in under ABS_PATH_TO_SAVE_PLOTS.
+dinfo = dir(ABS_PATH_TO_SAVE_PLOTS);
+dinfo([dinfo.isdir]) = [];   %skip directories
+filenames = fullfile(ABS_PATH_TO_SAVE_PLOTS, {dinfo.name});
+if ~isempty(filenames)
+    delete( filenames{:} )
+end
+
 %% Get Info for Measurement Data Files and Calibration Polynomials
 
 disp(' ')
@@ -83,7 +91,7 @@ load(ABS_PATH_TO_UTM_INFO);
 
 % Parameters need for signal noise elimination.
 Fs = F_S;
-NUM_SIGMA_FOR_THRESHOLD = 3;
+% NUM_SIGMA_FOR_THRESHOLD = 3;
 
 disp('    Done!')
 
@@ -126,24 +134,23 @@ for idxRange = 1:numDistRangesToInsp
             = contiPathLossesWithGpsInfo{idxTrack};
         
         parfor idxSeg = 1:numCurSegs
-            % Make Fs and USRP_NOISE_FLOOR_V available for the workers.
+            % Make necessary variables available for the workers.
             assignin('base', 'Fs', Fs); %#ok<PFEVB>
             assignin('base', ...
                 'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V); %#ok<PFEVB>
             assignin('base', 'FLAG_PDP_TIME_REVERSED', ...
                 FLAG_PDP_TIME_REVERSED); %#ok<PFEVB>
             assignin('base', 'SLIDE_FACTOR', SLIDE_FACTOR); %#ok<PFEVB>
-            % We can also increase the threshold a little bit to get rid of
-            % some of the noise peaks, if necessary.
             assignin('base', ...
                 'NUM_SIGMA_FOR_THRESHOLD', ...
                 NUM_SIGMA_FOR_THRESHOLD); %#ok<PFEVB>
+            
             curRx3D = curPathLossUtmXYHs(idxSeg, :);
             curRx3D(:,3) = curRx3D(:,3) + RX_HEIGHT_M;
             
             curDist = norm([xTx, yTx, TX_ALT+TX_HEIGHT_M] - curRx3D);
             
-            if(curDist>=curRange(1) && curDist<=curRange(2)) %#ok<PFBNS>
+            if(curDist>=curRange(1) && curDist<=curRange(2))
                 % Plot and save the PDP.
                 curSigOutFileRelPath ...
                     = curContiOutFilesRelPathsUnderDataFolder;
@@ -155,7 +162,7 @@ for idxRange = 1:numDistRangesToInsp
                     {idxTrack}(idxSeg,:);
                 
                 [hPdpsFig, timeMsInPlot, signalAmpsInPlot, ...
-                    lowPassedSigInPlot, hNoiseEliDebugFig] ...
+                    lowPassedSigInPlot, ~, hNoiseEliDebugFig] ...
                     = plotPdpsForOneRec(curSigOutFile, F_S, ...
                     curSegRange, flagGenerateNoiseEliDebugFig);
                 
@@ -165,6 +172,8 @@ for idxRange = 1:numDistRangesToInsp
                     '_Seg_', num2str(idxSeg)];
                 saveas(hPdpsFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
                     [plotFileName, '.jpg']));
+                % Close the figure.
+                close(hPdpsFig);
                 
                 % Also estimate the energy ratio of the LoS peak.
                 losPeakEnergyRsSegs(idxSeg) ...
@@ -173,18 +182,14 @@ for idxRange = 1:numDistRangesToInsp
                     fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
                     [plotFileName, '_peaks.jpg']), lowPassedSigInPlot);
                 
-                % Close the figure.
-                close(hPdpsFig);
-                
                 % Save the noise elimination figure.
-                saveas(hNoiseEliDebugFig, fullfile(absPathToSavePlot, ...
-                    [plotFileName, '_DynamicNoiseEli.png']));
-                % Also save a .fig copy if necessary.
-                if ismember(idxSig, indicesPlotsToSaveFigCopies)
-                    saveas(hNoiseEliDebugFig, fullfile(absPathToSavePlot, ...
-                        [plotFileName, '_DynamicNoiseEli.fig']));
+                if isgraphics(hNoiseEliDebugFig) ...
+                        && isvalid(hNoiseEliDebugFig)
+                    saveas(hNoiseEliDebugFig, ...
+                        fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+                        [plotFileName, '_DynamicNoiseEli.jpg']));
+                    close(hNoiseEliDebugFig);
                 end
-                close(hNoiseEliDebugFig);
             end
         end
         
@@ -247,7 +252,7 @@ for idxRange = 1:numDistRangesToInsp
     xticks([]); yticks([]); grid on; view(2);
     
     % Manually adjust the visible area.
-    axis([-105.2776 -105.2743 39.9892 39.9917]);    
+    axis([-105.2776 -105.2743 39.9892 39.9917]);
     plot_google_map('MapType', 'satellite');
     
     % The command plot_google_map messes up the color legend of plot3k, so

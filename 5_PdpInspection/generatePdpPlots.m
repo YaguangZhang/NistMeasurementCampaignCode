@@ -48,6 +48,10 @@ if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
     mkdir(ABS_PATH_TO_SAVE_PLOTS);
 end
 
+% No need to show the figures since all of them are saved to the disk.
+curDefaultFigureVisible = get(0, 'DefaultFigureVisible');
+set(0, 'DefaultFigureVisible', 'off');
+
 %% Get Info for Measurement Data Files and Calibration Polynomials
 
 disp(' ')
@@ -130,5 +134,8 @@ arrayfun(@(idxTrack) ...
     1:length(sampIndexRanges));
 
 disp('    Done!')
+
+%% Set DefaultFigureVisible Back
+set(0, 'DefaultFigureVisible', curDefaultFigureVisible);
 
 % EOF

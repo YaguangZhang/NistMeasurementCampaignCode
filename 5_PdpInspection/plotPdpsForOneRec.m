@@ -68,7 +68,7 @@ if ~exist('flagGenerateNoiseEliDebugFig', 'var')
     flagGenerateNoiseEliDebugFig = false;
 end
 
-if exist('segmentRange', 'var') && (~isnan(segmentRange))
+if (exist('segmentRange', 'var') && (~any(isnan(segmentRange))))
     % We will load in ~1 second, if possible, of the signal recording
     % segment from the center.
     numSam = segmentRange(2) - segmentRange(1) + 1;
