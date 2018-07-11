@@ -72,7 +72,7 @@ USRP_NOISE_FLOOR_V = nan; % 0.003; % In V.
 
 % Number of sigma to automatically set the noise floor in the noise
 % elimiation process. If not set, a default value of 3 will be used.
-NUM_SIGMA_FOR_THRESHOLD = 3.9;
+NUM_SIGMA_FOR_THRESHOLD = 4;
 
 %% Auto-generated Parameters
 

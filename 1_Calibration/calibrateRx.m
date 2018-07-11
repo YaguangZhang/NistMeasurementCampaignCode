@@ -44,7 +44,7 @@ measPowers = {(-37:-2:-91)'};
 
 % Manually ignore some of the measurements.
 BOOLS_MEAS_TO_FIT = {ones(1,28)};
-% BOOLS_MEAS_TO_FIT{1}(end) = 0; % Ignore the last point.
+BOOLS_MEAS_TO_FIT{1}(end-1:end) = 0; % Ignore the last two point.
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
@@ -72,7 +72,7 @@ numStartSampsToDiscard = 0;
 timeLengthAtCenterToUse = 1; % In second.
 
 % At NIST, We only have one dataset for GunRadio gain 65 dB.
-NUMS_SIGMA_FOR_THRESHOLD = [1].*3.9;
+NUMS_SIGMA_FOR_THRESHOLD = [1].*4;
 
 % For any figure generated, a .pgn screen shot is always saved; Set this to
 % be true to also save a .fig version (which may dramatically slow down the
