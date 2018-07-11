@@ -23,6 +23,11 @@ if exist(ABS_PATH_TO_SAVE_PLOTS, 'dir')~=7
     mkdir(ABS_PATH_TO_SAVE_PLOTS);
 end
 
+% Manually set the figure size and axis to best show the data on plots.
+figPosToSet = [10, 10, 463.5, 420];
+figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
+    39.9893839683981, 39.9915745444857];
+
 %% Read In the Log Files
 
 disp(' ---------------------- ')
@@ -65,9 +70,11 @@ hFigOverview = figure;
 hold on;
 hTx = plot(lonTx, latTx, 'g^');
 hSamps = plot(allLons, allLats, 'r.');
-axis tight;
+% Manually adjust the visible area.
+set(hFigOverview, 'pos', figPosToSet)
+axis(figAxisToSet);
 plot_google_map('MapType', 'satellite');
-legend([hTx, hSamps], 'Tx', 'Measurements');
+legend([hTx, hSamps], 'Tx', 'Measurements', 'Location', 'SouthEast');
 title('GPS Sample Overview on Map');
 
 % Save the plot.
@@ -139,10 +146,13 @@ for idxRec = 1:numAllSigOutFiles
     hTx = plot(lonTx, latTx, 'g^');
     hSamps = plot(allLons, allLats, 'r.');
     hCurRec = plot(curLons, curLats, 'b.');
-    axis tight;
+    % Manually adjust the visible area.
+    set(hContiRec, 'pos', figPosToSet)
+    axis(figAxisToSet);
     plot_google_map('MapType', 'satellite');
     legend([hTx, hCurRec, hSamps], ...
-        'Tx', ['Route #', num2str(seriesNum)], 'Other measurements');
+        'Tx', ['Route #', num2str(seriesNum)], 'Other measurements', ...
+        'Location', 'SouthEast');
     
     % Save the plot.
     pathToSaveCurRecPlot = fullfile(pathToSaveSeparateRecs, ...
@@ -170,12 +180,14 @@ for idxRec = 1:numAllSigOutFiles
     plot(allCurLons{idxRec}, allCurLats{idxRec}, '.', 'Color', rand(1,3));
 end
 % Manually adjust the visible area.
-axis([-105.2776 -105.2743 39.9892 39.9917]);
+set(hColorOverview, 'pos', figPosToSet)
+axis(figAxisToSet);
 plot_google_map('MapType', 'satellite');
-xticks([]); yticks([]); legend(hTx, 'Tx');
+xticks([]); yticks([]); legend(hTx, 'Tx', 'Location', 'SouthEast');
 xlabel('Longitude'); ylabel('Latitude');
 saveas(hColorOverview, [pathToSaveColorOverview, '.fig']);
 saveas(hColorOverview, [pathToSaveColorOverview, '.jpg']);
+saveas(hColorOverview, [pathToSaveColorOverview, '.png']);
 
 disp('    Done!')
 
