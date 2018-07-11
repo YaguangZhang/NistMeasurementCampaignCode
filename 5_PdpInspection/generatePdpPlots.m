@@ -32,6 +32,9 @@ ABS_PATH_TO_PATH_LOSSES = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
 % Which plots to also save as .fig files, besides the default .png plots.
 INDICES_MEAS_PLOTS_TO_SAVE_AS_FIG = [];
 
+% Generate debug figures for noise elimination or not.
+flagGenerateNoiseEliDebugFig = true;
+
 %% Before Processing the Data
 
 curFileName = mfilename;
@@ -71,7 +74,6 @@ load(ABS_PATH_TO_PATH_LOSSES);
 
 % Parameters need for signal noise elimination.
 Fs = F_S;
-NUM_SIGMA_FOR_THRESHOLD = 3;
 
 disp('    Done!')
 
@@ -93,7 +95,7 @@ disp('    Plotting PDPs...')
 
 [timeMsInPlots, signalAmpInPlots, plotFileNames, sampIndexRanges] ...
     = inspectPdps('Meas', allSigOutFilesMeas, ABS_PATH_TO_SAVE_PLOTS, ...
-    INDICES_MEAS_PLOTS_TO_SAVE_AS_FIG, F_S);
+    INDICES_MEAS_PLOTS_TO_SAVE_AS_FIG, F_S, flagGenerateNoiseEliDebugFig);
 
 disp('    Done!')
 

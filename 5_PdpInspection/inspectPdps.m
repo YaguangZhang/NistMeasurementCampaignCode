@@ -1,7 +1,7 @@
 function [ timeMsInPlots, signalAmpInPlots, plotFileNames, ...
     sampIndexRanges ] ...
     = inspectPdps(dataTag, allSigOutFiles, absPathToSavePlot, ...
-    indicesPlotsToSaveFigCopies, F_S)
+    indicesPlotsToSaveFigCopies, F_S, flagGenerateNoiseEliDebugFig)
 %INSPECTPDPS Generate PDP .png images for signal recording .out files.
 %
 %   Inputs:
@@ -19,6 +19,9 @@ function [ timeMsInPlots, signalAmpInPlots, plotFileNames, ...
 %       - F_S
 %         The GnuRadio sample rate for the singal recordings. The x axis
 %         will be converted from sample # to time accordingly.
+%       - flagGenerateNoiseEliDebugFig
+%         Set this to be true if it is necessary to generate the debug plot
+%         for noise elimination.
 %
 %   Outputs:
 %       - timeMsInPlots, signalAmpInPlots
@@ -32,7 +35,15 @@ function [ timeMsInPlots, signalAmpInPlots, plotFileNames, ...
 %
 % Yaguang Zhang, Purdue, 04/30/2018
 
+if ~exist('flagGenerateNoiseEliDebugFig', 'var')
+    flagGenerateNoiseEliDebugFig = false;
+end
+
 disp(['inspectPdps: Processing ', dataTag, ' data...']);
+LogicalStr = {'false', 'true'};
+disp(['             flagGenerateNoiseEliDebugFig is set to be ', ...
+    LogicalStr{flagGenerateNoiseEliDebugFig+1}]);
+
 numSigOutFiles = length(allSigOutFiles);
 
 [timeMsInPlots, signalAmpInPlots, sampIndexRanges, plotFileNames] ...
@@ -41,31 +52,35 @@ numSigOutFiles = length(allSigOutFiles);
 for idxSig = 1:numSigOutFiles
     disp(['             ', num2str(idxSig), '/', num2str(numSigOutFiles)]);
     
-    if exist('F_S', 'var')
-        % Convert x axis unit to time if possible.
-        [hFig, timeMsInPlots{idxSig}, ...
-            signalAmpInPlots{idxSig}, ~, sampIndexRanges{idxSig}] ...
-            = plotPdpsForOneRec(allSigOutFiles(idxSig), F_S);
-    else
-        [hFig, timeMsInPlots{idxSig}, ...
-            signalAmpInPlots{idxSig}, ~, sampIndexRanges{idxSig}] ...
-            = plotPdpsForOneRec(allSigOutFiles(idxSig));
-        xlabel('Time (ms)');
-        xticklabels(arrayfun(@(n) num2str(n/F_S*1000, '%.2f'), xticks, ...
-            'UniformOutput', false));
+    if exist('F_S', 'var')        
+        [hPdpFig, timeMsInPlots{idxSig}, ...
+            signalAmpInPlots{idxSig}, ~, sampIndexRanges{idxSig}, ...
+            hNoiseEliDebugFig] ...
+            = plotPdpsForOneRec(allSigOutFiles(idxSig), F_S, nan, ...
+            flagGenerateNoiseEliDebugFig);
     end
     
     plotFileNames{idxSig} ...
         = ['PdpOverview_', dataTag, '_', num2str(idxSig)];
     
-    saveas(hFig, fullfile(absPathToSavePlot, ...
+    % Save the PDP figure.
+    saveas(hPdpFig, fullfile(absPathToSavePlot, ...
         [plotFileNames{idxSig}, '.png']));
     % Also save a .fig copy if necessary.
     if ismember(idxSig, indicesPlotsToSaveFigCopies)
-        saveas(hFig, fullfile(absPathToSavePlot, ...
+        saveas(hPdpFig, fullfile(absPathToSavePlot, ...
             [plotFileNames{idxSig}, '.fig']));
     end
-
-    close(hFig); 
+    close(hPdpFig); 
+    
+    % Save the noise elimination figure.
+    saveas(hNoiseEliDebugFig, fullfile(absPathToSavePlot, ...
+        [plotFileNames{idxSig}, '_DynamicNoiseEli.png']));
+    % Also save a .fig copy if necessary.
+    if ismember(idxSig, indicesPlotsToSaveFigCopies)
+        saveas(hNoiseEliDebugFig, fullfile(absPathToSavePlot, ...
+            [plotFileNames{idxSig}, '_DynamicNoiseEli.fig']));
+    end
+    close(hNoiseEliDebugFig); 
 end
 %EOF

@@ -35,6 +35,9 @@ ABS_PATH_TO_UTM_INFO= fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'FoliageAttenuationEstimation', ...
     'utmInfoForPathLossesAndTrees.mat');
 
+% Generate debug figures for noise elimination or not.
+flagGenerateNoiseEliDebugFig = true;
+
 %% Before Processing the Data
 
 curFileName = mfilename;
@@ -152,8 +155,9 @@ for idxRange = 1:numDistRangesToInsp
                     {idxTrack}(idxSeg,:);
                 
                 [hPdpsFig, timeMsInPlot, signalAmpsInPlot, ...
-                    lowPassedSigInPlot] ...
-                    = plotPdpsForOneRec(curSigOutFile, F_S, curSegRange);
+                    lowPassedSigInPlot, hNoiseEliDebugFig] ...
+                    = plotPdpsForOneRec(curSigOutFile, F_S, ...
+                    curSegRange, flagGenerateNoiseEliDebugFig);
                 
                 plotFileName = [...
                     'PdpOverview_Dist_', num2str(curDist, '%.0f'), ...
@@ -171,6 +175,16 @@ for idxRange = 1:numDistRangesToInsp
                 
                 % Close the figure.
                 close(hPdpsFig);
+                
+                % Save the noise elimination figure.
+                saveas(hNoiseEliDebugFig, fullfile(absPathToSavePlot, ...
+                    [plotFileName, '_DynamicNoiseEli.png']));
+                % Also save a .fig copy if necessary.
+                if ismember(idxSig, indicesPlotsToSaveFigCopies)
+                    saveas(hNoiseEliDebugFig, fullfile(absPathToSavePlot, ...
+                        [plotFileName, '_DynamicNoiseEli.fig']));
+                end
+                close(hNoiseEliDebugFig);
             end
         end
         

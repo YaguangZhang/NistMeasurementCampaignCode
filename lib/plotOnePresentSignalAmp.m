@@ -15,8 +15,8 @@ function [ hFig, msToPlot, signalAmp, signalIdxRange ] ...
 %     Optional. A string to specify the figure's name.
 %   - Fs
 %     Optional. A number to specify the sample rate for the input signal.
-%     Used to properly set the x axis / time line labels. Default
-%     1.04MSamples/s.
+%     Used to properly set the x axis / time line labels. If not present, a
+%     default value of 1.04 MSamples/s will be used.
 %
 % Update 20180518: Considered the time dilation effect when setting the x
 % labels.
@@ -61,7 +61,7 @@ end
 curDefulatTextInt = get(0,'DefaultTextInterpreter');
 set(0,'DefaultTextInterpreter','none');
 
-if nargin>3
+if exist('figureName', 'var') && isstring(figureName)
     hFig = figure('Name',figureName);
 else
     hFig = figure;
@@ -87,6 +87,10 @@ hold off; legend(hAmp, 'Amplitude'); axis tight;
 if nargin>3
     suptitle(figureName);
 end
+% Convert x axis unit to time.
+xlabel('Time (ms)');
+xticklabels(arrayfun(@(n) num2str(n/Fs*1000, '%.2f'), xticks, ...
+    'UniformOutput', false));
 
 set(0,'DefaultTextInterpreter',curDefulatTextInt);
 % EOF

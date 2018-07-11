@@ -1,5 +1,7 @@
-function [ hFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown] ...
-    = plotPdpsForOneRec(sigOutFile, F_S, segmentRange)
+function [ hPdpFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown, ...
+    hNoiseEliDebugFig] ...
+    = plotPdpsForOneRec(sigOutFile, F_S, segmentRange, ...
+    flagGenerateNoiseEliDebugFig)
 %PLOTPDPSFORONEREC Plot the PDP overview plot for one signal recording
 %file.
 %
@@ -18,6 +20,9 @@ function [ hFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown] ...
 %         Optional. [idxStart, idxEnd] for what segment to look at
 %         (including the start and end samples). If not specified, the
 %         whole recording will be looked at.
+%       - flagGenerateNoiseEliDebugFig
+%         Set this to be true if it is necessary to generate the debug plot
+%         for noise elimination.
 %
 %   Optional parameters in the base workspace:
 %       - FLAG_PDP_TIME_REVERSED
@@ -28,7 +33,7 @@ function [ hFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown] ...
 %         time (x) axis.
 %
 %   Outputs:
-%       - hFig
+%       - hPdpFig
 %         The handler to the figure generated.
 %       - msToPlot, signalAmp
 %         Time points in ms and the cooresponding signal sample amplitudes
@@ -36,10 +41,12 @@ function [ hFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown] ...
 %         capture the tallest peak in the signal.
 %       - lowPassedSig
 %         The original signal, cooresponding to signalAmp, before noise
-%         elimination and amplitude computation. 
+%         elimination and amplitude computation.
 %       - indexRangeShown
 %         The sample index range for PDP segment captured in the original
 %         signal file.
+%       - hNoiseEliDebugFig
+%         The handler for the noise elimination debug figure.
 %
 % Update 06/28/2018: Added a new output (indexRangeShown) for debugging.
 %
@@ -57,7 +64,11 @@ function [ hFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown] ...
 % Add path to thresholdWaveForm.m.
 addpath(fullfile(fileparts(mfilename('fullpath')), '..', '1_Calibration'));
 
-if exist('segmentRange', 'var')
+if ~exist('flagGenerateNoiseEliDebugFig', 'var')
+    flagGenerateNoiseEliDebugFig = false;
+end
+
+if exist('segmentRange', 'var') && (~isnan(segmentRange))
     % We will load in ~1 second, if possible, of the signal recording
     % segment from the center.
     numSam = segmentRange(2) - segmentRange(1) + 1;
@@ -96,15 +107,23 @@ curSignal = lpfComplex(curSignal);
 lowPassedSig = curSignal;
 
 % Noise elimination.
-noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform));
-[~, boolsEliminatedPts] = noiseEliminationFct(curSignal);
+
+% noiseEliminationFct = @(waveform) thresholdWaveform(abs(waveform), ...
+%     flagGenerateNoiseEliDebugFig);
+% [~, boolsEliminatedPts, hNoiseEliDebugFig] =
+% noiseEliminationFct(curSignal);
+[~, boolsEliminatedPts, hNoiseEliDebugFig] ...
+    = thresholdWaveform(abs(curSignal), ...
+    flagGenerateNoiseEliDebugFig);
 curSignalEliminated = curSignal;
 curSignalEliminated(boolsEliminatedPts) = 0;
 
 % Also get rid of everything below the USRP noise floor if
 % USRP_NOISE_FLOOR_V is specified in the base workspace.
-if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')
+if evalin('base','exist(''USRP_NOISE_FLOOR_V'', ''var'')')    
     USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
+    %     disp(['USRP_NOISE_FLOOR_V is set to be ', ...
+    %         num2str(USRP_NOISE_FLOOR_V)])
     curSignalEliminated...
         (abs(curSignalEliminated)<USRP_NOISE_FLOOR_V) = 0;
 else
@@ -130,12 +149,12 @@ end
 
 if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
     SLIDE_FACTOR = evalin('base', 'SLIDE_FACTOR');
-    [hFig, msToPlot, signalAmp, signalIdxRange] ...
+    [hPdpFig, msToPlot, signalAmp, signalIdxRange] ...
         = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S, SLIDE_FACTOR);
 else
     disp('SLIDE_FACTOR is not defined.')
-    [hFig, msToPlot, signalAmp, signalIdxRange] ...
+    [hPdpFig, msToPlot, signalAmp, signalIdxRange] ...
         = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S);
 end
