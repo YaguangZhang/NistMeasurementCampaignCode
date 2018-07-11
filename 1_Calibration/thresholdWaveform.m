@@ -144,7 +144,7 @@ waveformThresholded = waveform;
 waveformThresholded(boolsEliminatedPts) = 0;
 
 %% Plots for debugging.
-if flagDebug
+if flagDebug    
     % Generate plots for debugging.
     hDebugFig = figure;
     subFigCounter = 1;
@@ -172,8 +172,9 @@ if flagDebug
     hPtsConsidered = plot(idxRangeSampsToCons./Fs, ...
         waveform(idxRangeSampsToCons+numStartSampsToDiscard), '*b');
     hold off; grid minor; axis tight;
-    legend([hPtsConsidered, hPtsNotCons], ...
+    hLegend = legend([hPtsConsidered, hPtsNotCons], ...
         'Used to compute delta', 'Other points before peak #1');
+    set(hLegend, 'Location', 'northwest');
     transparentizeCurLegends;
     title('Samples for computing noise sigma');
     ylabel('Signal strength'); xlabel('time (s)');
@@ -201,12 +202,15 @@ if flagDebug
     uistack(hDiscardRegion,'bottom')
     hold off;
     axis(finalAxis);
-    legend([hDiscardRegion, hEliminatedPts, hTwiceMedian(1)], ...
-        ['Elimination Region (', num2str(NUM_SIGMA_FOR_THRESHOLD),'*sigma+mean)'], 'Eliminated Samples', '+/- twiceMedianShifted');
+    hLegend = legend([hDiscardRegion, hEliminatedPts, hTwiceMedian(1)], ...
+        ['Elimination Region (', num2str(NUM_SIGMA_FOR_THRESHOLD), ...
+        '\sigma+mean)'], ...
+        'Eliminated Samples', '+/- twiceMedianShifted');
+    set(hLegend, 'Location', 'northwest');
     transparentizeCurLegends;
     title('Eliminated samples (Set to 0)');
     ylabel('Signal strength'); xlabel('time (s)');
-    subFigCounter = subFigCounter+1;
+    % subFigCounter = subFigCounter+1;
 else
     hDebugFig = nan;
 end
