@@ -58,7 +58,7 @@ ABS_PATH_TO_TX_INFO_LOGS_FILE= fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation', 'txInfoLogs.mat');
 
 % For setting the threshold during the noise elimination.
-NUM_SIGMA_FOR_THRESHOLD = 3.5;
+% NUM_SIGMA_FOR_THRESHOLD = 3.5;
 
 % We will use the Google service for RX altitudes.
 FLAG_USE_GOOGLE_FOR_ALT = true;

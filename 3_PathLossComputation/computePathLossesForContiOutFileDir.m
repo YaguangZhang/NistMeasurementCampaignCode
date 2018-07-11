@@ -75,6 +75,16 @@ catch
         'Please refer to 1_Calibration/calibrateRx.m for more detail.'])
 end
 
+% Some variables defined in 2_PlotGpsSampsOnMap/loadGpsMarkers.m.
+try
+    DOWNCONVERTER_GAIN_IN_DB = evalin('base', 'DOWNCONVERTER_GAIN_IN_DB');
+    USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
+    NUM_SIGMA_FOR_THRESHOLD = evalin('base', 'NUM_SIGMA_FOR_THRESHOLD');
+catch
+    error(['TX info not found in the base workspace! ', ...
+        'Please refer to 2_PlotGpsSampsOnMap/loadGpsMarkers.m for more detail.'])
+end
+
 % By default, we will use the altitude gotten by the GPS sensor.
 if ~exist('FLAG_USE_GOOGLE_FOR_ALT', 'var')
     FLAG_USE_GOOGLE_FOR_ALT = false;
@@ -139,7 +149,7 @@ numComplexSamps = countComplexBinary(absPathOutFile);
 % We will segment the input signal for the whole track according to the GPS
 % samples and compute the path loss for each segment.
 
-disp(['curContiPathLossesWithGpsInfo: Segmenting the conti signal ...'])
+disp('curContiPathLossesWithGpsInfo: Segmenting the conti signal ...')
 
 % More specifically, for each GPS sample, the signal segment right after it
 % but before the next GPS sample will be assigned to this GPS sample.
@@ -172,10 +182,23 @@ end
 
 curContiPathLossesWithGpsInfo = nan(numGpsSamplesCovered,4);
 outFileSampleRanges = nan(numGpsSamplesCovered,2);
-for idxGpsSample = 1:numGpsSamplesCovered
-    disp('curContiPathLossesWithGpsInfo: ');
-    disp(['    Computing path loss for segment ', num2str(idxGpsSample), '/', ...
-        num2str(numGpsSamplesCovered), '...']);
+
+disp('curContiPathLossesWithGpsInfo: ');
+parfor idxGpsSample = 1:numGpsSamplesCovered
+    % Make necessary variables in the base workspace available for the
+    % workers.
+    assignin('base', 'DOWNCONVERTER_GAIN_IN_DB', ...
+        DOWNCONVERTER_GAIN_IN_DB); %#ok<PFEVB>
+    assignin('base', ...
+        'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V); %#ok<PFEVB>    
+    assignin('base', ...
+        'NUM_SIGMA_FOR_THRESHOLD', ...
+        NUM_SIGMA_FOR_THRESHOLD); %#ok<PFEVB>
+
+    gpsSampleCntLabel = [num2str(idxGpsSample), '/', ...
+        num2str(numGpsSamplesCovered)];
+    disp(['    Computing path loss for segment ', ...
+        gpsSampleCntLabel, '...']);
     if boolsValidCaliGain(idxGpsSample)
         % Find the signal segment for this GPS sample.
         if idxGpsSample<numGpsSamplesCovered
@@ -214,11 +237,13 @@ for idxGpsSample = 1:numGpsSamplesCovered
         outFileSampleRanges(idxGpsSample, :) = curSigSegIdxRange;
         
         if isinf(pathLossInDb)
-            warning('The resulting pathloss is +/- inf! Resetting it to nan...')
+            warning(['    Segment ', gpsSampleCntLabel, ...
+                ': The resulting pathloss is +/- inf! Resetting it to nan...']);
             pathLossInDb = nan;
         end
     else
-        warning('The GnuRadio gain for this sample is not calibratable!')
+        warning(['    Segment ', gpsSampleCntLabel, ...
+                ': The GnuRadio gain for this sample is not calibratable!']);
         pathLossInDb = nan;
     end
     
