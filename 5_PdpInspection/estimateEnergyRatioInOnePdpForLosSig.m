@@ -33,6 +33,9 @@ function [ energyRatioForLosSig ] ...
 % height, we will ignore it.
 MIN_NUM_SAMPS_BETWEEN_VALID_PEAKS = 10;
 MAX_HEIGHT_PERCENT_DIFF_OK_TO_IGNORE = 0.01;
+% The LoS peak should be high enough, e.g. at least 15% of the highest
+% signal received.
+MIN_LOS_SIGNAL_HEIGHT_RATIO = 0.15;
 
 numSamAmpsForOnePdp = length(samAmpsForOnePdp);
 
@@ -43,8 +46,8 @@ if isempty(samAmpsForOnePdp)
 else
     [pks, locs] = findpeaks(samAmpsForOnePdp);
     boolsValidSigPeaks = true(1, length(pks));
-    % The LoS peak should be at least 20% of the highest signal received.
-    idxLoSPeak = find(pks./max(pks)>=0.2, 1);
+    % The LoS peak should be tall enough.
+    idxLoSPeak = find(pks./max(pks)>=MIN_LOS_SIGNAL_HEIGHT_RATIO, 1);
     boolsValidSigPeaks(1:(idxLoSPeak-1)) = false;
     
     locPreValidPeak = locs(idxLoSPeak);
@@ -68,7 +71,7 @@ else
                     ./min(abs(samAmpsForOnePdp(curLoc)), ...
                     abs(samAmpsForOnePdp(locPreValidPeak)))...
                     <MAX_HEIGHT_PERCENT_DIFF_OK_TO_IGNORE)
-                    boolsValidSigPeaks(idxPeak) = false;
+                boolsValidSigPeaks(idxPeak) = false;
             else
                 locPreValidPeak = curLoc;
             end
