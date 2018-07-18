@@ -31,6 +31,10 @@ switch getenv('computername')
         % ZYG's Dell laptop.
         ABS_PATH_TO_NIST_LIDAR_LAS ...
             = 'C:\Users\Zyglabs\OneDrive - purdue.edu\EARS - Simulations\3D Models\USGS\NIST\CO_SoPlatteRiver_Lot5_2013_001049.las';
+    case 'ARTSY'
+        % ZYG's lab desktop.
+        ABS_PATH_TO_NIST_LIDAR_LAS ...
+            = 'C:\Users\YaguangZhang\OneDrive - purdue.edu\EARS - Simulations\3D Models\USGS\NIST\CO_SoPlatteRiver_Lot5_2013_001049.las';
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.
         assert(ismac, unknownComputerErrorMsg);
@@ -259,9 +263,11 @@ hInteractiveArea = fill3([lonRangeToShow(1), lonRangeToShow(1), ...
     ones(1,4), 'r', 'FaceColor','none');
 if FLAG_SHOW_RECOREDED_TREE_LOCS
     legend([hTreeLocs, hTreeLocationRecords], ...
-        'Manual Labels', 'Android GPS', 'Location', 'southeast');
+        'Manual Labels', 'Android GPS', 'Location', 'southeast', ...
+        'AutoUpdate', 'off');
 else
-    legend(hTreeLocs, 'Manual Labels', 'Location', 'southeast');
+    legend(hTreeLocs, 'Manual Labels', 'Location', 'southeast', ...
+        'AutoUpdate', 'off');
 end
 set(hInteractiveArea, 'EdgeColor', ones(3,1).*0.9, 'LineWidth', 2);
 uistack(hTreeLocs,'top');
@@ -302,11 +308,18 @@ if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
             delete(hNextArea);
         end
         
+        curFileName = ['Overview_', num2str(idxOverview)];
         pathToSaveOverviews = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-            ['Overview_', num2str(idxOverview)]);
+            curFileName);
         
         axis(axisValuesForOverviews{idxOverview});
         saveas(hInterTreeMarker, [pathToSaveOverviews, '.png']);
+        
+        % Export an .eps copy for papers.
+        pathToSavePaperFigs = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+            'PostProcessingResults', '1_EpsFigs');
+        saveEpsFigForPaper(hInterTreeMarker, ...
+            fullfile(pathToSavePaperFigs, ['2_1_', curFileName, '.eps']));
         
         if idxOverview<numOverviewAreas
             hNextArea = plot3(...
@@ -314,6 +327,11 @@ if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
                 axisValuesForOverviews{idxOverview+1}([3 4 4 3 3]), ...
                 ones(1,5), '-.', 'LineWidth', 1, 'Color', ones(3,1));
             saveas(hInterTreeMarker, [pathToSaveOverviews, '_WithNextArea.png']);
+            
+            % Export an .eps copy for papers.
+            curFileName = [curFileName, '_WithNextArea'];
+            saveEpsFigForPaper(hInterTreeMarker, ...
+                fullfile(pathToSavePaperFigs, ['2_1_', curFileName, '.eps']));
         end
     end
     

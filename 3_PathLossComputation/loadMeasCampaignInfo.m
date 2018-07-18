@@ -64,7 +64,7 @@ RX_PN_CLK_MHz = 399.995;
 % samples only for visalizing the PDP in the traditional way. However, path
 % loss computation will not be changed as the reversed signal should have
 % the same energy as the original one.
-FLAG_PDP_TIME_REVERSED = true;
+FLAG_PDP_TIME_REVERSED = false;
 
 % Set this variable to be a positive value if it is necessary to get rid of
 % singal samples less than a hard-coded floor.

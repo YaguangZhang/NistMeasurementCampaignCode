@@ -75,11 +75,12 @@ catch
         'Please refer to 1_Calibration/calibrateRx.m for more detail.'])
 end
 
-% Some variables defined in 2_PlotGpsSampsOnMap/loadGpsMarkers.m.
+% Some variables defined in 3_PathLossComputation/loadMeasCampaignInfo.m.
 try
     DOWNCONVERTER_GAIN_IN_DB = evalin('base', 'DOWNCONVERTER_GAIN_IN_DB');
     USRP_NOISE_FLOOR_V = evalin('base', 'USRP_NOISE_FLOOR_V');
     NUM_SIGMA_FOR_THRESHOLD = evalin('base', 'NUM_SIGMA_FOR_THRESHOLD');
+    FLAG_PDP_TIME_REVERSED = evalin('base', 'FLAG_PDP_TIME_REVERSED');
 catch
     error(['TX info not found in the base workspace! ', ...
         'Please refer to 2_PlotGpsSampsOnMap/loadGpsMarkers.m for more detail.'])
@@ -187,14 +188,17 @@ disp('curContiPathLossesWithGpsInfo: ');
 parfor idxGpsSample = 1:numGpsSamplesCovered
     % Make necessary variables in the base workspace available for the
     % workers.
+    assignin('base', 'Fs', Fs); %#ok<PFEVB>
+    assignin('base', ...
+        'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V); %#ok<PFEVB>
+    assignin('base', 'FLAG_PDP_TIME_REVERSED', ...
+        FLAG_PDP_TIME_REVERSED); %#ok<PFEVB>
     assignin('base', 'DOWNCONVERTER_GAIN_IN_DB', ...
         DOWNCONVERTER_GAIN_IN_DB); %#ok<PFEVB>
     assignin('base', ...
-        'USRP_NOISE_FLOOR_V', USRP_NOISE_FLOOR_V); %#ok<PFEVB>    
-    assignin('base', ...
         'NUM_SIGMA_FOR_THRESHOLD', ...
         NUM_SIGMA_FOR_THRESHOLD); %#ok<PFEVB>
-
+    
     gpsSampleCntLabel = [num2str(idxGpsSample), '/', ...
         num2str(numGpsSamplesCovered)];
     disp(['    Computing path loss for segment ', ...
@@ -243,7 +247,7 @@ parfor idxGpsSample = 1:numGpsSamplesCovered
         end
     else
         warning(['    Segment ', gpsSampleCntLabel, ...
-                ': The GnuRadio gain for this sample is not calibratable!']);
+            ': The GnuRadio gain for this sample is not calibratable!']);
         pathLossInDb = nan;
     end
     

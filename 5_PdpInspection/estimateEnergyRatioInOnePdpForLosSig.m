@@ -95,7 +95,7 @@ if exist('fullPathToSavePlot', 'var')
     timeLocs = timesForOnePdp(locs);
     
     % Plot.
-    hZoomedInPdp = figure; hold on;
+    hPdps = figure; hold on;
     % Only plot valid signal peaks.
     hPeaks = plot(timeLocs(boolsValidSigPeaks), ...
         pks(boolsValidSigPeaks), 'ro', 'LineWidth', 1);
@@ -126,13 +126,28 @@ if exist('fullPathToSavePlot', 'var')
         ['Energy ratio for the first peak = ', ...
         num2str(energyRatioForLosSig, '%.4f')]});
     hold off; axis tight; transparentizeCurLegends;
-    grid on; xlabel('Time (ms)'); ylabel('Amplitude (Volage)');
+    grid minor; xlabel('Time (ms)'); ylabel('Amplitude (Volage)');
     % Focus on the peaks.
     axis([curAxis(1:2) 0 curAxis(4)]);
     uistack(hAmp, 'top'); uistack(hPeaks, 'top')
     
-    saveas(hZoomedInPdp, fullPathToSavePlot);
-    close(hZoomedInPdp);
+    saveas(hPdps, fullPathToSavePlot);
+    
+    % Also save a zoomed-in version to view the peaks better if there are more than one valid peak.
+    if sum(boolsValidSigPeaks)>1
+        % Leave 10% of edge.
+        xRatioToExtend = 0.1;
+        xFirstPeak = timeLocs(find(boolsValidSigPeaks, 1));
+        xLastPeak = timeLocs(find(boolsValidSigPeaks, 1, 'last'));
+        xDelta = (xLastPeak-xFirstPeak).*xRatioToExtend./2;
+        axis([xFirstPeak-xDelta xLastPeak+xDelta...
+             0 curAxis(4)]);
+        [dirToSave, fileNameToSave, extToSave] = fileparts(fullPathToSavePlot);
+        saveas(hPdps, fullfile(dirToSave, ...
+            [fileNameToSave, '_ZoomedIn', extToSave]));
+    end
+    
+    close(hPdps);
 end
 
 end

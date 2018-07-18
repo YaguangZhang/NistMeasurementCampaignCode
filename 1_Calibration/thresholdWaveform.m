@@ -34,6 +34,19 @@ catch
     Fs = 1.04 * 10^6;
 end
 
+% Whether it is necessary to flip the signal or not.
+try
+    FLAG_PDP_TIME_REVERSED = evalin('base', 'FLAG_PDP_TIME_REVERSED');
+catch
+    warning('FLAG_PDP_TIME_REVERSED not found in the base workspace.')
+    warning('Will use the default value false.')
+    FLAG_PDP_TIME_REVERSED = false;
+end
+
+if FLAG_PDP_TIME_REVERSED
+    waveform = waveform(end:-1:1);
+end
+
 % Set this to be true to first convert the wave form to dB.
 FLAG_PROCESS_IN_DB = true;
 % Different ways to find the first present signal / peak.

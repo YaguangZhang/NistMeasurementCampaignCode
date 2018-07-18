@@ -24,7 +24,7 @@ switch getenv('computername')
         % ZYG's Dell laptop.
         ABS_PATH_TO_NIST_SHARED_FOLDER = absPathWinDell;
     case 'ARTSY'
-        % ZYG's Dell laptop.
+        % ZYG's lab desktop.
         ABS_PATH_TO_NIST_SHARED_FOLDER = absPathWinArtsy;
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.

@@ -48,6 +48,9 @@ BOOLS_MEAS_TO_FIT{1}(end-1:end) = 0; % Ignore the last two point.
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
+% For the NIST data set, we need to reverse the signal.
+FLAG_PDP_TIME_REVERSED = false;
+
 % Low pass filter for the power spectral density (PSD). 
 %   - Tried before: 46000; 39500.
 maxFreqPassed = 30000; % In Hz.
@@ -94,6 +97,12 @@ LINEAR_REGRESSION_METHOD = 'linortfit2';
 disp(' ------------- ')
 disp('  calibrateRx')
 disp(' ------------- ')
+
+LogicalStr = {'false', 'true'};
+
+disp(' ')
+disp(['    FLAG_PDP_TIME_REVERSED is set to be **', ...
+    LogicalStr{FLAG_PDP_TIME_REVERSED+1}, '** ...'])
 
 % Disable the tex interpreter in figures.
 set(0,'DefaultTextInterpreter','none');

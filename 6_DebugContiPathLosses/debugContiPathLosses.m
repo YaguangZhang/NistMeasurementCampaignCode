@@ -38,6 +38,10 @@ ABS_PATH_TO_UTM_INFO= fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
 % Generate debug figures for noise elimination or not.
 flagGenerateNoiseEliDebugFig = true;
 
+% For generating .eps figures.
+pathToSavePaperFigs = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+    'PostProcessingResults', '1_EpsFigs');
+
 %% Before Processing the Data
 
 curFileName = mfilename;
@@ -55,6 +59,11 @@ end
 dinfo = dir(ABS_PATH_TO_SAVE_PLOTS);
 dinfo([dinfo.isdir]) = [];   %skip directories
 filenames = fullfile(ABS_PATH_TO_SAVE_PLOTS, {dinfo.name});
+warning('We need to delete history results from this script!')
+k = input('    Is this OK? (y/n) ', 's');
+if ~strcmpi(k, 'y')
+    error('User declined to continue.')
+end
 if ~isempty(filenames)
     delete( filenames{:} )
 end
@@ -99,9 +108,12 @@ disp('    Done!')
 
 disp('    Generating PDP plots for signal recording segments ...');
 
-% The first range contains everything. Other ranges are duplicated for more
-% convenient analysis.
-distRangesToInsp = {[50, 500], [0, 50], [175, 180]}; % In meter.
+% Set this to control how to group the sample locations according to the
+% RX-to-TX distance.
+%   For example, {[50, 500], [0, 50], [175, 180]}: The first range contains
+%	almost everything; Other ranges are for separate analyses on smaller
+%	ranges.
+distRangesToInsp = {[0, 500]}; % In meter.
 numDistRangesToInsp = length(distRangesToInsp);
 
 losPeakEnergyRs = cell(numDistRangesToInsp, 1);
@@ -180,7 +192,7 @@ for idxRange = 1:numDistRangesToInsp
                     = estimateEnergyRatioInOnePdpForLosSig( ...
                     timeMsInPlot, signalAmpsInPlot, ...
                     fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-                    [plotFileName, '_peaks.jpg']), lowPassedSigInPlot);
+                    [plotFileName, '_Peaks.jpg']), lowPassedSigInPlot);
                 
                 % Save the noise elimination figure.
                 if isgraphics(hNoiseEliDebugFig) ...
@@ -223,7 +235,8 @@ for idxRange = 1:numDistRangesToInsp
     [r,x] = ecdf(curLosPeakEngergyRs);
     
     hPeakEnRsCdfFig = figure; hold on;
-    plot(x, r, 'b.-');
+    plot(x, r, '--', 'Color', ones(1,3)*0.5);
+    plot(x, r, 'b.');
     xlabel('LoS Peak Energy Ratio'); ylabel('Empirical CDF'); grid on;
     plotFileName = [...
         'losPeakEnergyRs_CDF_Range_', num2str(curRange(1)), ...
@@ -232,6 +245,11 @@ for idxRange = 1:numDistRangesToInsp
         [plotFileName, '.fig']));
     saveas(hPeakEnRsCdfFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         [plotFileName, '.jpg']));
+    
+    % Export an .eps copy for papers.
+    saveEpsFigForPaper(hPeakEnRsCdfFig, ...
+        fullfile(pathToSavePaperFigs, ...
+        ['5_', plotFileName, '.eps']));
     
     % Plot the LoS peak energy ratio results on a map to show their
     % locations.

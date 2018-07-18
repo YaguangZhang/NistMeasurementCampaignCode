@@ -18,7 +18,7 @@ setPath;
 addpath(fullfile(pwd, '1_Calibration'));
 calibrateRx;
 
-%% 2_PlotGpsSampsOnMap: Plot Overview Maps
+%% 2_PlotGpsSampsOnMap: Plot Overview Maps ASB                                                                                                                                                                                                    
 addpath(fullfile(pwd, '2_PlotGpsSampsOnMap'));
 plotAllGpsSampsOnMap;
 
@@ -30,7 +30,7 @@ addpath(fullfile(pwd, '3_PathLossComputation'));
 loadMeasCampaignInfo;
 
 % Set this to be true to get rid of data too close to the TX.
-flagTailorData = true;
+flagTailorData = false;
 % This will actually carry out the path loss computation.
 if flagTailorData
     addpath(fullfile(pwd, '3_1_PathLossComputationTailored'));
