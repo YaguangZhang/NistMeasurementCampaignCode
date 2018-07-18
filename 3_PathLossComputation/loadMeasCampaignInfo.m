@@ -31,7 +31,7 @@ end
 
 %% Hard Coded Parameters
 
-% Tx Power in dBm. 
+% Tx Power in dBm.
 TX_POWER_DBM = 23.4;
 % Tx tower height in feet.
 TX_HEIGHT_FEET = 5; % 60 inch.
@@ -64,7 +64,11 @@ RX_PN_CLK_MHz = 399.995;
 % samples only for visalizing the PDP in the traditional way. However, path
 % loss computation will not be changed as the reversed signal should have
 % the same energy as the original one.
-FLAG_PDP_TIME_REVERSED = false;
+FLAG_PDP_TIME_REVERSED = true;
+
+% Set this flag to true if it is necessary to flip the signal for the noise
+% elimination procedure, too.
+FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI = false;
 
 % Set this variable to be a positive value if it is necessary to get rid of
 % singal samples less than a hard-coded floor.
@@ -105,18 +109,25 @@ txInfoFilesDirs = rdir(fullfile(pathToData, '**', 'TxInfo.txt'), '', false);
 %% Save the Results
 pathFileToSaveResults = fullfile(ABS_PATH_TO_SAVE_RESULTS, ...
     'txInfoLogs.mat');
+
+disp(' ')
+disp('Saving configuration parameters...')
+
 save(pathFileToSaveResults, 'TX_POWER_DBM', ...
     'TX_HEIGHT_FEET', 'RX_HEIGHT_M', 'TX_HEIGHT_M', ...
     'F_S', 'F_C_IN_GHZ', 'TX_LAT', 'TX_LON', 'TX_ALT', ...
     'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS', ...
     'DOWNCONVERTER_GAIN_IN_DB', 'TX_PN_CLK_MHz', 'RX_PN_CLK_MHz', ...
-    'FLAG_PDP_TIME_REVERSED', 'SLIDE_FACTOR');
+    'FLAG_PDP_TIME_REVERSED', 'FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI', ...
+    'SLIDE_FACTOR');
 if exist('USRP_NOISE_FLOOR_V', 'var')
     save(pathFileToSaveResults, 'USRP_NOISE_FLOOR_V', '-append');
 end
 if exist('NUM_SIGMA_FOR_THRESHOLD', 'var')
     save(pathFileToSaveResults, 'NUM_SIGMA_FOR_THRESHOLD', '-append');
 end
+
+disp('    Done!')
 
 %% Generate plotInfo.mat
 % This is needed for the path loss computation scripts.
@@ -146,7 +157,8 @@ else
     % Need to actually scan the folder and find the sample folders.
     allSeriesParentDirs = rdir(fullfile(ABS_PATH_TO_DATA, '**', '*'), ...
         'regexp(name, ''(_NistFoliage$)'')');
-    % Also locate all the "Series_xx" data folders for each parent directory.
+    % Also locate all the "Series_xx" data folders for each parent
+    % directory.
     allSeriesDirs = cell(length(allSeriesParentDirs),1);
     for idxPar = 1:length(allSeriesParentDirs)
         assert(allSeriesParentDirs(idxPar).isdir, ...

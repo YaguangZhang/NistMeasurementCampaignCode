@@ -36,14 +36,15 @@ end
 
 % Whether it is necessary to flip the signal or not.
 try
-    FLAG_PDP_TIME_REVERSED = evalin('base', 'FLAG_PDP_TIME_REVERSED');
+    FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI ...
+        = evalin('base', 'FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI');
 catch
-    warning('FLAG_PDP_TIME_REVERSED not found in the base workspace.')
+    warning('FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI not found in the base workspace.')
     warning('Will use the default value false.')
-    FLAG_PDP_TIME_REVERSED = false;
+    FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI = false;
 end
 
-if FLAG_PDP_TIME_REVERSED
+if FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI
     waveform = waveform(end:-1:1);
 end
 

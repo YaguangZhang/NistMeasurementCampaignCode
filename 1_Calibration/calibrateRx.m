@@ -48,8 +48,10 @@ BOOLS_MEAS_TO_FIT{1}(end-1:end) = 0; % Ignore the last two point.
 
 % Sample rate used for GnuRadio.
 Fs = 2 * 10^6;
-% For the NIST data set, we need to reverse the signal.
-FLAG_PDP_TIME_REVERSED = false;
+% Set this to true to reverse the signal in PDP overviews.
+FLAG_PDP_TIME_REVERSED = true;
+% Set this to true to reverse the signal in noise elimination.
+FLAG_PDP_TIME_REVERSED_IN_NOISE_ELI = false;
 
 % Low pass filter for the power spectral density (PSD). 
 %   - Tried before: 46000; 39500.
