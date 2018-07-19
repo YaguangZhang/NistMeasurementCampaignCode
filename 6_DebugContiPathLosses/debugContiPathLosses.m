@@ -42,6 +42,10 @@ flagGenerateNoiseEliDebugFig = true;
 pathToSavePaperFigs = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', '1_EpsFigs');
 
+% Manually set the figure size and axis to best show the data on plots.
+figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
+    39.9893839683981, 39.9915745444857];
+
 %% Before Processing the Data
 
 curFileName = mfilename;
@@ -251,7 +255,7 @@ for idxRange = 1:numDistRangesToInsp
     % Export an .eps copy for papers.
     saveEpsFigForPaper(hPeakEnRsCdfFig, ...
         fullfile(pathToSavePaperFigs, ...
-        ['5_', plotFileName, '.eps']));
+        ['5_1_', plotFileName, '.eps']));
     
     % Plot the LoS peak energy ratio results on a map to show their
     % locations.
@@ -263,16 +267,17 @@ for idxRange = 1:numDistRangesToInsp
     %     colormap('jet');
     plot3k([curLosPeakEstiLatLon(~boolsNanLosPeakRs,2), ...
         curLosPeakEstiLatLon(~boolsNanLosPeakRs,1), ...
-        curLosPeakEngergyRs(~boolsNanLosPeakRs)]);
+        curLosPeakEngergyRs(~boolsNanLosPeakRs)], 'Marker', {'.', 12});
     plot3(curLosPeakEstiLatLon(boolsNanLosPeakRs,2), ...
         curLosPeakEstiLatLon(boolsNanLosPeakRs,1), ...
         curLosPeakEngergyRs(boolsNanLosPeakRs), 'xk');
     hTx = plot3(lonTx, latTx, 0, 'g^');
-    legend(hTx, 'Tx'); xlabel('Longitude'); ylabel('Latitude');
+    legend(hTx, 'Tx', 'Location', 'SouthEast');
+    xlabel('Longitude'); ylabel('Latitude');
     xticks([]); yticks([]); grid on; view(2);
     
     % Manually adjust the visible area.
-    axis([-105.2776 -105.2743 39.9892 39.9917]);
+    axis(figAxisToSet);
     plot_google_map('MapType', 'satellite');
     
     % The command plot_google_map messes up the color legend of plot3k, so
@@ -282,6 +287,7 @@ for idxRange = 1:numDistRangesToInsp
     hCb.TickLabels = arrayfun(@(n) {num2str(n)}, hCbTicksToSet)';
     hCb.Ticks = linspace(1,length(colormap)+1, ...
         length(hCb.TickLabels));
+    title('RX Locations Colored by Estimated LoS Energy Ratios')
     
     plotFileName = [...
         'losPeakEnergyRs_map_Range_', num2str(curRange(1)), ...
@@ -290,6 +296,12 @@ for idxRange = 1:numDistRangesToInsp
         [plotFileName, '.fig']));
     saveas(hPeakEnRsOnMapFig, fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         [plotFileName, '.jpg']));
+    
+    % Export an .eps copy for papers.
+    pathToSavePaperFigs = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+        'PostProcessingResults', '1_EpsFigs');
+    saveEpsFigForPaper(hPeakEnRsOnMapFig, ...
+        fullfile(pathToSavePaperFigs, ['5_2_', plotFileName, '.eps']));
 end
 
 disp('    Done!')

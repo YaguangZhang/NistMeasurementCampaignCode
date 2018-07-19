@@ -14,7 +14,8 @@ function [ energyRatioForLosSig ] ...
 %         Optional. The full path, including the file name, to save a debug
 %         figure. If absent, no figure will be generated.
 %       - lowPassedSigForOnePdp
-%
+%         Optional. The low-pass filtered signal gotten by
+%         plotPdpsForOneRec.m.
 %
 %   Output:
 %       - energyRatioForLosSig
@@ -114,10 +115,13 @@ if exist('fullPathToSavePlot', 'var')
     %     end
     
     if exist('lowPassedSigForOnePdp', 'var')
-        hOri = plot(timesForOnePdp, abs(lowPassedSigForOnePdp), '.', ...
-            'Color', ones(1,3)*0.7);
-        legend([hAmp, hPeaks, hOri], ...
-            'Sample amplitude', 'Peaks', 'Eliminated');
+        if (~isempty(lowPassedSigForOnePdp)) ...
+                && (~all(isnan(lowPassedSigForOnePdp)))
+            hOri = plot(timesForOnePdp, abs(lowPassedSigForOnePdp), '.', ...
+                'Color', ones(1,3)*0.7);
+            legend([hAmp, hPeaks, hOri], ...
+                'Sample amplitude', 'Peaks', 'Eliminated');
+        end
     else
         legend([hAmp, hPeaks], 'Sample amplitude', 'Peaks');
     end

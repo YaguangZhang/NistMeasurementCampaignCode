@@ -22,10 +22,13 @@ end
 epsFullPathToSave = fullfile(dirToSave, [figName, '.eps']);
 
 curFigure = gcf;
-
 set(0, 'currentfigure', hFig);
+curFigureColor = get(gcf,'Color');
+set(gcf, 'Color', 'white');
+
 export_fig(epsFullPathToSave, '-eps', '-transparent'); 
 
+set(gcf, 'Color', curFigureColor);
 set(0, 'currentfigure', curFigure);
 end
 

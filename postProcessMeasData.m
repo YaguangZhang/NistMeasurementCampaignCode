@@ -53,7 +53,7 @@ debugContiPathLosses;
 %% 7_ManuallyLocateTrees: Manually Label Trees on Map
 
 % Set this to be true if it is necessary to re-label the trees.
-flagRelabelTrees = false;
+flagRelabelTrees = true;
 if flagRelabelTrees
     addpath(fullfile(pwd, '7_ManuallyLocateTrees'));
     manuallyLocateTrees;

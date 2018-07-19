@@ -145,7 +145,7 @@ for idxRec = 1:numAllSigOutFiles
     hold on;
     hTx = plot(lonTx, latTx, 'g^');
     hSamps = plot(allLons, allLats, 'r.');
-    hCurRec = plot(curLons, curLats, 'b.');
+    hCurRec = plot(curLons, curLats, 'g.');
     % Manually adjust the visible area.
     set(hContiRec, 'pos', figPosToSet)
     axis(figAxisToSet);
@@ -190,7 +190,7 @@ pathToSaveColorOverview = fullfile(pathToSaveSeparateRecs, ...
 hColorOverview = figure; hold on;
 hTx = plot(lonTx, latTx, 'g^', 'LineWidth', 1.5);
 for idxRec = 1:numAllSigOutFiles
-    plot(allCurLons{idxRec}, allCurLats{idxRec}, '.', ...
+    plot(allCurLons{idxRec}, allCurLats{idxRec}, '.', 'MarkerSize', 10, ...
         'Color', colorsForTracks(idxRec, :));
 end
 % Manually adjust the visible area.
@@ -198,7 +198,7 @@ set(hColorOverview, 'pos', figPosToSet)
 axis(figAxisToSet);
 plot_google_map('MapType', 'satellite');
 xticks([]); yticks([]); legend(hTx, 'Tx', 'Location', 'SouthEast');
-xlabel('Longitude'); ylabel('Latitude');
+% xlabel('Longitude'); ylabel('Latitude');
 saveas(hColorOverview, [pathToSaveColorOverview, '.fig']);
 saveas(hColorOverview, [pathToSaveColorOverview, '.jpg']);
 saveas(hColorOverview, [pathToSaveColorOverview, '.png']);
