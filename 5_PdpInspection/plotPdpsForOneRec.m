@@ -1,4 +1,4 @@
-function [ hPdpFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown, ...
+function [ hPdpFig, nsToPlot, signalAmp, lowPassedSig, indexRangeShown, ...
     hNoiseEliDebugFig] ...
     = plotPdpsForOneRec(sigOutFile, F_S, segmentRange, ...
     flagGenerateNoiseEliDebugFig)
@@ -35,8 +35,8 @@ function [ hPdpFig, msToPlot, signalAmp, lowPassedSig, indexRangeShown, ...
 %   Outputs:
 %       - hPdpFig
 %         The handler to the figure generated.
-%       - msToPlot, signalAmp
-%         Time points in ms and the cooresponding signal sample amplitudes
+%       - nsToPlot, signalAmp
+%         Time points in ns and the cooresponding signal sample amplitudes
 %         in the plot. If everything works as expected, these should
 %         capture the tallest peak in the signal.
 %       - lowPassedSig
@@ -149,12 +149,12 @@ end
 
 if evalin('base','exist(''SLIDE_FACTOR'', ''var'')')
     SLIDE_FACTOR = evalin('base', 'SLIDE_FACTOR');
-    [hPdpFig, msToPlot, signalAmp, signalIdxRange] ...
+    [hPdpFig, nsToPlot, signalAmp, signalIdxRange] ...
         = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S, SLIDE_FACTOR);
 else
     disp('SLIDE_FACTOR is not defined.')
-    [hPdpFig, msToPlot, signalAmp, signalIdxRange] ...
+    [hPdpFig, nsToPlot, signalAmp, signalIdxRange] ...
         = plotOnePresentSignalAmp(signalToShow, ...
         numPreSamples, numPostSamples, figureSupTitle, F_S);
 end
@@ -163,8 +163,6 @@ if isempty(signalAmp)
 else
     lowPassedSig = lowPassedSig(signalIdxRange(1):signalIdxRange(2));
 end
-
-transparentizeCurLegends; grid on; xlabel('Time (ms)');
 
 rangeIndices = range(1):range(2);
 if ~isempty(signalIdxRange)

@@ -1,14 +1,14 @@
 function [ energyRatioForLosSig ] ...
     = estimateEnergyRatioInOnePdpForLosSig(...
-    timesForOnePdp, samAmpsForOnePdp, ...
+    timeNsForOnePdp, samAmpsForOnePdp, ...
     fullPathToSavePlot, lowPassedSigForOnePdp)
 %ESTIMATEENERGYRATIOFORLOSSIG Estimate the energy ratio of the LOS signal
 %(the first arrival peak) for one PDP.
 %
 %   Inputs:
-%       - timesForOnePdp, samAmpsForOnePdp
-%         The time points and the corresponding sample amplitudes for the
-%         input PDP. Note that we assume that the PDP samples have been
+%       - timeNsForOnePdp, samAmpsForOnePdp
+%         The time points in ns and the corresponding sample amplitudes for
+%         the input PDP. Note that we assume that the PDP samples have been
 %         gone through LPF and noise eliminiation already.
 %       - fullPathToSavePlot
 %         Optional. The full path, including the file name, to save a debug
@@ -90,15 +90,17 @@ if exist('fullPathToSavePlot', 'var')
     extraNumSampsPerSide = 1000; % Only plot a little more samples.
     indicesSampsToShow = max([1, min(locs)-extraNumSampsPerSide]): ...
         min([max(locs)+extraNumSampsPerSide, numSamAmpsForOnePdp]);
-    timesToShow = timesForOnePdp(indicesSampsToShow);
+    timeNsToShow = timeNsForOnePdp(indicesSampsToShow);
     samAmpsToShow = samAmpsForOnePdp(indicesSampsToShow);
     
-    timeLocs = timesForOnePdp(locs);
+    timeNsLocs = timeNsForOnePdp(locs);
+    % For shifting x ticks so that the LoS peak shows up at x=0.
+    nsLosPeak = timeNsLocs(find(boolsValidSigPeaks,1));
     
     % Plot.
     hPdps = figure; hold on;
     % Only plot valid signal peaks.
-    hPeaks = plot(timeLocs(boolsValidSigPeaks), ...
+    hPeaks = plot(timeNsLocs(boolsValidSigPeaks)-nsLosPeak, ...
         pks(boolsValidSigPeaks), 'ro', 'LineWidth', 1);
     
     % Double the x range if there are multiple peaks.
@@ -107,17 +109,19 @@ if exist('fullPathToSavePlot', 'var')
     %             + [-1, 1].*0.5.*(curAxis(2)-curAxis(1));
     %     end
     
-    hAmp = plot(timesToShow, samAmpsToShow, 'b.');
+    hAmp = plot(timeNsToShow-nsLosPeak, samAmpsToShow, 'b.');
     % Set x range according to extraNumSampsPerSide if there is not enough
     % peaks.
     %     if sum(boolsValidSigPeaks)<=1
+    axis tight; 
     curAxis = axis;
     %     end
     
     if exist('lowPassedSigForOnePdp', 'var')
         if (~isempty(lowPassedSigForOnePdp)) ...
                 && (~all(isnan(lowPassedSigForOnePdp)))
-            hOri = plot(timesForOnePdp, abs(lowPassedSigForOnePdp), '.', ...
+            hOri = plot(timeNsForOnePdp-nsLosPeak, ...
+                abs(lowPassedSigForOnePdp), '.', ...
                 'Color', ones(1,3)*0.7);
             legend([hAmp, hPeaks, hOri], ...
                 'Sample amplitude', 'Peaks', 'Eliminated');
@@ -129,24 +133,26 @@ if exist('fullPathToSavePlot', 'var')
     title({'Peaks Detected (Amplitude in Volt)'; ...
         ['Energy ratio for the first peak = ', ...
         num2str(energyRatioForLosSig, '%.4f')]});
-    hold off; axis tight; transparentizeCurLegends;
-    grid minor; xlabel('Time (ms)'); ylabel('Amplitude (Volage)');
+    hold off; transparentizeCurLegends;
+    grid minor; xlabel('Time (ns)'); ylabel('Amplitude (Volage)');
     % Focus on the peaks.
     axis([curAxis(1:2) 0 curAxis(4)]);
     uistack(hAmp, 'top'); uistack(hPeaks, 'top')
     
     saveas(hPdps, fullPathToSavePlot);
     
-    % Also save a zoomed-in version to view the peaks better if there are more than one valid peak.
+    % Also save a zoomed-in version to view the peaks better if there are
+    % more than one valid peak.
     if sum(boolsValidSigPeaks)>1
         % Leave 10% of edge.
         xRatioToExtend = 0.1;
-        xFirstPeak = timeLocs(find(boolsValidSigPeaks, 1));
-        xLastPeak = timeLocs(find(boolsValidSigPeaks, 1, 'last'));
+        xFirstPeak = timeNsLocs(find(boolsValidSigPeaks, 1));
+        xLastPeak = timeNsLocs(find(boolsValidSigPeaks, 1, 'last'));
         xDelta = (xLastPeak-xFirstPeak).*xRatioToExtend./2;
-        axis([xFirstPeak-xDelta xLastPeak+xDelta...
-             0 curAxis(4)]);
-        [dirToSave, fileNameToSave, extToSave] = fileparts(fullPathToSavePlot);
+        axis([xFirstPeak-xDelta-nsLosPeak xLastPeak+xDelta-nsLosPeak...
+            0 curAxis(4)]);
+        [dirToSave, fileNameToSave, extToSave] ...
+            = fileparts(fullPathToSavePlot);
         saveas(hPdps, fullfile(dirToSave, ...
             [fileNameToSave, '_ZoomedIn', extToSave]));
     end

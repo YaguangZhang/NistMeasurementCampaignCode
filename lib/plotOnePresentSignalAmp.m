@@ -1,4 +1,4 @@
-function [ hFig, msToPlot, signalAmp, signalIdxRange ] ...
+function [ hFig, nsToPlot, signalAmp, signalIdxRange ] ...
     = plotOnePresentSignalAmp( signal, ...
     numPreSamples, numPostSamples, figureName, Fs, slideFactor)
 %PLOTONEPRESENTSIGNALAMP Plot the tallest bump of the signal in amplitude.
@@ -12,7 +12,7 @@ function [ hFig, msToPlot, signalAmp, signalIdxRange ] ...
 %     first tallest signal sample found will be plotted accordingly if
 %     there are enough samples available.
 %   - figureName
-%     Optional. A string to specify the figure's name.
+%     Optional. A string to specify the name of the figure.
 %   - Fs
 %     Optional. A number to specify the sample rate for the input signal.
 %     Used to properly set the x axis / time line labels. If not present, a
@@ -67,10 +67,10 @@ else
     hFig = figure;
 end
 
-% Convert sample number to ms.
-msToPlot = (1:(maxIdxToPlot-minIdxToPlot+1))./Fs.*1000;
+% Convert sample number to ns.
+nsToPlot = (1:(maxIdxToPlot-minIdxToPlot+1))./Fs.*(10.^9);
 if nargin>5
-    msToPlot = msToPlot./slideFactor;
+    nsToPlot = nsToPlot./slideFactor;
 end
 
 % Output the index range of the signal of interest.
@@ -78,19 +78,15 @@ signalIdxRange = [minIdxToPlot, maxIdxToPlot];
 
 subplot(1,1,1); hold on;
 signalAmp = abs(signal(minIdxToPlot:maxIdxToPlot));
-hAmp = plot(msToPlot, signalAmp, 'b.');
+hAmp = plot(nsToPlot, signalAmp, 'b.');
 if FLAG_SUBTITLES
     title('First Detected Signal (Amplitude in Volt)')
 end
-hold off; legend(hAmp, 'Amplitude'); axis tight;
-
+hold off; legend(hAmp, 'Amplitude'); axis tight; grid on;
 if nargin>3
     suptitle(figureName);
 end
-% Convert x axis unit to time.
-xlabel('Time (ms)');
-xticklabels(arrayfun(@(n) num2str(n/Fs*1000, '%.2f'), xticks, ...
-    'UniformOutput', false));
+xlabel('Time (ns)');
 
 set(0,'DefaultTextInterpreter',curDefulatTextInt);
 % EOF
