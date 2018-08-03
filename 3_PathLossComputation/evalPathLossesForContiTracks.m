@@ -444,13 +444,24 @@ plot3k([validNonRefPathLossesWithValidGps(:,3), ...
     validNonRefPathLossesWithValidGps(:,2), ...
     validNonRefPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
 xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
+
+% Draw a square to show the area where we are gonna illustrate the manually
+% labeled trees.
+axisValuesForTreeOverview = [-105.27701930, -105.27483020, ...
+    39.99008676, 39.99156435];
+plot3(axisValuesForTreeOverview([1 1 2 2 1]), ...
+    axisValuesForTreeOverview([3 4 4 3 3]), ...
+    ones(1,5).*max(validNonRefPathLossesWithValidGps(:,1))+1, ...
+    '-.', 'LineWidth', 1, 'Color', ones(3,1));
+
+% Manually adjust the visible area.
+axis(figAxisToSet);
+plot_google_map('MapType','satellite');
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
 hCb = findall( allchild(hNonRefPathLossesOnMap), 'type', 'colorbar');
 hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
-% Manually adjust the visible area.
-axis(figAxisToSet);
-plot_google_map('MapType','satellite');
+
 hold off; view(2);
 legend(hTx, 'TX', 'Location','southeast');
 title('Basic Transmission Losses on Map');
