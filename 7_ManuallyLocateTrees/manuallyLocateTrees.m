@@ -1,4 +1,4 @@
-% MANUALLYLOCATETREES Manually mark trees on
+% MANUALLYLOCATETREES Manually mark trees on a map for the NIST data set.
 %
 %   When available, parameters including series number, location, TxAz,
 %   TxEl, RxAz, TxEl and note, will be loaded. We will also hardcode some
@@ -58,7 +58,7 @@ pathToSaveTreeLocsRecorded = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'FoliageAttenuationEstimation', ...
     'treeLocs.mat');
 % Set this to be true to try to fetch elevation data from Google Maps.
-% Currently, we do not have enough quote for this.
+% Currently, we do not have enough quota for this.
 FLAG_FTECH_ELE_FROM_GOOGLE = false;
 
 % Configure other paths accordingly.
@@ -71,6 +71,11 @@ ABS_PATH_TO_SAVE_TREE_LOCS = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
 % Set this flag to be true to disable the interactive function of the
 % collector and generate overview plots instead.
 FLAG_GENERATE_OVERVIEW_PLOTS_ONLY = true;
+
+% For filtering out outliers and samples of the Lidar data we do not care.
+Z_RANGE = [1660, 1920]; % Hard coded.
+LAT_RANGE = [39.989188, 39.992223];
+LON_RANGE = [-105.278014, -105.273414];
 
 %% Before Processing the Data
 
@@ -112,26 +117,51 @@ else
     [lidarLats, lidarLons] = utm2deg(lidarData.x, lidarData.y, ...
         repmat(UTM_ZONE, lidarNumSamps, 1));
     
+    % Use USGS 1/3 arc-second (~10m) resolution data for US terrain
+    % elevation.
+    region = fetchregion(LAT_RANGE, LON_RANGE, 'display', true);
+    nistElevData = region.readelevation(LAT_RANGE, LON_RANGE, ...
+        'sampleFactor', 1, ...
+        'display', true);
+    % One can preview the elevation data fetched using:
+    %       dispelev(nistElevData, 'mode', 'latlong');
+    
     % Save the results.
-    save(ABS_PATH_TO_SAVE_ELEVATIONS, 'lidarLats', 'lidarLons');
+    save(ABS_PATH_TO_SAVE_ELEVATIONS, 'lidarLats', 'lidarLons', ...
+        'nistElevData');
 end
 
-if FLAG_FTECH_ELE_FROM_GOOGLE ...
-        && (~exist('lidarAlts', 'var') || isnan(lidarAlts))
-    disp('        Fetching elevation information from Google Maps ...')
-    % Fetch the elevation data from Google Maps.
-    GOOGLE_MAPS_API = 'AIzaSyDlkaE_QJxvRJpTutWG0N-LCvoT0e7FPHE';
-    lidarAlts = nan;
-    countTrials = 0;
-    while isnan(lidarAlts)
-        countTrials = countTrials+1;
-        disp(['            Trial # ', num2str(countTrials), ' ...']);
-        lidarAlts = getElevationsFromGoogle(lidarLats, lidarLons, ...
-            GOOGLE_MAPS_API);
+% we will only try to generate the elevation information when it is not
+% available.
+if (~exist('lidarAlts', 'var') || isnan(lidarAlts))    
+    if FLAG_FTECH_ELE_FROM_GOOGLE
+        lidarAlts = nan;
+        % Use Google as the elevation source for better resolution.
+        % However, this approach is limited by the quota Google provides.
+        disp('        Fetching elevation information from Google Maps ...')
+        % Fetch the elevation data from Google Maps.
+        GOOGLE_MAPS_API = 'AIzaSyDlkaE_QJxvRJpTutWG0N-LCvoT0e7FPHE';
+        
+        countTrials = 0;
+        while isnan(lidarAlts)
+            countTrials = countTrials+1;
+            disp(['            Trial # ', num2str(countTrials), ' ...']);
+            lidarAlts = getElevationsFromGoogle(lidarLats, lidarLons, ...
+                GOOGLE_MAPS_API);
+        end     
+    else
+        % Interperlate nistElevData to get lidarAlts.
+        [nistElevDataLons, nistElevDataLats] = meshgrid( ...
+            nistElevData.longs, nistElevData.lats);
+        lidarAlts = interp2( ...
+            nistElevDataLons, nistElevDataLats, ... 
+            nistElevData.elev, ...
+            lidarLons, lidarLats);
     end
     
     % Save the results.
-    save(ABS_PATH_TO_SAVE_ELEVATIONS, 'lidarAlts', '-append');
+    save(ABS_PATH_TO_SAVE_ELEVATIONS, 'FLAG_FTECH_ELE_FROM_GOOGLE', ...
+        'lidarAlts', '-append');    
 end
 
 disp('    Done!')
@@ -180,15 +210,8 @@ disp('    Done!')
 
 %% Interactive Figure for Labeling Tree Locations
 
-
 disp(' ')
 disp('    Generating interactive plot for marking trees ...')
-
-% For filtering out outliers and samples we do not care.
-
-zRangeToShow = [1660, 1920]; % Hard coded.
-latRangeToShow = [39.989188, 39.992223];
-lonRangeToShow = [-105.278014, -105.273414];
 
 lidarLonLatZToShow = [lidarLons, lidarLats, lidarData.z];
 lidarLonLatZToShow((lidarLonLatZToShow(:,1)<lonRangeToShow(1) ...
@@ -214,7 +237,7 @@ else
         'visible','off');
 end
 hold on;
-plot3k(lidarLonLatZToShow, 'Marker',{'.',1});
+plot3k(lidarLonLatNormZToShow, 'Marker',{'.',1});
 grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
 title('Tree Locations with Colored LiDAR z Values'); xticks([]); yticks([]);
 axis([lonRangeToShow, latRangeToShow, 0, 1]);
@@ -334,6 +357,34 @@ if FLAG_GENERATE_OVERVIEW_PLOTS_ONLY
                 fullfile(pathToSavePaperFigs, ['2_1_', curFileName, '.eps']));
         end
     end
+    
+    % Generate a large image with only satellite image and lidar data for
+    % manually coloring leave area, which is used to calculate
+    % site-specific vagetation depth for applying the ITU model.
+    VEG_AREA_IMG_RESOLUTION = [2000 2000]; % In pixel.
+    VEG_AREA_IMG_AXIS = [-105.27824323, -105.27319200, ...
+        39.98900606, 39.99241554];
+    
+    figure(hInterTreeMarker);
+    curInterTreeMarkerFigPos = get(hInterTreeMarker, 'Position');
+    curInterTreeMarkerAxis = axis;
+    set(hInterTreeMarker, 'Position', [0 0 VEG_AREA_IMG_RESOLUTION]);
+    axis(VEG_AREA_IMG_AXIS);
+    plot_google_map('MapType', 'satellite');
+    vegAreaFrame = getframe(gcf);
+    
+    vegAreaImgPathToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'vegArea.png');
+    vegAreaImgParaPathToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'vegAreaParameters.mat');
+    
+    imwrite(vegAreaFrame.cdata, vegAreaImgPathToSave);
+    save(vegAreaImgParaPathToSave, 'VEG_AREA_IMG_RESOLUTION', ...
+        'VEG_AREA_IMG_AXIS', 'vegAreaFrame');
+    
+    figure(hInterTreeMarker);
+    set(hInterTreeMarker, 'Position', curInterTreeMarkerFigPos);
+    axis(curInterTreeMarkerAxis);
     
     disp('    Overview plots have been generated ')
     disp(' ')
