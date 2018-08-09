@@ -133,7 +133,7 @@ end
 
 % we will only try to generate the elevation information when it is not
 % available.
-if (~exist('lidarAlts', 'var') || isnan(lidarAlts))    
+if (~exist('lidarAlts', 'var') || all(isnan(lidarAlts)))    
     if FLAG_FTECH_ELE_FROM_GOOGLE
         lidarAlts = nan;
         % Use Google as the elevation source for better resolution.
@@ -213,18 +213,20 @@ disp('    Done!')
 disp(' ')
 disp('    Generating interactive plot for marking trees ...')
 
-lidarLonLatZToShow = [lidarLons, lidarLats, lidarData.z];
-lidarLonLatZToShow((lidarLonLatZToShow(:,1)<lonRangeToShow(1) ...
-    | lidarLonLatZToShow(:,1)>lonRangeToShow(2)), :) = [];
-lidarLonLatZToShow((lidarLonLatZToShow(:,2)<latRangeToShow(1) ...
-    | lidarLonLatZToShow(:,2)>latRangeToShow(2)), :) = [];
-lidarLonLatZToShow((lidarLonLatZToShow(:,3)<zRangeToShow(1) ...
-    | lidarLonLatZToShow(:,3)>zRangeToShow(2)), :) = [];
-% To better plot the map, we nomalize z to [0, 1].
-normalizedZ = lidarLonLatZToShow(:,3);
+% Limit the lidar data to the range we care about.
+lidarLonLatAltZToShow = [lidarLons, lidarLats, lidarAlts, lidarData.z];
+lidarLonLatAltZToShow((lidarLonLatAltZToShow(:,1)<LON_RANGE(1) ...
+    | lidarLonLatAltZToShow(:,1)>LON_RANGE(2)), :) = [];
+lidarLonLatAltZToShow((lidarLonLatAltZToShow(:,2)<LAT_RANGE(1) ...
+    | lidarLonLatAltZToShow(:,2)>LAT_RANGE(2)), :) = [];
+lidarLonLatAltZToShow((lidarLonLatAltZToShow(:,3)<Z_RANGE(1) ...
+    | lidarLonLatAltZToShow(:,3)>Z_RANGE(2)), :) = [];
+
+% Plot z on a map. To better show the data, we nomalize z to [0, 1].
+normalizedZ = lidarLonLatAltZToShow(:,4);
 normalizedZ = normalizedZ-min(normalizedZ);
 normalizedZ = normalizedZ/max(normalizedZ);
-lidarLonLatZToShow(:,3) = normalizedZ;
+lidarLonLatNormZToShow = [lidarLonLatAltZToShow(:,1:2) normalizedZ];
 
 if exist('hInterTreeMarker', 'var') && isvalid(hInterTreeMarker)
     close(hInterTreeMarker);
@@ -240,7 +242,7 @@ hold on;
 plot3k(lidarLonLatNormZToShow, 'Marker',{'.',1});
 grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
 title('Tree Locations with Colored LiDAR z Values'); xticks([]); yticks([]);
-axis([lonRangeToShow, latRangeToShow, 0, 1]);
+axis([LON_RANGE, LAT_RANGE, 0, 1]);
 plot_google_map('MapType', 'satellite');
 
 % The command plot_google_map messes up the color legend of plot3k, so we
@@ -280,9 +282,9 @@ end
 view(2);
 
 % Add the interactive function.
-hInteractiveArea = fill3([lonRangeToShow(1), lonRangeToShow(1), ...
-    lonRangeToShow(2), lonRangeToShow(2)], ...
-    [latRangeToShow, latRangeToShow(end:-1:1)], ...
+hInteractiveArea = fill3([LON_RANGE(1), LON_RANGE(1), ...
+    LON_RANGE(2), LON_RANGE(2)], ...
+    [LAT_RANGE, LAT_RANGE(end:-1:1)], ...
     ones(1,4), 'r', 'FaceColor','none');
 if FLAG_SHOW_RECOREDED_TREE_LOCS
     legend([hTreeLocs, hTreeLocationRecords], ...
