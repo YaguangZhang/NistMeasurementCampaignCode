@@ -22,8 +22,9 @@ cd(fileparts(mfilename('fullpath')));
 addpath(fullfile(pwd));
 cd('..'); setPath;
 
-% The UTM zone from the .xml file.
-UTM_ZONE = '13 N';
+% The UTM zone from the .xml file is 13N, which indicates the zone 13 on
+% the Northern Hemisphere. However, we need the latitudinal band (S), too.
+UTM_ZONE = '13 S';
 
 % The absolute path to the .las file.
 switch getenv('computername')
@@ -241,7 +242,8 @@ end
 hold on;
 plot3k(lidarLonLatNormZToShow, 'Marker',{'.',1});
 grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
-title('Tree Locations with Colored LiDAR z Values'); xticks([]); yticks([]);
+title('Tree Locations with Colored LiDAR z Values (Normalized)'); 
+xticks([]); yticks([]);
 axis([LON_RANGE, LAT_RANGE, 0, 1]);
 plot_google_map('MapType', 'satellite');
 
