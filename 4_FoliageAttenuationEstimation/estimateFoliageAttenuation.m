@@ -30,7 +30,7 @@ pathToSaveFoliageAttenResults = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
 
 % Reuse results from evalPathLossesForContiTracks.m and
 % loadMeasCampaignInfo.m.
-ABS_PATH_TO_PATH_LOSSES = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
+ABS_PATH_TO_PATH_LOSSES_FILE = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputationConti', ...
     'contiPathLossesWithGpsInfo.mat');
 ABS_PATH_TO_TX_INFO_LOGS_FILE= fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
@@ -56,8 +56,8 @@ disp('    Loading results from: ')
 disp('      - contiPathLossesWithGpsInfo.mat')
 disp('      - txInfoLogs.mat')
 
-assert(exist(ABS_PATH_TO_PATH_LOSSES, 'file')==2, ...
-    'Couldn''t find plotInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
+assert(exist(ABS_PATH_TO_PATH_LOSSES_FILE, 'file')==2, ...
+    'Couldn''t find contiPathLossesWithGpsInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
 assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
     'Couldn''t find txInfoLogs.mat! Please run PostProcessing/3_PathLossComputation/loadMeasCampaignInfo.m first.');
 
@@ -66,10 +66,10 @@ disp('    Found all .mat files required.');
 disp('        Loading the results...')
 % Get 'contiPathLossesWithGpsInfo', 'contiOutFilesRelPathsUnderDataFolder'
 % and 'contiOutFileIndicesReflection'.
-load(ABS_PATH_TO_PATH_LOSSES);
+load(ABS_PATH_TO_PATH_LOSSES_FILE);
 % Get records of the TxInfo.txt files (among other contant parameters for
 % the measurement campaign, e.g. F_S, TX_LAT, TX_LON, and TX_POWER_DBM):
-% 'TX_INFO_LOGS' and 'TX_INFO_LOGS_ABS_PAR_DIRS'.
+%   'TX_INFO_LOGS' and 'TX_INFO_LOGS_ABS_PAR_DIRS'.
 load(ABS_PATH_TO_TX_INFO_LOGS_FILE);
 
 disp('    Done!')
