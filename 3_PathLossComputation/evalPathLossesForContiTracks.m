@@ -53,7 +53,7 @@ GOOGLE_MAPS_API = 'AIzaSyDlkaE_QJxvRJpTutWG0N-LCvoT0e7FPHE';
 
 % Set this flag to be true to skip the computing process and reuse history
 % results for generating plots only.
-FLAG_ONLY_GEN_FIGS = false;
+FLAG_ONLY_GEN_FIGS = true;
 
 % Manually set the figure size and axis to best show the data on plots.
 figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
@@ -440,9 +440,17 @@ for idxTrack = 1:numTracks
     end
 end
 
+% We need a smaller figure.
+curPos = get(hNonRefPathLossesOnMap, 'Position');
+set(hNonRefPathLossesOnMap, 'Position', [curPos(1:2), 330 260]);
+
+% Make sure the color map is intuitive and works in grey scale.
+colormap hot;
 plot3k([validNonRefPathLossesWithValidGps(:,3), ...
     validNonRefPathLossesWithValidGps(:,2), ...
-    validNonRefPathLossesWithValidGps(:,1)], 'Marker', {'.', 12});
+    validNonRefPathLossesWithValidGps(:,1)], 'Marker', {'.', 12}, ...
+    'ColorRange', [max(validNonRefPathLossesWithValidGps(:,1)) ...
+    min(validNonRefPathLossesWithValidGps(:,1))], 'CBLabels', 7);
 xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
 
 % Draw a square to show the area where we are gonna illustrate the manually
@@ -457,6 +465,7 @@ plot3(axisValuesForTreeOverview([1 1 2 2 1]), ...
 % Manually adjust the visible area.
 axis(figAxisToSet);
 plot_google_map('MapType','satellite');
+
 % The command plot_google_map messes up the color legend of plot3k, so we
 % will have to fix it here.
 hCb = findall( allchild(hNonRefPathLossesOnMap), 'type', 'colorbar');
@@ -464,8 +473,12 @@ hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
 
 hold off; view(2);
 legend(hTx, 'TX', 'Location','southeast');
-title('Basic Transmission Losses on Map');
+title('Basic Transmission Losses (dB) on Map');
 xlabel('Longitude'); ylabel('Latitude'); zlabel('Path Loss (dB)');
+
+% Repeat for a better output result: Manually adjust the visible area.
+axis(figAxisToSet);
+plot_google_map('MapType','satellite');
 
 % Save the plot.
 fileNamePathossesOnMap = 'allContiTracks';

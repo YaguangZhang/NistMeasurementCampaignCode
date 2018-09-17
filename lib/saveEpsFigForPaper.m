@@ -20,6 +20,8 @@ if ~strcmpi(fileExt, '.eps')
 end
 
 epsFullPathToSave = fullfile(dirToSave, [figName, '.eps']);
+% Also save a .png copy for easy preview.
+pngFullPathToSave = fullfile(dirToSave, [figName, '.png']);
 
 curFigure = gcf;
 set(0, 'currentfigure', hFig);
@@ -27,6 +29,7 @@ curFigureColor = get(gcf,'Color');
 set(gcf, 'Color', 'white');
 
 export_fig(epsFullPathToSave, '-eps', '-transparent'); 
+export_fig(pngFullPathToSave, '-png', '-transparent');
 
 set(gcf, 'Color', curFigureColor);
 set(0, 'currentfigure', curFigure);

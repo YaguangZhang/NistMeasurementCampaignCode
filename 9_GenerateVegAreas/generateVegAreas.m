@@ -197,13 +197,13 @@ else
     
     [VEG_AREA_IMG_META.LATS, VEG_AREA_IMG_META.LONS, ...
         VEG_AREA_IMG_META.XS, VEG_AREA_IMG_META.YS] ...
-        = deal(nan(VEG_AREA_IMG_RESOLUTION));
+        = deal(nan(VEG_AREA_IMG_RESOLUTION([2,1])));
     VEG_AREA_IMG_META.UTM_ZONE = UTM_ZONE;
     % Build the grid in UTM space and compute the cooresponding GPS lats
     % and lons.
     [vegAreaImgMetaLatsCache, vegAreaImgMetaLonsCache, ...
         vegAreaImgMetaXsCache, vegAreaImgMetaYsCache ] ...
-        = deal(nan(VEG_AREA_IMG_RESOLUTION));
+        = deal(nan(VEG_AREA_IMG_RESOLUTION([2,1])));
     disp('                 Computing position coordinates for the grid ...')
     parfor idxX = 1:VEG_AREA_IMG_RESOLUTION(1)
         % Progress feedback for every percent of work.
@@ -217,8 +217,8 @@ else
             (1:VEG_AREA_IMG_RESOLUTION(2))', ...
             LAT_RANGE, LON_RANGE, VEG_AREA_IMG_RESOLUTION);
         
-        [vegAreaImgMetaXsCache(idxX, :), ...
-            vegAreaImgMetaYsCache(idxX, :), curUtmZones] ...
+        [vegAreaImgMetaXsCache(:, idxX), ...
+            vegAreaImgMetaYsCache(:, idxX), curUtmZones] ...
             = deg2utm(curImgLats, curImgLons);
         
         assert(all(arrayfun(@(idx) ...
@@ -226,9 +226,9 @@ else
             1:length(curImgLats))), ...
             'All the locations should be in the same UTM zone!');
         
-        vegAreaImgMetaLatsCache(idxX, :) ...
+        vegAreaImgMetaLatsCache(:, idxX) ...
             = curImgLats;
-        vegAreaImgMetaLonsCache(idxX, :) ...
+        vegAreaImgMetaLonsCache(:, idxX) ...
             = curImgLons;
     end
     VEG_AREA_IMG_META.XS = vegAreaImgMetaXsCache;
@@ -262,7 +262,6 @@ else
     
     % Initialize vegAreas.
     treeHeight = VEG_AREA_IMG_META.ZS - VEG_AREA_IMG_META.ALTS;
-    treeHeightNorm = treeHeight/max(treeHeight(:));
     
     disp('                 Generating figures for different minTreeHs ...')
     % We will generate .png figures for different tree height threshold to
@@ -276,7 +275,7 @@ else
             .*VEG_AREA_IMG_RESOLUTION(1)) ...
             minTreeHFigHeight], ...
             'visible','off'); hold on;
-        boolsIsVegArea = treeHeight(:)>curMinTreeH;
+        boolsIsVegArea = treeHeight(:)>=curMinTreeH;
         plot3k([VEG_AREA_IMG_META.LONS(boolsIsVegArea), ...
             VEG_AREA_IMG_META.LATS(boolsIsVegArea), ...
             treeHeight(boolsIsVegArea)])
@@ -305,10 +304,10 @@ else
     
     % We will save the vegAreas as a plain 2D image (width x height), with
     % the background being black (0) and vegetable area being white (1).
-    vegAreas = zeros(VEG_AREA_IMG_RESOLUTION);
-    % A good enough value to get the vegetation area.
-    minTreeH = 2.5;
-    boolsIsVegArea = treeHeight(:)>minTreeH;
+    vegAreas = zeros(VEG_AREA_IMG_RESOLUTION([2,1]));
+    % The RX height is ~0.5m.
+    VEG_AREA_IMG_META.MIN_TREE_H = 0.5;
+    boolsIsVegArea = treeHeight(:)>=VEG_AREA_IMG_META.MIN_TREE_H;
     vegAreas(boolsIsVegArea) = 1;
     
     save(ABS_PATH_TO_SAVE_VEG_AREAS_META, 'vegAreas', 'LAT_RANGE', ...
