@@ -442,16 +442,26 @@ end
 
 % We need a smaller figure.
 curPos = get(hNonRefPathLossesOnMap, 'Position');
-set(hNonRefPathLossesOnMap, 'Position', [curPos(1:2), 330 260]);
+overviewFigSize = 'normal'; % 'small'
+if strcmp(overviewFigSize, 'small')
+    set(hNonRefPathLossesOnMap, 'Position', [curPos(1:2), 330 260]);
+end
 
 % Make sure the color map is intuitive and works in grey scale.
 colormap hot;
-plot3k([validNonRefPathLossesWithValidGps(:,3), ...
+numOfTicklabels = 11;
+if strcmp(overviewFigSize, 'small')
+    numOfTicklabels = 7;
+end
+[~, ~, hPlot3kColorBar] ...
+    = plot3k([validNonRefPathLossesWithValidGps(:,3), ...
     validNonRefPathLossesWithValidGps(:,2), ...
     validNonRefPathLossesWithValidGps(:,1)], 'Marker', {'.', 12}, ...
     'ColorRange', [max(validNonRefPathLossesWithValidGps(:,1)) ...
-    min(validNonRefPathLossesWithValidGps(:,1))], 'CBLabels', 7);
-xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
+    min(validNonRefPathLossesWithValidGps(:,1))], ...
+    'CBLabels', numOfTicklabels, 'Labels', ...
+    {'', 'Longitude', 'Latitude', '', ''});
+xticks([]); yticks([]); 
 
 % Draw a square to show the area where we are gonna illustrate the manually
 % labeled trees.
@@ -481,7 +491,7 @@ axis(figAxisToSet);
 plot_google_map('MapType','satellite');
 
 % Save the plot.
-fileNamePathossesOnMap = 'allContiTracks';
+fileNamePathossesOnMap = 'allContiTracks_normalSize';
 pathPathossesOnMapFileToSave = fullfile(...
     ABS_PATH_TO_SAVE_PLOTS, ...
     fileNamePathossesOnMap);
