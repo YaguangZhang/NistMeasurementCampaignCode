@@ -1,4 +1,4 @@
-function [ numOfTrees, treesInZone3D] ...
+function [ numOfTrees, treesInZone3D, firstFresnelZoneRadii] ...
     = countNumOfTreesInFirstFresnelZone(tx3D, rx3D, trees3D, ...
     fCarrierGHz, FLAG_DEBUG)
 %COUNTNUMOFTREESINFIRSTFRESNELZONE Count the number of trees which show up
@@ -22,6 +22,8 @@ function [ numOfTrees, treesInZone3D] ...
 %   - treesInZone3D
 %     A matrix for the trees that are in the first Fresnel zone, with each
 %     row representing one tree in the form of [x y altitude].
+%   - firstFresnelZoneRadii
+%     The corresponding first Fresnel zone radii for making the decision.
 %
 % For the Fresnel zone radius, we will carry out the computation in 3D;
 % Then for determining whether a tree is inside the zone or not, we only
@@ -38,14 +40,15 @@ end
 % First, calculate the Fresnel zone radii for the trees.
 lambda = physconst( 'LightSpeed' )/(fCarrierGHz*10^9);
 trees3DColCell = num2cell(trees3D, 2);
-rsFresnel = cellfun(@(p) nFresnelZoneR3D(1, lambda, tx3D, rx3D, p), ...
+firstFresnelZoneRadii ...
+    = cellfun(@(p) nFresnelZoneR3D(1, lambda, tx3D, rx3D, p), ...
     trees3DColCell);
 
 % Second, determine whether the trees are within the radius ranges.
 losInXY = createLine(tx3D(1:2), rx3D(1:2));
 distsTreeToLosInXY = cellfun(@(p) distancePointLine(p(1:2), losInXY), ...
     trees3DColCell);
-boolsInFirstFresnelZone = distsTreeToLosInXY<rsFresnel;
+boolsInFirstFresnelZone = distsTreeToLosInXY<firstFresnelZoneRadii;
 numOfTrees = sum(boolsInFirstFresnelZone);
 treesInZone3D = trees3D(boolsInFirstFresnelZone,:);
 
@@ -54,7 +57,7 @@ treesInZone3D = trees3D(boolsInFirstFresnelZone,:);
 %   countNumOfTreesInFirstFresnelZone([-100,100,0], [100,20,70], ...
 %       [xsT(:), ysT(:), zsT(:)], 28, true);
 if FLAG_DEBUG
-    boolsInFirstFresnelZone = distsTreeToLosInXY<rsFresnel;
+    boolsInFirstFresnelZone = distsTreeToLosInXY<firstFresnelZoneRadii;
     ALPHA = 0.2;
     figure; hold on;
     hTx = plot3(tx3D(1), tx3D(2), tx3D(3), '^k');

@@ -158,7 +158,7 @@ hVegAreaOnMap = figure('visible','off');
 hold on;
 plot3k(lidarLonLatNormZToShow, 'Marker',{'.',1});
 grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
-title('Vegetation Areas with Colored LiDAR z Values (Normalized)'); 
+title('Vegetation Areas with Colored LiDAR z Values (Normalized)');
 xticks([]); yticks([]);
 axis([LON_RANGE, LAT_RANGE, 0, 1]);
 plot_google_map('MapType', 'satellite');
@@ -283,8 +283,8 @@ else
         FLAG_GOOGLE_MAP_FETCHED = false;
         while ~FLAG_GOOGLE_MAP_FETCHED
             try
-            plot_google_map('Maptype', 'satellite'); 
-            FLAG_GOOGLE_MAP_FETCHED = true;
+                plot_google_map('Maptype', 'satellite');
+                FLAG_GOOGLE_MAP_FETCHED = true;
             catch
                 disp('Error in overlaying Google map! Retrying ... ');
             end
@@ -305,6 +305,8 @@ else
     % We will save the vegAreas as a plain 2D image (width x height), with
     % the background being black (0) and vegetable area being white (1).
     vegAreas = zeros(VEG_AREA_IMG_RESOLUTION([2,1]));
+    % % A good value to keep only the foliage areas.
+    %   VEG_AREA_IMG_META.MIN_TREE_H = 2.5;
     % The RX height is ~0.5m.
     VEG_AREA_IMG_META.MIN_TREE_H = 0.5;
     boolsIsVegArea = treeHeight(:)>=VEG_AREA_IMG_META.MIN_TREE_H;
@@ -316,7 +318,7 @@ else
         = (max(VEG_AREA_IMG_META.XS(:))-min(VEG_AREA_IMG_META.XS(:))) ...
         /VEG_AREA_IMG_META.IMG_RESOLUTION(1);
     gridHeight = (max(VEG_AREA_IMG_META.YS(:))-min(VEG_AREA_IMG_META.YS(:))) ...
-        /VEG_AREA_IMG_META.IMG_RESOLUTION(2);    
+        /VEG_AREA_IMG_META.IMG_RESOLUTION(2);
     VEG_AREA_IMG_META.GRID_SIZE_IN_METER = [gridWidth, gridHeight];
     
     save(ABS_PATH_TO_SAVE_VEG_AREAS_META, 'vegAreas', 'LAT_RANGE', ...

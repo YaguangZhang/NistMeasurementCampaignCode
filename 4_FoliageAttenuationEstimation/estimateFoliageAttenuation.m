@@ -187,25 +187,32 @@ disp('    Done!')
 disp(' ')
 disp('    Counting trees in Fresnel zones ...')
 
-numsOfTreesInFirstFresnel = cell(numOfSeries, 1);
 tx3D = [xTx, yTx, TX_ALT+TX_HEIGHT_M];
-for idxS = 1:numOfSeries
-    disp(['        Series ', ...
-        num2str(idxS), '/' num2str(numOfSeries), '...']);
-    [curNumSamps, ~] = size(pathLossUtmXYHs{idxS});
-    numsOfTreesInFirstFresnel{idxS} = nan(curNumSamps, 1);
-    
-    for idxSamp = 1:curNumSamps
-        rx3D = pathLossUtmXYHs{idxS}(idxSamp, :);
-        % Considering the RX height over the ground.
-        rx3D(:, 3) = rx3D(:, 3)+RX_HEIGHT_M;
-        numsOfTreesInFirstFresnel{idxS}(idxSamp) ...
-            = countNumOfTreesInFirstFresnelZone(tx3D, rx3D, ...
-            treeUtmXYHs, F_C_IN_GHZ);
-    end
-end
 
-save(pathToSaveFoliageAttenResults, 'numsOfTreesInFirstFresnel');
+if exist(pathToSaveFoliageAttenResults, 'file')
+    disp('        Found history results... ')
+    disp('        Loading... ')
+    load(pathToSaveFoliageAttenResults)
+else
+    numsOfTreesInFirstFresnel = cell(numOfSeries, 1);
+    for idxS = 1:numOfSeries
+        disp(['        Series ', ...
+            num2str(idxS), '/' num2str(numOfSeries), '...']);
+        [curNumSamps, ~] = size(pathLossUtmXYHs{idxS});
+        numsOfTreesInFirstFresnel{idxS} = nan(curNumSamps, 1);
+        
+        for idxSamp = 1:curNumSamps
+            rx3D = pathLossUtmXYHs{idxS}(idxSamp, :);
+            % Considering the RX height over the ground.
+            rx3D(:, 3) = rx3D(:, 3)+RX_HEIGHT_M;
+            numsOfTreesInFirstFresnel{idxS}(idxSamp) ...
+                = countNumOfTreesInFirstFresnelZone(tx3D, rx3D, ...
+                treeUtmXYHs, F_C_IN_GHZ);
+        end
+    end
+    
+    save(pathToSaveFoliageAttenResults, 'numsOfTreesInFirstFresnel');
+end
 
 disp('    Done!')
 
@@ -551,12 +558,12 @@ saveas(hMeasAndFreeSpaceLossesLinearDist, ...
     fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'MeasAndFreeSpaceLossesAndShiftedOverLinearDist.png'));
 
-% Excess path loss over number of trees in the 1st Fresnel zone with
-% some analysis information overlaid.
+% Excess path loss over number of trees in the 1st Fresnel zone with some
+% analysis information overlaid.
 hExcePathLossOverTreeNumMore = figure; hold on;
 numPtsToShow = length(allTreeNumsInFirstFresnel);
 hExcePathLosses ...
-    = scatter(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, ... 
+    = scatter(allTreeNumsInFirstFresnel, allExceLossRefFreeSpace, ...
     ones(numPtsToShow, 1) .* 8, ...
     'MarkerFaceColor','b','MarkerEdgeColor','none',...
     'MarkerFaceAlpha',.2,'MarkerEdgeAlpha',.2);
@@ -597,7 +604,7 @@ legend([hExcePathLosses, hExcePathLossMeans, hExcePathLossMedians, ...
     'Location','southeast');
 title({'Excess Path Losses vs. Number of Trees in the 1st Fresnel Zone'});
 xlabel('Number of Trees'); ylabel('Excess Path Losses (dB)');
-axis tight; 
+axis tight;
 % Extend the x range a little bit to better show the dots on x = 0.
 curAxis = axis; axis([-0.5 curAxis(2:end)]);
 grid minor; transparentizeCurLegends;
@@ -621,7 +628,7 @@ allConstShiftedFreeSpacePathLosses ...
     = vertcat(constShiftedFreeSpacePathLosses{:});
 
 % Measured path losses and free-space path losses over linear distance.
-hMeasAndFreeSpaceLossesLogDist = figure; 
+hMeasAndFreeSpaceLossesLogDist = figure;
 % Free-space path losses.
 hFreeSpace = semilogx(sortedLosDist, ...
     allFreeSpacePathLosses(indicesForSortedDist), '-k', 'LineWidth', 1);

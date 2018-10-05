@@ -1,8 +1,8 @@
-function [ firstFresZoneArea ] ....
+function [ firstFresZone, firstFresRadii] ....
     = exploreForPixelsInFirstFresOneDir( ...
-    firstFresZoneArea, startPixelCoors, dirNorm, ...
+    firstFresZone, startPixelCoors, dirNorm, ...
     srcUtmPt3D, dstUtmPt3D, ...
-    VEG_AREA_IMG_META, fCarrierGHz)
+    VEG_AREA_IMG_META, fCarrierGHz, firstFresRadii)
 %EXPLOREFORPIXELSINFIRSTFRESONEDIR Explore one direction for pixels in the
 %1s Fresnel zone for the foliage analysis.
 %
@@ -10,7 +10,7 @@ function [ firstFresZoneArea ] ....
 % encountered.
 %
 % Inputs:
-%   - firstFresZoneArea
+%   - firstFresZone
 %     The known mapping for the pixels. 1: It is a pixel in the 1st Fresnel
 %     zone.
 %   - startPixelCoors
@@ -33,14 +33,25 @@ function [ firstFresZoneArea ] ....
 %     The signal frequency in GHz.
 %
 % Output:
-%   - firstFresZoneArea
+%   - firstFresZone
 %     The updated boolean matrix indicating which pixels are in the 1st
 %     Fresnel zone.
 %
+% Optional:
+%   - firstFresRadii
+%     A map corresponding to the vegArea map indicating what the first
+%     Fresnel zone radius is for each pixel.
+%
 % Yaguang Zhang, Purdue, 09/24/2018
 
-assert(firstFresZoneArea(startPixelCoors(2), startPixelCoors(1))==1, ...
+assert(firstFresZone(startPixelCoors(2), startPixelCoors(1))==1, ...
     'The starting point should be in the zone!');
+
+% We will reuse countNumOfTreesInFirstFresnelZone.
+if ~exist('countNumOfTreesInFirstFresnelZone', 'file')
+    addpath(fullfile(fileparts(mfilename('fullpath')), '..', ...
+        '4_FoliageAttenuationEstimation'));
+end
 
 curPixelCoors = startPixelCoors+dirNorm;
 doneExp = false;
@@ -50,10 +61,10 @@ while ~doneExp
             || curPixelCoors(2)>VEG_AREA_IMG_META.IMG_RESOLUTION(2)
         % Out of the image range. Done exploring.
         doneExp = true;
-    elseif ~isnan(firstFresZoneArea( ...
+    elseif ~isnan(firstFresZone( ...
             curPixelCoors(2), curPixelCoors(1)))
         % The pixel is explored.
-        if firstFresZoneArea( ...
+        if firstFresZone( ...
                 curPixelCoors(2), curPixelCoors(1)) == 0
             % And it is already out of the zone. Done exploring.
             doneExp = true;
@@ -72,14 +83,20 @@ while ~doneExp
         
         % Reuse the count tree function. The result will be 1 (yes, in the
         % zone) or 0 (no, not in the zone).
-        boolInFirstFresnel ...
+        [ curBoolInFirstFresnel, ~, curFirstFresnelZoneRadius] ...
             = countNumOfTreesInFirstFresnelZone( ...
             srcUtmPt3D, dstUtmPt3D, pixelLoc3D, ...
             fCarrierGHz);
         
-        firstFresZoneArea( ...
-            curPixelCoors(2), curPixelCoors(1)) = boolInFirstFresnel;
-        if ~boolInFirstFresnel
+        firstFresZone( ...
+            curPixelCoors(2), curPixelCoors(1)) = curBoolInFirstFresnel;
+        if(exist('firstFresRadii', 'var'))
+            firstFresRadii( ...
+                curPixelCoors(2), curPixelCoors(1)) ...
+                = curFirstFresnelZoneRadius;
+        end
+        
+        if ~curBoolInFirstFresnel
             % Have covered beyond the in zone area. Done exploring.
             doneExp = true;
         else

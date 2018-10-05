@@ -75,3 +75,6 @@ $RECYCLE.BIN/
 
 # Cached USGS data
 usgsdata/
+
+# Google API cache for plot_google_map
+lib/ext/zoharby-plot_google_map-08b192d/api_key.mat
