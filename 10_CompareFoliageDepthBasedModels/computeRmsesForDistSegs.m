@@ -1,4 +1,5 @@
-function [ ituModelPerfTable ] = computeRmsesForDistSegs( ...
+function [ ituModelPerfTable, ituModelPerfCell ] ...
+    = computeRmsesForDistSegs( ...
     cellDistSegs, allDists, allMeas, cellAllPredicts)
 %COMPUTERMSESFORDISTSEGS Compute the RMSE for each distance segment for the
 %model predictions provided.
@@ -18,6 +19,8 @@ function [ ituModelPerfTable ] = computeRmsesForDistSegs( ...
 %   Ouputs:
 %       - ituModelPerfTable
 %         The results structured as a table.
+%       - ituModelPerfCell
+%         The results structured as a table.
 %
 % Yaguang Zhang, Purdue, 09/21/2018
 
@@ -29,8 +32,11 @@ numDistSegs = length(cellDistSegs);
 fctRmse = @(measures, predicts) sqrt(mean((predicts - measures).^2));
 
 ituModelPerfCell = cell(numModels, numDistSegs+1);
+ituModelPerfStrCell = cell(numModels, numDistSegs+1);
 for idxMod = 1:numModels
     ituModelPerfCell{idxMod, 1} = cellAllPredicts{idxMod, 1};
+    ituModelPerfStrCell{idxMod, 1} = cellAllPredicts{idxMod, 1};
+    
     for idxDistSeg = 1:numDistSegs
         curDistSegMin = cellDistSegs{idxDistSeg}(1);
         curDistSegMax = cellDistSegs{idxDistSeg}(2);
@@ -38,12 +44,12 @@ for idxMod = 1:numModels
         boolsInCurDistSeg ...
             = (allDists>=curDistSegMin) & (allDists<curDistSegMax);
         
-        curPredictions = cellAllPredicts{idxMod, 2}(boolsInCurDistSeg);
+        curPredictions = cellAllPredicts{idxMod, 2}(boolsInCurDistSeg);        
+        curRmse = fctRmse(allMeas(boolsInCurDistSeg), curPredictions);
         
-        ituModelPerfCell{idxMod, 1+idxDistSeg} ...
-            = num2str(...
-            fctRmse(allMeas(boolsInCurDistSeg), curPredictions), ...
-            rmseFormatter);
+        ituModelPerfCell{idxMod, 1+idxDistSeg} = curRmse;
+        ituModelPerfStrCell{idxMod, 1+idxDistSeg} ...
+            = num2str(curRmse, rmseFormatter);
     end
 end
 
@@ -53,11 +59,12 @@ for idxDistSeg = 1:numDistSegs
     curDistSegMin = cellDistSegs{idxDistSeg}(1);
     curDistSegMax = cellDistSegs{idxDistSeg}(2);
     
-    tableHeader{1+idxDistSeg} = ['Range_', num2str(curDistSegMin), ...
-        '_leq_d_lt_', num2str(curDistSegMax)];
+    tableHeader{1+idxDistSeg} ...
+        = ['Range_', strrep(num2str(curDistSegMin), '.', '_'), ...
+        '_leq_d_lt_', strrep(num2str(curDistSegMax), '.', '_')];
 end
 
-ituModelPerfTable = cell2table(ituModelPerfCell, ...
+ituModelPerfTable = cell2table(ituModelPerfStrCell, ...
     'VariableNames', tableHeader);
 
 end

@@ -415,8 +415,11 @@ if exist(ABS_PATH_TO_VEG_AREAS_META, 'file')==2
     centerLat = mean(axisToShow(3:4));
     
     hVegOverview = figure('visible','off'); hold on;
+    % We will only show the LiDAR data in the second sector/quadrant.
     lidarLonLatNormZToShowRightHalf ...
-        = lidarLonLatNormZToShow(lidarLonLatNormZToShow(:,1)>centerLon, :);
+        = lidarLonLatNormZToShow(lidarLonLatNormZToShow(:,1)>centerLon ...
+        & lidarLonLatNormZToShow(:,2)>centerLat, ...
+        :);
     
     normalizedZRightHalf = lidarLonLatNormZToShowRightHalf(:,3);
     normalizedZRightHalf = normalizedZRightHalf-min(normalizedZRightHalf);
@@ -424,17 +427,16 @@ if exist(ABS_PATH_TO_VEG_AREAS_META, 'file')==2
     lidarLonLatNormZToShowRightHalfNorm ...
         = [lidarLonLatNormZToShowRightHalf(:,1:2) ...
         normalizedZRightHalf];
-    plot3k(lidarLonLatNormZToShowRightHalfNorm, 'Marker',{'.',1});
+    [~, hAx, hCb] = plot3k(lidarLonLatNormZToShowRightHalfNorm, 'Marker',{'.',1});
     grid on; xlabel('Longitude'); ylabel('Latitude'); zlabel('Nomalized Z');
-    title('Foliage Areas and Tree Locations (with Normalized LiDAR Values)');
+    % title('Foliage Areas and Tree Locations (with Normalized LiDAR Values)'); 
     xticks([]); yticks([]);
     axis(axisToShow);
     plot_google_map('MapType', 'satellite');
     
     % The command plot_google_map messes up the color legend of plot3k, so
     % we will have to fix it here.
-    hCb = findall( allchild(hVegOverview), 'type', 'colorbar');
-    hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
+    hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));    
     
     % Overlay trees on top of the figure.
     [numTrees, ~] = size(markLocs);
@@ -486,10 +488,24 @@ if exist(ABS_PATH_TO_VEG_AREAS_META, 'file')==2
     
     % Change to X-Y view.
     view(2);
-    legend([hTreeLocs, hFoliageAreas], ...
-        'Manually labeled tree trunks', ...
+    legend([hFoliageAreas, hTreeLocs], ...
         'Automatically extracted foliage regions', ...
-        'Location', 'northwest');
+        'Manually labeled tree trunks', ...
+        'Location', 'south');
+    
+    ylabel(hCb, 'Normalized LiDAR Values');
+    % Manually shrink the color bar.
+    curAx = get(hAx, 'Position');
+    curCbPosition = get(hCb, 'Position');
+    cbPosToSet = [curCbPosition(1),curCbPosition(2)+curCbPosition(4)/2, ...
+        curCbPosition(3), curCbPosition(4)/2];
+    set(hCb, 'Position', cbPosToSet);
+    set(hAx, 'Position', curAx);
+    hCb.Ticks = linspace(1,length(colormap)+1,length(hCb.TickLabels));
+    cbTickLabelsToSet = hCb.TickLabels; 
+    cbTickLabelsToSet(2:2:end) = {''};
+    hCb.TickLabels = cbTickLabelsToSet;
+    
     % Show the figure.
     set(hVegOverview, 'visible','on');
 
@@ -507,6 +523,8 @@ if exist(ABS_PATH_TO_VEG_AREAS_META, 'file')==2
     set(hVegOverview, 'Color', 'white');    
     export_fig(fullfile(pathToSavePaperFigs, ...
         '2_0_Overview_For_Veg.png'), '-png', '-transparent');
+    print(fullfile(pathToSavePaperFigs, ...
+        '2_0_Overview_For_Veg.eps'), '-depsc2', '-painters');
     
     disp('    It is preferred to use export_fig to get an .eps copy by:')
     disp('         saveEpsFigForPaper(hVegOverview, ... ')
