@@ -12,7 +12,7 @@ addpath(genpath(fullfile(pwd, 'lib')));
 %  - On Mac Lemma:
 absPathMacLemma = '/Users/zhan1472/Google Drive/NIST Measurement Campaign';
 %  - On (quite powerful) Windows Artsy:
-absPathWinArtsy = 'C:\Users\YaguangZhang\Google Drive\NIST Measurement Campaign\';
+absPathWinArtsy = 'D:\Google Drive - EARS\NIST Measurement Campaign';
 %  - Local copy on Windows Dell:
 absPathWinDell = 'C:\Users\Zyglabs\OneDrive - purdue.edu\NIST';
 unknownComputerErrorMsg = ...
