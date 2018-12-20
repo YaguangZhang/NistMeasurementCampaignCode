@@ -2156,7 +2156,7 @@ hLegend = legend([hMeas, hFreeSpace, hTwoStepLinearWrtFA], ...
     'Site-specific model C', ...
     'Location', 'southeast');
 transparentizeCurLegends; axis tight;
-grid on; grid minor; xlabel('Foliage Depth \it{d_f} \rm{(m)}');
+grid on; grid minor; xlabel('Foliage Area \it{A_f} \rm{(m^2)}');
 ylabel('Excess Path Loss (dB)');
 
 % Export an .eps copy for papers.
@@ -2192,7 +2192,7 @@ transparentizeCurLegends; axis tight;
 % Extend the yaxis a little bit to avoid blockage by the legends.
 curAxis = axis; curAxis(3) = -25;
 axis(curAxis);
-grid on; grid minor; xlabel('Foliage Depth \it{d_f} \rm{(m)}');
+grid on; grid minor; xlabel('Foliage Area \it{A_f} \rm{(m^2)}');
 ylabel('Excess Path Loss (dB)');
 
 % Export an .eps copy for papers.
