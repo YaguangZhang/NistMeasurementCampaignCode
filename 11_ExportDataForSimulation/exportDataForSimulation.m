@@ -69,15 +69,15 @@ disp('      - vegAreasMeta.mat')
 disp('      - utmInfoForPathLossesAndTrees.mat')
 
 assert(exist(ABS_PATH_TO_PATH_LOSSES_FILE, 'file')==2, ...
-    'Couldn''t find contiPathLossesWithGpsInfo.mat! Please run PostProcessing/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
+    'Couldn''t find contiPathLossesWithGpsInfo.mat! Please run NistMeasurementCampaignCode/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
 assert(exist(ABS_PATH_TO_TX_INFO_LOGS_FILE, 'file')==2, ...
-    'Couldn''t find txInfoLogs.mat! Please run PostProcessing/3_PathLossComputation/loadMeasCampaignInfo.m first.');
+    'Couldn''t find txInfoLogs.mat! Please run NistMeasurementCampaignCode/3_PathLossComputation/loadMeasCampaignInfo.m first.');
 assert(exist(ABS_PATH_TO_VEG_AREAS_FILE, 'file')==2, ...
-    'Couldn''t find vegAreasMeta.mat! Please run PostProcessing/9_GenerateVegAreas/generateVegAreas.m first.');
+    'Couldn''t find vegAreasMeta.mat! Please run NistMeasurementCampaignCode/9_GenerateVegAreas/generateVegAreas.m first.');
 assert(exist(ABS_PATH_TO_UTM_INFO_FILE, 'file')==2, ...
-    'Couldn''t find utmInfoForPathLossesAndTrees.mat! Please run PostProcessing/4_FoliageAttenuationEstimation/estimateFoliageAttenuation.m first.');
+    'Couldn''t find utmInfoForPathLossesAndTrees.mat! Please run NistMeasurementCampaignCode/4_FoliageAttenuationEstimation/estimateFoliageAttenuation.m first.');
 assert(exist(ABS_PATH_TO_TREE_NUM_BASED_ANALYSIS_FILE, 'file')==2, ...
-    'Couldn''t find foliageAttenAnalysisResults.mat! Please run PostProcessing/8_FoliageAttenuationEstimation_ManualTreeLocs/estimateFoliageAttenuationWithManualTreeLocs.m first.');
+    'Couldn''t find foliageAttenAnalysisResults.mat! Please run NistMeasurementCampaignCode/8_FoliageAttenuationEstimation_ManualTreeLocs/estimateFoliageAttenuationWithManualTreeLocs.m first.');
 
 % The data have been processed before and the result files have been found.
 disp('    Found all .mat files required.');
@@ -105,10 +105,29 @@ disp('    Done!')
 
 %% Export Trunk Locations
 
+groundHeightWrtTXInM = VEG_AREA_IMG_META.ALTS - TX_ALT;
+treeHeightInM = VEG_AREA_IMG_META.ZS - VEG_AREA_IMG_META.ALTS;
+
+getInterGroundHeightWrtTXInM = scatteredInterpolant( ...
+        VEG_AREA_IMG_META.XS(:), ...
+        VEG_AREA_IMG_META.YS(:), ...
+        groundHeightWrtTXInM(:));
+getInterTreeHeightInM = scatteredInterpolant( ...
+        VEG_AREA_IMG_META.XS(:), ...
+        VEG_AREA_IMG_META.YS(:), ...
+        treeHeightInM(:)); 
+
+trunkGroundHeightWrtTXInM ...
+    = getInterGroundHeightWrtTXInM(treeUtmXYHs(:,1), treeUtmXYHs(:,2));
+trunkTreeHeightInM ...
+    = getInterTreeHeightInM(treeUtmXYHs(:,1), treeUtmXYHs(:,2));
+
 fullPathTrunkLocCsv = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'trunkLocs.csv');
-curHeaderCell = {'utmX', 'utmY', 'utmZone', 'lat', 'lon'};
+curHeaderCell = {'utmX', 'utmY', 'utmZone', 'lat', 'lon', 'groundHeightWrtTXInM', 'treeHeightInM'};
 curData = [num2cell(treeUtmXYHs(:,1:2)), cellstr(treeUtmZones), ...
-    num2cell(treeLocations(:,1:2))];
+    num2cell(treeLocations(:,1:2)), ...
+    num2cell(trunkGroundHeightWrtTXInM), ...
+    num2cell(trunkTreeHeightInM)];
 disp('Writing trunk locations to file ...')
 writeToCsvWithHeader(fullPathTrunkLocCsv, curHeaderCell, curData, '%.8f');
 disp('Done!')
@@ -136,6 +155,17 @@ xlabel('utmX'); ylabel('utmY');
 title(curFigTitle)
 saveas(curFig, curFigPath);
 
+curFigTitle = 'Tree Locations with Tree Height - (utmX, utmY, treeHeightInM)';
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'trunkLocsUtmXYTreeHeight.png');
+
+curFig = figure;
+plot3k([treeUtmXYHs(:,1), treeUtmXYHs(:,2), trunkTreeHeightInM]);
+grid on; axis equal;
+xlabel('utmX'); ylabel('utmY');
+
+title(curFigTitle)
+saveas(curFig, curFigPath);
+
 %% Export Foliage Areas
 
 fullPathFoliageAreaCsv = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
@@ -152,8 +182,6 @@ numCols = VEG_AREA_IMG_META.IMG_RESOLUTION(1);
 % instead of:
 %   writeToCsvWithHeader(fullPathFoliageAreaCsv, curHeaderCell, curData);
 curData = cell(numCols, length(curHeaderCell));
-groundHeightWrtTXInM = VEG_AREA_IMG_META.ALTS - TX_ALT;
-treeHeightInM = VEG_AREA_IMG_META.ZS - VEG_AREA_IMG_META.ALTS;
 
 % File header.
 cell2csv(fullPathFoliageAreaCsv, curHeaderCell);
