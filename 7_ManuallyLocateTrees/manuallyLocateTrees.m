@@ -35,7 +35,7 @@ switch getenv('computername')
     case 'ARTSY'
         % ZYG's lab desktop.
         ABS_PATH_TO_NIST_LIDAR_LAS ...
-            = 'C:\Users\YaguangZhang\OneDrive - purdue.edu\EARS - Simulations\3D Models\USGS\NIST\CO_SoPlatteRiver_Lot5_2013_001049.las';
+            = 'D:\One Drive - Purdue\OneDrive - purdue.edu\EARS - Simulations\3D Models\USGS\NIST\CO_SoPlatteRiver_Lot5_2013_001049.las';
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.
         assert(ismac, unknownComputerErrorMsg);
@@ -523,8 +523,8 @@ if exist(ABS_PATH_TO_VEG_AREAS_META, 'file')==2
     set(hVegOverview, 'Color', 'white');    
     export_fig(fullfile(pathToSavePaperFigs, ...
         '2_0_Overview_For_Veg.png'), '-png', '-transparent');
-    print(fullfile(pathToSavePaperFigs, ...
-        '2_0_Overview_For_Veg.eps'), '-depsc2', '-painters');
+    % print(fullfile(pathToSavePaperFigs, ...
+    %     '2_0_Overview_For_Veg.eps'), '-depsc2', '-painters');
     
     disp('    It is preferred to use export_fig to get an .eps copy by:')
     disp('         saveEpsFigForPaper(hVegOverview, ... ')
