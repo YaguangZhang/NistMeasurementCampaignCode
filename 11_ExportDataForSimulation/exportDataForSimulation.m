@@ -358,6 +358,49 @@ if FLAG_GENERATE_EXTRA_ILLUSTRATIONS
     title({'Foliage Area Colored by Tree Height'; ...
         'with TX, RX and Trunk Locations'})
     view(2)
+    
+    % Data availability inspection.
+    BUFFER_DIST_IN_M = 25;
+    alphaForTranparentObjs = 0.3;
+    figure('position', [0 0 700 500]); hold on;
+    xRec = min(VEG_AREA_IMG_META.XS(:));
+    yRec = min(VEG_AREA_IMG_META.YS(:));
+    wRec = max(VEG_AREA_IMG_META.XS(:)) - min(VEG_AREA_IMG_META.XS(:));
+    hRec = max(VEG_AREA_IMG_META.YS(:)) - min(VEG_AREA_IMG_META.YS(:));
+    hFoliageAreaData = rectangle('Position', [xRec, yRec, wRec, hRec], ...
+        'FaceColor', [ones(1,3).*0.8 alphaForTranparentObjs]);
+    for idxTrack = 1:length(TX_INFO_LOGS{1})
+        numRxLocs = length(pathLossUtmXYHs{idxTrack}(:,1));
+        hAreaNeeded = viscircles( ...
+            [pathLossUtmXYHs{idxTrack}(:,1) ...
+            pathLossUtmXYHs{idxTrack}(:,2)], ...
+            ones(numRxLocs,1).*BUFFER_DIST_IN_M, 'color', 'y');        
+    end       
+    hTx = plot(xTx, yTx, 'go', ...
+        'LineWidth', 2);
+    for idxTrack = 1:length(TX_INFO_LOGS{1})
+        hRx = plot(pathLossUtmXYHs{idxTrack}(:,1), ...
+            pathLossUtmXYHs{idxTrack}(:,2), ...
+            'r.', 'MarkerSize', 5);
+    end
+    hTrunks = plot(treeUtmXYHs(:,1), treeUtmXYHs(:,2),...
+        'kx', 'LineWidth', 2);
+    axis equal;
+    xlabel('UTM x (m)'); ylabel('UTM y (m)'); 
+    legend([hTx, hRx, hTrunks, hAreaNeeded], ...
+        'TX', 'RX', 'Trunks', ...
+        [num2str(BUFFER_DIST_IN_M), ' m buffer area'],...
+        'Location', 'SouthEast');
+    title('Data availability inspectation')
+    
+    % Inspect the negtive tree height issue.
+    indicesForTrunksWithNegHeight = trunkTreeHeightInM<0;
+    figure('position', [0 0 700 500]);
+    plot(treeLocations(indicesForTrunksWithNegHeight,2), ...
+        treeLocations(indicesForTrunksWithNegHeight,1), 'rx');
+    plot_google_map('MapType', 'satellite');
+    xticks([]); yticks([]);
+    title('Trunk Locations with Negtive Tree Height');
 end
 
 %% Close Figures
