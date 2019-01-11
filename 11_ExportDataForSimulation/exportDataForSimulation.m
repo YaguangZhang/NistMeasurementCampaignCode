@@ -105,6 +105,10 @@ disp('    Done!')
 
 %% Export Trunk Locations
 
+% Shift negative tree height values for the trunk locations to this.
+MIN_TREE_HEIGHT_ALLOWED_IN_METER = 0.25;
+
+disp('Collecting foliage area data ...')
 groundHeightWrtTXInM = VEG_AREA_IMG_META.ALTS - TX_ALT;
 treeHeightInM = VEG_AREA_IMG_META.ZS - VEG_AREA_IMG_META.ALTS;
 
@@ -122,12 +126,25 @@ trunkGroundHeightWrtTXInM ...
 trunkTreeHeightInM ...
     = getInterTreeHeightInM(treeUtmXYHs(:,1), treeUtmXYHs(:,2));
 
+% Fix the negative tree height issue.
+boolsTrunkLocsWithNegTreeH = trunkTreeHeightInM<0;
+trunkTreeHeightInM(boolsTrunkLocsWithNegTreeH) ...
+    = MIN_TREE_HEIGHT_ALLOWED_IN_METER;
+
+% Ignore entries with NaN attribute(s).
+boolsValidEntries ...
+    = (~isnan(trunkGroundHeightWrtTXInM))...
+    &(~isnan(trunkTreeHeightInM));
+
 fullPathTrunkLocCsv = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'trunkLocs.csv');
 curHeaderCell = {'utmX', 'utmY', 'utmZone', 'lat', 'lon', 'groundHeightWrtTXInM', 'treeHeightInM'};
-curData = [num2cell(treeUtmXYHs(:,1:2)), cellstr(treeUtmZones), ...
-    num2cell(treeLocations(:,1:2)), ...
-    num2cell(trunkGroundHeightWrtTXInM), ...
-    num2cell(trunkTreeHeightInM)];
+curData = [num2cell(treeUtmXYHs(boolsValidEntries,1:2)), ...
+    cellstr(treeUtmZones(boolsValidEntries,:)), ...
+    num2cell(treeLocations(boolsValidEntries,1:2)), ...
+    num2cell(trunkGroundHeightWrtTXInM(boolsValidEntries, :)), ...
+    num2cell(trunkTreeHeightInM(boolsValidEntries, :))];
+disp('Done!')
+
 disp('Writing trunk locations to file ...')
 writeToCsvWithHeader(fullPathTrunkLocCsv, curHeaderCell, curData, '%.8f');
 disp('Done!')
