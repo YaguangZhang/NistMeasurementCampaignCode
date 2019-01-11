@@ -1,8 +1,8 @@
 function [ modelPerfTable, modelPerfCell ] ...
-    = computeRmsesForDistSegs( ...
+    = computeMaesForDistSegs( ...
     cellDistSegs, allDists, allMeas, cellAllPredicts)
-%COMPUTERMSESFORDISTSEGS Compute the RMSE for each distance segment for the
-%model predictions provided.
+%COMPUTERMAESFORDISTSEGS Compute the Mean Absolute Error (MAE) for each
+%distance segment for the model predictions provided.
 %
 %   Inputs:
 %       - cellDistSegs
@@ -24,12 +24,12 @@ function [ modelPerfTable, modelPerfCell ] ...
 %
 % Yaguang Zhang, Purdue, 09/21/2018
 
-rmseFormatter = '%.2f';
+maeFormatter = '%.2f';
 
 numDistSegs = length(cellDistSegs);
 [numModels, ~] = size(cellAllPredicts);
 
-fctRmse = @(measures, predicts) sqrt(mean((predicts - measures).^2));
+fctMae = @(measures, predicts) mean(abs(predicts - measures));
 
 modelPerfCell = cell(numModels, numDistSegs+1);
 modelPerfStrCell = cell(numModels, numDistSegs+1);
@@ -45,11 +45,11 @@ for idxMod = 1:numModels
             = (allDists>=curDistSegMin) & (allDists<curDistSegMax);
         
         curPredictions = cellAllPredicts{idxMod, 2}(boolsInCurDistSeg);        
-        curRmse = fctRmse(allMeas(boolsInCurDistSeg), curPredictions);
+        curMae = fctMae(allMeas(boolsInCurDistSeg), curPredictions);
         
-        modelPerfCell{idxMod, 1+idxDistSeg} = curRmse;
+        modelPerfCell{idxMod, 1+idxDistSeg} = curMae;
         modelPerfStrCell{idxMod, 1+idxDistSeg} ...
-            = num2str(curRmse, rmseFormatter);
+            = num2str(curMae, maeFormatter);
     end
 end
 
