@@ -1,7 +1,7 @@
 function [ modelPerfTable, modelPerfCell ] ...
     = computeMaesForDistSegs( ...
     cellDistSegs, allDists, allMeas, cellAllPredicts)
-%COMPUTERMAESFORDISTSEGS Compute the Mean Absolute Error (MAE) for each
+%COMPUTEMAESFORDISTSEGS Compute the Mean Absolute Error (MAE) for each
 %distance segment for the model predictions provided.
 %
 %   Inputs:
