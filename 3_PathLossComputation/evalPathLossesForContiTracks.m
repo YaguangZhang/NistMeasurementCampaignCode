@@ -53,7 +53,7 @@ GOOGLE_MAPS_API = 'AIzaSyDlkaE_QJxvRJpTutWG0N-LCvoT0e7FPHE';
 
 % Set this flag to be true to skip the computing process and reuse history
 % results for generating plots only.
-FLAG_ONLY_GEN_FIGS = true;
+FLAG_ONLY_GEN_FIGS = false;
 
 % Manually set the figure size and axis to best show the data on plots.
 figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
@@ -156,7 +156,7 @@ pathContiPathLossesFileToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
 if FLAG_ONLY_GEN_FIGS
     disp('    Loading history results ...')
     if ~exist(pathContiPathLossesFileToSave, 'file')
-        error(['History path loss results is not available!', ...
+        error(['History path loss results is not available! ', ...
             'Please run this script with FLAG_ONLY_GEN_FIGS=false to generate them.'])
     end
     load(pathContiPathLossesFileToSave);
@@ -172,7 +172,7 @@ else
     % array for a GPS position.
     [contiPathLossesWithGpsInfo, contiPathLossesExtraInfoTxGains, ...
         contiPathLossesExtraInfoRxGains, contiPathLossesExtraInfoOriAlts, ...
-        contiPathLossesExtraInfoSampIndices] ...
+        contiPathLossesExtraInfoSampIndices, contiPathLossesExtraLocInfo] ...
         = deal(cell(numContiOutFiles, 1));
     % Also save the meta info needed to map the path loss back to the
     % measurements. We choose to save the full file path to the .out file
@@ -216,7 +216,9 @@ else
             'The series index number in the matched Tx info log does not agree with idxCurSer.');
         
         [numPathLosses, ~] = size(curContiPathLossesWithGpsInfo);
-        [curContiTxGains, curContiRxGains] = deal(nan(numPathLosses, 1));
+        [curContiTxGains, curContiRxGains] ...
+            = deal(nan(numPathLosses, 1));
+        curContiExtraLocInfo = nan(numPathLosses, 7);
         % For the cases where TX orientation info is nan, we will ignore
         % the antenna gain calculation.
         if ~any(isnan([curTxInfoLog.txAz, curTxInfoLog.txEl, ...
@@ -264,6 +266,10 @@ else
                     = finalPathLossValue;
                 curContiTxGains(idxPathLoss) = txGain;
                 curContiRxGains(idxPathLoss) = rxGain;
+                curContiExtraLocInfo(idxPathLoss, :) ...
+                    = [curTxInfoLog.rxAz, curTxInfoLog.rxEl, ...
+                    TX_LAT, TX_LON, TX_HEIGHT_M, ...
+                    curTxInfoLog.txAz, curTxInfoLog.txEl];
             end
         else
             warning('We not have enough information to extract antenna gains!');
@@ -279,6 +285,8 @@ else
         contiPathLossesExtraInfoOriAlts{idxContiOutFile} = curContiOriAlts;
         contiPathLossesExtraInfoSampIndices{idxContiOutFile} ...
             = curOutFileSampleRanges;
+        contiPathLossesExtraLocInfo{idxContiOutFile} ...
+            = curContiExtraLocInfo;
         absPathsContiOutFiles{idxContiOutFile} = curAbsPathOutFile;
     end
     assert(all(~isempty(vertcat(contiPathLossesWithGpsInfo{1:end}))));
@@ -297,6 +305,8 @@ else
         = contiPathLossesExtraInfoOriAlts;
     contiPathLossesExtraInfo.contiSampIndices ...
         = contiPathLossesExtraInfoSampIndices;
+    contiPathLossesExtraInfo.contiExtraLocInfo ...
+        = contiPathLossesExtraLocInfo;
     save(pathContiPathLossesFileToSave, ...
         'contiPathLossesWithGpsInfo', ...
         'contiPathLossesExtraInfo', ...
@@ -461,7 +471,7 @@ end
     min(validNonRefPathLossesWithValidGps(:,1))], ...
     'CBLabels', numOfTicklabels, 'Labels', ...
     {'', 'Longitude', 'Latitude', '', ''});
-xticks([]); yticks([]); 
+xticks([]); yticks([]);
 
 % Draw a square to show the area where we are gonna illustrate the manually
 % labeled trees.
