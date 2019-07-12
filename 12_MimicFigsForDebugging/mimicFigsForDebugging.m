@@ -18,15 +18,18 @@ addpath(genpath(fullfile(pwd, 'RequiredLibCopies')));
 % We will save the RX data into a matrix called dataForSimulationFigs with
 % columns being:
 %   [lat, lon, pathloss, numOfTrees, distTxToRxIn3D, FSPL].
-DIR_TO_TX_DATA = fullfile(pwd, 'txData.mat');
-DIR_TO_RX_DATA = fullfile(pwd, 'rxDataMatrix.mat');
+DIR_TO_TX_DATA = fullfile(pwd, 'txData.csv');
+DIR_TO_RX_DATA = fullfile(pwd, 'rxDataMatrix.csv');
 
 %% Generate/Load Data
 
 FLAG_DATA_AVAILABLE = true;
 if ~FLAG_DATA_AVAILABLE
+    CONVERSION_FORMATTER = '%.10f';
+    
     % For Tx.    
-    save(DIR_TO_TX_DATA, 'TX_LAT', 'TX_LON');
+    dlmwrite(DIR_TO_TX_DATA, [TX_LAT, TX_LON], ...
+        'delimiter', ',', 'precision', CONVERSION_FORMATTER);
     
     % For Rx.
     contiPathLossesWithGpsInfoMat = vertcat(contiPathLossesWithGpsInfo{:});
@@ -41,10 +44,14 @@ if ~FLAG_DATA_AVAILABLE
         contiPathLossesWithGpsInfoMat(:,1) numsOfTreesInFirstFresnelMat ...
         txRxLosDistsMat freeSpacePathLossesMat];  
     
-    save(DIR_TO_RX_DATA, 'dataForSimulationFigs');
+    dlmwrite(DIR_TO_RX_DATA, dataForSimulationFigs, ...
+        'delimiter', ',', 'precision', CONVERSION_FORMATTER);
 else
-    load(DIR_TO_TX_DATA);
-    load(DIR_TO_RX_DATA);
+    txLatLon = csvread(DIR_TO_TX_DATA);
+    TX_LAT = txLatLon(1);
+    TX_LON = txLatLon(2);
+    
+    dataForSimulationFigs = csvread(DIR_TO_RX_DATA);
 end
 
 % Extract the data for readability.
