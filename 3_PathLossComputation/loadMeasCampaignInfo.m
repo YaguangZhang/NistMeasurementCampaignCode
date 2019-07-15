@@ -55,7 +55,7 @@ DOWNCONVERTER_GAIN_IN_DB = 13.4;
 % The psuedo-noise sequence generator clock frequencies in MHz for the TX
 % and the RX, respectively.
 TX_PN_CLK_MHz = 400;
-RX_PN_CLK_MHz = 399.995;
+RX_PN_CLK_MHz = 399.95;
 
 % Set this flag to true if the PDP's are actually time-reversed. This is a
 % consequence of running the sliding correlator "backwards", that is with
