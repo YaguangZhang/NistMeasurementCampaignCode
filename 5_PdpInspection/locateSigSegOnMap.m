@@ -1,4 +1,4 @@
-function [ hMapFig ] = locateSigSegOnMap(...
+function [ hMapFig, indicesRelavantGpsSamps ] = locateSigSegOnMap(...
     contiPathLossesWithGpsInfo, contiPathLossesExtraInfo, ...
     idxTrack, sampIndexRange, fullPathToSavePlot, axisToSet)
 %LOCATESIGSEGONMAP Locate the signal segment in a continuous track on a
@@ -20,10 +20,13 @@ function [ hMapFig ] = locateSigSegOnMap(...
 %       - axisToSet
 %         Optional. If present, the visible area on the map plot will be
 %         set accordingly.
-% 
-%   Output:
+%
+%   Outputs:
 %       - hMapFig
 %         The map plot generated to show the singal segment's location.
+%       - indicesRelavantGpsSamps
+%         The indices for the corresponding GPS track to locate where the
+%         plotted signal was recorded.
 %
 % Yaguang Zhang, Purdue, 06/28/2018
 
