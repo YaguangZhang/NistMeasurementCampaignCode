@@ -286,6 +286,7 @@ curData = {xTx, yTx, txUtmZone, ...
 writeToCsvWithHeader(fullPathTxLoc, curHeaderCell, curData, '%.8f');
 
 for idxTrack = 1:numTracks
+    % RX location.
     fullPathRxLocs = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         ['rxLoc_track_', num2str(idxTrack), '.csv']);
     curHeaderCell = {'utmX', 'utmY', 'utmZone', ...
@@ -298,6 +299,14 @@ for idxTrack = 1:numTracks
         contiPathLossesWithGpsInfo{idxTrack}(:,3), ...
         contiPathLossesWithGpsInfo{idxTrack}(:,4)])];
     writeToCsvWithHeader(fullPathRxLocs, curHeaderCell, curData, '%.8f');
+    
+    % Measurement results.
+    fullPathRxMeas = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        ['rxLoc_meas_', num2str(idxTrack), '.csv']);
+    curHeaderCell = {'locIdx', 'pathLossInDb'};
+    curMeas = contiPathLossesWithGpsInfo{idxTrack}(:,1);
+    curData = [(1:length(curMeas))' curMeas];
+    writeToCsvWithHeader(fullPathRxMeas, curHeaderCell, curData, '%.8f');
 end
 
 %% Illustration plots.
