@@ -35,7 +35,7 @@ switch getenv('computername')
     case 'ARTSY'
         % ZYG's lab desktop.
         ABS_PATH_TO_NIST_LIDAR_LAS ...
-            = 'C:\Users\YaguangZhang\OneDrive - purdue.edu\EARS - Simulations\3D Models\USGS\NIST\CO_SoPlatteRiver_Lot5_2013_001049.las';
+            = 'D:\One Drive - Purdue\OneDrive - purdue.edu\EARS - Simulations\3D Models\USGS\NIST\CO_SoPlatteRiver_Lot5_2013_001049.las';
     case ''
         % Expected to be Lemma the Mac machine in ZYG's lab.
         assert(ismac, unknownComputerErrorMsg);
@@ -109,6 +109,41 @@ disp('    Found all .mat files required.');
 disp('        Loading the results...')
 % Get lidarLats, lidarLons, nistElevData, and if available, lidarAlts.
 load(ABS_PATH_TO_SAVE_ELEVATIONS);
+
+%% Figures for the Lidar ane Elevation Data
+
+boolsToShow = lidarLons>=LON_RANGE(1) & lidarLons<=LON_RANGE(2) ...
+    & lidarLats>=LAT_RANGE(1) & lidarLats<=LAT_RANGE(2);
+
+figurePos = [0, 0, 1400, 1100];
+markerSize = 5;
+hLiDarOnMap = figure('visible','off', ...
+    'Unit', 'pixel', 'Position', figurePos);
+hold on;
+plot3k([lidarLons(boolsToShow), lidarLats(boolsToShow), ...
+    lidarXYZ(boolsToShow,3)-min(lidarXYZ(boolsToShow,3))], ...
+    'Marker',{'.',markerSize}, ...
+    'Labels', {'', 'Longitude', 'Latitude', '', 'Delta lidar Z'});
+view(2); grid on; xticks([]); yticks([]);
+axis([LON_RANGE, LAT_RANGE]);
+plotGoogleMapAfterPlot3k(hLiDarOnMap, 'satellite');
+saveas(hLiDarOnMap, ...
+    fullfile(ABS_PATH_TO_SAVE_PLOTS, 'lidarDataOverview.png'));
+close(hLiDarOnMap);
+
+hEleOnMap = figure('visible','off', ...
+    'Unit', 'pixel', 'Position', figurePos);
+hold on;
+plot3k([lidarLons(boolsToShow), lidarLats(boolsToShow), ...
+    lidarAlts(boolsToShow)-min(lidarAlts(boolsToShow))], ...
+    'Marker',{'.',markerSize}, ...
+    'Labels', {'', 'Longitude', 'Latitude', '', 'Delta elevation'});
+view(2); grid on; xticks([]); yticks([]);
+axis([LON_RANGE, LAT_RANGE]);
+plotGoogleMapAfterPlot3k(hEleOnMap, 'satellite');
+saveas(hEleOnMap, ...
+    fullfile(ABS_PATH_TO_SAVE_PLOTS, 'eleDataOverview.png'));
+close(hEleOnMap);
 
 %% Interactive Figure for Labeling Tree Locations
 
@@ -323,7 +358,7 @@ else
     
     save(ABS_PATH_TO_SAVE_VEG_AREAS_META, 'vegAreas', 'LAT_RANGE', ...
         'LON_RANGE', 'VEG_AREA_IMG_RESOLUTION', 'VEG_AREA_IMG_META', ...
-        % 'getInterLiDARZ', ...
+        ... % 'getInterLiDARZ', ...
         '-v7.3');
 end
 
