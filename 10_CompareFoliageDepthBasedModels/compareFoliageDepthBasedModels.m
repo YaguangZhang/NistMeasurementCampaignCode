@@ -51,6 +51,10 @@ ABS_PATH_TO_TREE_NUM_BASED_ANALYSIS_FILE ...
 pathToSaveModelInfo = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'foliageDepthBasedAttenAnalysisResults.mat');
 
+% The predictions from selected models will be saved.
+pathToSaveModelPred = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'predictionsFromSelectedModels.mat');
+
 % The TX was installed around 15 meters away from the forest.
 deltaLosDistToDistInWoodLand = -15;
 
@@ -1019,6 +1023,18 @@ allPredictedPathLossesTwoStepLinearLossWrtWFA ...
     .boundaryFitted, ...
     modelTwoStepLinearLossWrtWFA.constShiftFitted);
 
+% Save selected results. 
+allPredictionsConstLossPerTrunk = vertcat(predictionsConstLossPerTrunk{:});
+save(pathToSaveModelPred, ...
+    'allFreeSpacePathLosses', ... FSPL
+    'allPredictionsConstLossPerTrunk', ... AF
+    'allPredictedPathLossesItu', ... ITU
+    'allPredictedPathLossesMod', ... WMED
+    'allPredictedPathLossesTwoStepConFixedB', ... A-I
+    'allPredictedPathLossesTwoStepCLPerUoFAndCLForDEV', ... A-II
+    'allPredictedPathLossesItuModForFoliageDepth', ... B
+    'allPredictedPathLossesTwoStepLinearLossWrtFA'); ... C
+
 rmseItu = sqrt(mean((allPredictedPathLossesItu - allMeasPathLosses).^2));
 rmseItuBest = sqrt(mean( ...
     (allPredictedPathLossesItuBest - allMeasPathLosses).^2));
@@ -1398,7 +1414,6 @@ disp('    Done!')
 % measurement results with tree numbers.
 allTxRxLosDists = vertcat(txRxLosDists{:});
 [sortedLosDist, indicesForSortedDist] = sort(allTxRxLosDists);
-allPredictionsConstLossPerTrunk = vertcat(predictionsConstLossPerTrunk{:});
 
 hMeasAndFreeSpaceLossesLogDistSimpColoredByTreeNum ...
     = figure('Unit', 'pixels');
