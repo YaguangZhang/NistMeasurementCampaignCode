@@ -46,6 +46,9 @@ ABS_PATH_TO_TREE_NUM_BASED_ANALYSIS_FILE ...
     'FoliageAttenuationEstimation_ManualTreeLocs', ...
     'foliageAttenAnalysisResults.mat');
 
+% Control the truncation of the data in the output .csv files.
+dataStrFormatter = '%.12f';
+
 %% Before Processing the Data
 
 curFileName = mfilename;
@@ -147,7 +150,7 @@ curData = [num2cell(treeUtmXYHs(boolsValidEntries,1:2)), ...
 disp('Done!')
 
 disp('Writing trunk locations to file ...')
-writeToCsvWithHeader(fullPathTrunkLocCsv, curHeaderCell, curData, '%.8f');
+writeToCsvWithHeader(fullPathTrunkLocCsv, curHeaderCell, curData, dataStrFormatter);
 disp('Done!')
 
 % Illustration plots.
@@ -219,7 +222,7 @@ for m = 1:numRows
             vegAreas(m,n)};
         dataRowCnt = dataRowCnt+1;
     end
-    appendCell2Csv(fullPathFoliageAreaCsv, curData, '%.8f');
+    appendCell2Csv(fullPathFoliageAreaCsv, curData, dataStrFormatter);
 end
 disp('Done!')
 
@@ -284,7 +287,7 @@ curData = {xTx, yTx, txUtmZone, ...
     TX_LAT, TX_LON, TX_ALT, ...
     -TX_HEIGHT_M, ...
     TX_HEIGHT_FEET, TX_HEIGHT_M};
-writeToCsvWithHeader(fullPathTxLoc, curHeaderCell, curData, '%.8f');
+writeToCsvWithHeader(fullPathTxLoc, curHeaderCell, curData, dataStrFormatter);
 
 txInfoLog = TX_INFO_LOGS{1};
 for idxTrack = 1:numTracks
@@ -306,7 +309,7 @@ for idxTrack = 1:numTracks
         contiPathLossesWithGpsInfo{idxTrack}(:,3), ...
         contiPathLossesWithGpsInfo{idxTrack}(:,4), ...
         curRxHeightWrtTxInM])];
-    writeToCsvWithHeader(fullPathRxLocs, curHeaderCell, curData, '%.8f');
+    writeToCsvWithHeader(fullPathRxLocs, curHeaderCell, curData, dataStrFormatter);
     
     % Measurement results.
     fullPathRxMeas = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
@@ -326,7 +329,7 @@ for idxTrack = 1:numTracks
         onesWithNumOfCurMeas.*txInfoLog(idxTrack).txEl, ...
         onesWithNumOfCurMeas.*(360 - txInfoLog(idxTrack).rxAz), ...
         onesWithNumOfCurMeas.*txInfoLog(idxTrack).rxEl];
-    writeToCsvWithHeader(fullPathRxMeas, curHeaderCell, curData, '%.8f');
+    writeToCsvWithHeader(fullPathRxMeas, curHeaderCell, curData, dataStrFormatter);
 end
 
 %% Illustration plots.
