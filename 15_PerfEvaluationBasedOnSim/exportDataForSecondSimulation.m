@@ -126,7 +126,7 @@ load(ABS_PATH_TO_MANUALLY_LABELED_TREE_LOCS);
 
 disp('    Done!')
 
-%% Export Trunk Locations
+%% Interpolate Data in the Vegetation Grid
 
 % Shift negative tree height values for the trunk locations to this.
 MIN_TREE_HEIGHT_ALLOWED_IN_METER = 0.25;
@@ -157,6 +157,8 @@ getInterTreeHeightInM = @(xs, ys) ...
 
 disp('Done!')
 
+%%  Export Trunk Locations
+
 % Note: "treeUtmXYsExt" contains the previous trunk location logs for the
 % ICC wireless letter paper; here we will use an extended set of trunk
 % location logs, named "treeUtmXYsExt", which contains more trees to cover
@@ -165,9 +167,27 @@ disp('Done!')
 disp(' ')
 disp('    Fetching tree locations ...')
 
+% Remove trees that are out of the LiDAR coverage area.
+minLidarLat = min(VEG_AREA_IMG_META.LATS(:));
+maxLidarLat = max(VEG_AREA_IMG_META.LATS(:));
+minLidarLon = min(VEG_AREA_IMG_META.LONS(:));
+maxLidarLon = max(VEG_AREA_IMG_META.LONS(:));
+
+boolsOutOfLidarCovArea = markLocs(:,1)>=minLidarLat ...
+    & markLocs(:,1)<=maxLidarLat ...
+& markLocs(:,2)>=minLidarLon ...
+& markLocs(:,2)<=maxLidarLon;
+if ~exist('markLocsOriginal', 'var')
+    markLocsOriginal = markLocs;
+    [numTreesOriginal, ~] = size(markLocs);
+end
+markLocs(~boolsOutOfLidarCovArea,:) = [];
+
+% Covert the GPS tree locations to UTM.
 [numTrees, ~] = size(markLocs); treeUtmXYsExt = nan(numTrees, 2);
 [treeUtmXYsExt(:,1), treeUtmXYsExt(:,2), treeUtmZonesExt] ...
     = deg2utm(markLocs(:,1), markLocs(:,2));
+
 assert(all([arrayfun(@(idx) ...
     strcmp(treeUtmZonesExt(idx,:), treeUtmZonesExt(1,:)), ...
     1:numTrees)]), 'All trees should be in the same UTM zone!');
@@ -208,10 +228,21 @@ disp('Done!')
 curFigTitle = 'Tree Locations - (lon, lat)';
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'trunkLocsLonLat.png');
 
-curFig = figure;
-plot(markLocs(:,2), markLocs(:,1), 'rx');
+curFig = figure; hold on;
+hOriTrees = plot(markLocsOriginal(:,2), markLocsOriginal(:,1), 'r.');
+hTrees = plot(markLocs(boolsValidEntries,2), ...
+    markLocs(boolsValidEntries,1), 'b*');
 plot_google_map('MapType', 'satellite');
-xlabel('lon'); ylabel('lat');
+plot3(markLocsOriginal(:,2), markLocsOriginal(:,1), ...
+    ones(numTreesOriginal,1).*(max(VEG_AREA_IMG_META.ZS)+1),  'r.');
+plot3(markLocs(boolsValidEntries,2), ...
+    markLocs(boolsValidEntries,1), ...
+    ones(sum(boolsValidEntries),1).*(max(VEG_AREA_IMG_META.ZS)+1), 'b*');
+plot3k([VEG_AREA_IMG_META.LONS(:), VEG_AREA_IMG_META.LATS(:), ...
+    VEG_AREA_IMG_META.ZS(:)], 'ColorBar', false);
+xlabel('lon'); ylabel('lat'); view(2);
+legend([hOriTrees, hTrees], 'All trees', 'Valid trees', ...
+    'Location', 'southeast');
 
 title(curFigTitle)
 saveas(curFig, curFigPath);
