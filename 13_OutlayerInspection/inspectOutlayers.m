@@ -382,4 +382,39 @@ for idxTrack = 1:numOfTracks
     saveas(curFig, curDirToSaveFig);
 end
 
+%% Time stamps on map.
+
+startTimeInSForAllTracks = [1522520410 1522521163 1522522013 ...
+    1522522690 1522523023 1522523676 ...
+    1522524143 1522524548 1522524818 1522525036];
+sampTimeStampsForAllTracks = cell(numOfTracks,1);
+for idxT = 1:numOfTracks
+    [curNumOfSamples, ~] = size(contiPathLossesWithGpsInfo{idxT});
+    sampTimeStampsForAllTracks{idxT} = (startTimeInSForAllTracks(idxT) ...
+        :(startTimeInSForAllTracks(idxT)+curNumOfSamples-1))';
+end
+allSampTimeStamps = vertcat(sampTimeStampsForAllTracks{:});
+allRelSampTimeStamps = allSampTimeStamps-allSampTimeStamps(1);
+
+curFig = figure; hold on;
+hTx = plot(TX_LON, TX_LAT, '^g', ...
+    'MarkerFaceColor', 'none', ...
+    'LineWidth', 1.5);
+
+colormap hot;
+plot3k([allContiPathLossesWithGpsInfo(:,3), ...
+    allContiPathLossesWithGpsInfo(:,2), allRelSampTimeStamps], ...
+    'Marker', {'.', 12}, ...
+    'CBLabels', numOfTicklabels, 'Labels', ...
+    {'', 'Longitude', 'Latitude', ...
+    '', 'Time Stamp (s)'});
+xticks([]); yticks([]);
+
+axis(figAxisToSet); view(2);
+plotGoogleMapAfterPlot3k(curFig, 'satellite');
+
+curDirToSaveFig = fullfile(pathToSaveResults, 'timeStampsOnMap');
+saveas(curFig, [curDirToSaveFig, '.png']);
+saveas(curFig, [curDirToSaveFig, '.fig']);
+
 % EOF
