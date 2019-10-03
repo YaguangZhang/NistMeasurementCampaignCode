@@ -27,6 +27,11 @@ if exist(pathToSaveResults, 'dir')~=7
     mkdir(pathToSaveResults);
 end
 
+% We will also generate plots to show the half-power beamwidth (HPBW) and
+% first-null beamwidth (FNBW) of the TX.
+azimuthHpbwInDeg = 10.08;
+azimuthFnbwInDeg = 29.716+(360-331.961);
+
 %% Load Measurement Data
 
 ABS_PATH_TO_TX_INFO_LOGS_FILE = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
@@ -331,6 +336,50 @@ for idxModel = 1:numModelsToInspect
     saveas(hFigNonOutlayerErrorsOnMap, ...
         [curDirToSaveFigs, '_nonOutlayerErr_', ...
         num2str(MAX_ALLOWED_ERROR_IN_DB), 'dB.jpg']);
+end
+
+%% New Figs
+% For each track's measurement results, generate an overview plot with the
+% TX antenna coverage area. We will show both the HPBW and FNBW areas as
+% triangle polyshapes.
+
+BEAM_AREA_SIDE_LENGTH_IN_M = 500;
+numOfTracks = length(contiPathLossesWithGpsInfo);
+
+for idxTrack = 1:numOfTracks
+    curPLs = contiPathLossesWithGpsInfo{idxTrack}(:,1);
+    curRxLonLats = contiPathLossesWithGpsInfo{idxTrack}(:,[3,2]);
+    curTxAzInDeg = TX_INFO_LOGS{1}(idxTrack).txAz;
+    
+    
+    hpbwPolyshape = genBeamPolyshape(txLon, txLat, ...
+        curTxAzInDeg, azimuthHpbwInDeg, BEAM_AREA_SIDE_LENGTH_IN_M);
+    fnbwPolyshape = genBeamPolyshape(txLon, txLat, ...
+        curTxAzInDeg, azimuthFnbwInDeg, BEAM_AREA_SIDE_LENGTH_IN_M);
+    
+    curFig = figure; hold on;
+    hTx = plot(TX_LON, TX_LAT, '^g', ...
+        'MarkerFaceColor', 'none', ...
+        'LineWidth', 1.5);
+    colormap hot;
+    plot3k([curRxLonLats, curPLs], ...
+        'Marker', {'.', 12}, ...
+        'ColorRange', [max(allMeas), min(allMeas)], ...
+        'CBLabels', numOfTicklabels, 'Labels', ...
+        {['Track #', num2str(idxTrack)], ...
+        'Longitude', 'Latitude', ...
+        '', 'Pathloss (dB)'});
+    xticks([]); yticks([]);
+    
+    plot(fnbwPolyshape, 'FaceColor', 'cyan');
+    plot(hpbwPolyshape, 'FaceColor', 'green');
+    
+    axis(figAxisToSet); view(2);
+    plotGoogleMapAfterPlot3k(curFig, 'satellite');
+    
+    curDirToSaveFig = fullfile(pathToSaveResults, ...
+        ['txMainLobe_Track_', num2str(idxTrack), '.png']);
+    saveas(curFig, curDirToSaveFig);
 end
 
 % EOF
