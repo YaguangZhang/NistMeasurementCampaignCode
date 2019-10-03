@@ -85,7 +85,7 @@ disp('      - contiPathLossesWithGpsInfo.mat')
 disp('      - txInfoLogs.mat')
 disp('      - vegAreasMeta.mat')
 disp('      - utmInfoForPathLossesAndTrees.mat')
-disp('      - treeLocs.mat')
+disp('      - treeLocs.mat (Extended)')
 
 assert(exist(ABS_PATH_TO_PATH_LOSSES_FILE, 'file')==2, ...
     'Couldn''t find contiPathLossesWithGpsInfo.mat! Please run NistMeasurementCampaignCode/3_PathLossComputation/evalPathLossesForContiTracks.m first.');
@@ -175,8 +175,8 @@ maxLidarLon = max(VEG_AREA_IMG_META.LONS(:));
 
 boolsOutOfLidarCovArea = markLocs(:,1)>=minLidarLat ...
     & markLocs(:,1)<=maxLidarLat ...
-& markLocs(:,2)>=minLidarLon ...
-& markLocs(:,2)<=maxLidarLon;
+    & markLocs(:,2)>=minLidarLon ...
+    & markLocs(:,2)<=maxLidarLon;
 if ~exist('markLocsOriginal', 'var')
     markLocsOriginal = markLocs;
     [numTreesOriginal, ~] = size(markLocs);
@@ -607,6 +607,100 @@ if FLAG_GENERATE_EXTRA_ILLUSTRATIONS
     xticks([]); yticks([]);
     title('Trunk Locations with Negtive Tree Height');
 end
+
+%% Figures According to the Exported .csv Files
+
+% foliageAreaGrid.csv
+
+% Setup the Import Options
+opts = delimitedTextImportOptions("NumVariables", 11);
+
+% Specify range and delimiter
+opts.DataLines = [1, Inf];
+opts.Delimiter = ",";
+
+% Specify column names and types
+opts.VariableNames = ["Var1", "Var2", "utmX", "utmY", "Var5", "Var6", ...
+    "Var7", "Var8", "groundHeightWrtTXInM", "Var10", "Var11"];
+opts.SelectedVariableNames = ["utmX", "utmY", "groundHeightWrtTXInM"];
+opts.VariableTypes = ["string", "string", "double", "double", "string", ...
+    "string", "string", "string", "double", "string", "string"];
+opts = setvaropts(opts, [1, 2, 5, 6, 7, 8, 10, 11], ...
+    "WhitespaceRule", "preserve");
+opts = setvaropts(opts, [1, 2, 5, 6, 7, 8, 10, 11], ...
+    "EmptyFieldRule", "auto");
+opts.ExtraColumnsRule = "ignore";
+opts.EmptyLineRule = "read";
+
+% Import the data
+foliageAreaGridExp = readtable(fullPathFoliageAreaCsv, opts);
+vegXsExp = foliageAreaGridExp.utmX;
+vegYsExp = foliageAreaGridExp.utmY;
+vegGroundHsWrtTxExp = foliageAreaGridExp.groundHeightWrtTXInM;
+
+% Clear temporary variables
+clear opts
+
+% txLoc.csv
+txLocExp = readtable(fullPathTxLoc);
+xTxExp = txLocExp.utmX;
+yTxExp = txLocExp.utmY;
+txHExp = txLocExp.heightAboveGroundInM;
+
+% trunkLocs.csv
+trunkLocsExp = readtable(fullPathTrunkLocCsv);
+treeUtmXYsExtExp = [trunkLocsExp.utmX trunkLocsExp.utmY];
+trunkGroundHeightWrtTXExp = trunkLocsExp.groundHeightWrtTXInM;
+trunkTreeHeightExp = trunkLocsExp.treeHeightInM;
+
+% Overview figure.
+curFigTitle = {'Simulation Overview in 3D'; 'Based on Exported Files'};
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'simOverviewUtmXYHByCsv.png');
+
+downSampleRate = 30;
+fctDownSample = @(x) x(1:downSampleRate:end, 1:downSampleRate:end);
+vegXsLessExp = fctDownSample(vegXsExp);
+vegYsLessExp = fctDownSample(vegYsExp);
+vegGroundHsWrtTxLessExp = fctDownSample(vegGroundHsWrtTxExp);
+
+curFig = figure; hold on;
+hGround = plot3(vegXsLessExp(:), vegYsLessExp(:), ...
+    vegGroundHsWrtTxLessExp(:), '.', 'MarkerSize', 1, 'Color', lightGray);
+plot3([xTxExp xTxExp],[yTxExp yTxExp],[-txHExp 0], 'g-');
+hTx = plot3(xTxExp,yTxExp,0, 'gx');
+for idxTrack = 1:numTracks
+    % rxLoc_track_#.csv
+    fullPathRxLocs = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        ['rxLoc_track_', num2str(idxTrack), '.csv']);
+    rxLocExp = readtable(fullPathRxLocs);
+    pathLossUtmXYsExp = [rxLocExp.utmX, rxLocExp.utmY];
+    rxHeightWrtTxExp = rxLocExp.rxHeightWrtTXInM;
+    
+    plot3([pathLossUtmXYsExp(:,1) ...
+        pathLossUtmXYsExp(:,1)]', ...
+        [pathLossUtmXYsExp(:,2) ...
+        pathLossUtmXYsExp(:,2)]', ...
+        [rxHeightWrtTxExp rxGroundHeightWrtTxInM{idxTrack}]', ...
+        'r-');
+    hRx = plot3(pathLossUtmXYsExp(:,1), ...
+        pathLossUtmXYsExp(:,2), ...
+        rxHeightWrtTxExp, ...
+        'r.', 'MarkerSize', 5);
+end
+plot3([treeUtmXYsExtExp(:,1) treeUtmXYsExtExp(:,1)]', ...
+    [treeUtmXYsExtExp(:,2) treeUtmXYsExtExp(:,2)]', ...
+    [trunkGroundHeightWrtTXExp ...
+    trunkGroundHeightWrtTXExp+trunkTreeHeightExp]', '-b');
+hTrees = plot3(treeUtmXYsExtExp(:,1), treeUtmXYsExtExp(:,2), ...
+    trunkGroundHeightWrtTXExp+trunkTreeHeightExp, 'ob', 'MarkerSize', 3);
+grid on; axis tight; axis equal; view(3);
+xlabel('utmX'); ylabel('utmY'); ylabel('Height');
+legend([hTx, hRx, hTrees, hGround], ...
+    'TX', 'RX', 'Trees', 'Ground', 'Location', 'SouthEast');
+
+title(curFigTitle)
+saveas(curFig, curFigPath);
 
 %% Close Figures
 close all;
