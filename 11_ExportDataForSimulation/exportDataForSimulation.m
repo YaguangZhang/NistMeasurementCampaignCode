@@ -108,8 +108,8 @@ disp('    Done!')
 
 %% Export Trunk Locations
 
-% Shift negative tree height values for the trunk locations to this.
-MIN_TREE_HEIGHT_ALLOWED_IN_METER = 0.25;
+% Shift too small tree height values for the trunk locations to this.
+MIN_TREE_HEIGHT_ALLOWED_IN_METER = 1;
 
 disp('Collecting foliage area data ...')
 groundHeightWrtTXInM = VEG_AREA_IMG_META.ALTS - (TX_ALT+TX_HEIGHT_M);
@@ -129,9 +129,10 @@ trunkGroundHeightWrtTXInM ...
 trunkTreeHeightInM ...
     = getInterTreeHeightInM(treeUtmXYHs(:,1), treeUtmXYHs(:,2));
 
-% Fix the negative tree height issue.
-boolsTrunkLocsWithNegTreeH = trunkTreeHeightInM<0;
-trunkTreeHeightInM(boolsTrunkLocsWithNegTreeH) ...
+% Fix trees with too small height.
+boolsTrunkLocsWithTooSmallTreeH ...
+    = trunkTreeHeightInM<MIN_TREE_HEIGHT_ALLOWED_IN_METER;
+trunkTreeHeightInM(boolsTrunkLocsWithTooSmallTreeH) ...
     = MIN_TREE_HEIGHT_ALLOWED_IN_METER;
 
 % Ignore entries with NaN attribute(s).
@@ -150,7 +151,8 @@ curData = [num2cell(treeUtmXYHs(boolsValidEntries,1:2)), ...
 disp('Done!')
 
 disp('Writing trunk locations to file ...')
-writeToCsvWithHeader(fullPathTrunkLocCsv, curHeaderCell, curData, dataStrFormatter);
+writeToCsvWithHeader(fullPathTrunkLocCsv, curHeaderCell, ...
+    curData, dataStrFormatter);
 disp('Done!')
 
 % Illustration plots.
