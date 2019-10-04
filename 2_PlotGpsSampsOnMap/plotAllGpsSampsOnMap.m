@@ -1,4 +1,4 @@
-% PLOTALLGPSSAMPSONMAP Plot all GPS samples logged by the USRP on a map.
+ % PLOTALLGPSSAMPSONMAP Plot all GPS samples logged by the USRP on a map.
 %
 % Yaguang Zhang, Purdue, 03/31/2018
 
@@ -124,6 +124,12 @@ allSigOutFiles = rdir(fullfile(ABS_PATH_TO_FOLIAGE_DATA, '**', '*.out'));
 % We do not need the filtered version.
 allSigOutFiles = allSigOutFiles(arrayfun(@(p) ...
     ~isempty(regexp(p.name, '\d+.out','match')), allSigOutFiles));
+% Sort the files according to the GPS log file name.
+[~, allSigOutFileNames] = arrayfun(@(p) ...
+    fileparts(p.name), allSigOutFiles, 'UniformOutput', false);
+[~, indicesForSortedSigOutFiles] = sort(allSigOutFileNames);
+allSigOutFiles = allSigOutFiles(indicesForSortedSigOutFiles);
+
 numAllSigOutFiles = length(allSigOutFiles);
 [allCurLats, allCurLons] = deal(cell(numAllSigOutFiles, 1));
 for idxRec = 1:numAllSigOutFiles
