@@ -16,16 +16,17 @@ setPath;
 
 %% 1_Calibration: Calibrate the Gnu Radio RX
 addpath(fullfile(pwd, '1_Calibration'));
-calibrateRx;
+% calibrateRx;
 
-%% 2_PlotGpsSampsOnMap: Plot Overview Maps ASB                                                                                                                                                                                                    
+%% 2_PlotGpsSampsOnMap: Plot Overview Maps ASB
 addpath(fullfile(pwd, '2_PlotGpsSampsOnMap'));
 plotAllGpsSampsOnMap;
 
 %% 3_PathLossComputation: Compute & Plot the Path Losses
 
 % This will generate: 'TX_POWER_DBM', 'TX_HEIGHT_FEET', 'TX_HEIGHT_M',
-% 'F_S', 'TX_LAT', 'TX_LON', 'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS', etc.
+% 'F_S', 'TX_LAT', 'TX_LON', 'TX_INFO_LOGS', 'TX_INFO_LOGS_ABS_PAR_DIRS',
+% etc.
 addpath(fullfile(pwd, '3_PathLossComputation'));
 loadMeasCampaignInfo;
 
@@ -48,12 +49,13 @@ addpath(fullfile(pwd, '5_PdpInspection'));
 generatePdpPlots;
 
 %% 6_DebugContiPathLosses: Plot More PDPs
+addpath(fullfile(pwd, '6_DebugContiPathLosses'));
 debugContiPathLosses;
 
 %% 7_ManuallyLocateTrees: Manually Label Trees on Map
 
 % Set this to be true if it is necessary to re-label the trees.
-flagRelabelTrees = true;
+flagRelabelTrees = false;
 if flagRelabelTrees
     addpath(fullfile(pwd, '7_ManuallyLocateTrees'));
     manuallyLocateTrees;
@@ -62,5 +64,21 @@ end
 %% 8_FoliageAttenuationEstimation_ManualTreeLocs
 addpath(fullfile(pwd, '8_FoliageAttenuationEstimation_ManualTreeLocs'));
 estimateFoliageAttenuationWithManualTreeLocs;
+
+%% 9_GenerateVegAreas
+addpath(fullfile(pwd, '9_GenerateVegAreas'));
+% generateVegAreas;
+
+%% 10_CompareFoliageDepthBasedModels
+addpath(fullfile(pwd, '10_CompareFoliageDepthBasedModels'));
+compareFoliageDepthBasedModels;
+
+%% 11_ExportDataForSimulation
+addpath(fullfile(pwd, '11_ExportDataForSimulation'));
+exportDataForSimulation;
+
+%% 13_MimicFigsForDebugging
+addpath(fullfile(pwd, '13_MimicFigsForDebugging'));
+inspectOutlayers;
 
 % EOF

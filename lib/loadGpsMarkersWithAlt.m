@@ -29,6 +29,9 @@ function [ markLocs, marksCell, allMarksCell ] ...
 %
 % Yaguang Zhang, Purdue, 04/16/2018
 
+% Elevation data source: 'Google' or 'USGS'.
+ELEVATION_DATA_SOURCE = 'USGS';
+
 % Google may not always respond with valid alt values. We will try up to a
 % constant number of times before giving up.
 MAX_NUM_OF_TRIALS_FOR_ALT = 10;
@@ -44,7 +47,7 @@ if exist(pathToSave, 'file')==2
     load(pathToSave);
     lats = markLocs(:,1);
     lons = markLocs(:,2);
-    alts = markLocs(:,3);
+    eles = markLocs(:,3);
 else
     allMarksCell = csvimport(fullPath);
     [lats, lons, names] = csvimport(fullPath, ...
@@ -58,18 +61,30 @@ else
     marksCell = allMarksCell(2:end,:);
     marksCell = marksCell(boolsMarkesToKeep,:);
     
-    alts = nan(length(lats), 1);
+    eles = nan(length(lats), 1);
 end
 
 % Fetch alts from Google if necessary.
-indicesNanAlts = find(isnan(alts))';
+indicesNanAlts = find(isnan(eles))';
+
 for curIdxNanAlt = indicesNanAlts
     flagFetchSuccess = false;
     numFetchErrs = 0;
-    while (~flagFetchSuccess) && numFetchErrs<MAX_NUM_OF_TRIALS_FOR_ALT
+    while (~flagFetchSuccess) ...
+            && numFetchErrs<MAX_NUM_OF_TRIALS_FOR_ALT
         try
-            alts(curIdxNanAlt) ...
-                = getElevations(lats(curIdxNanAlt), lons(curIdxNanAlt));
+            switch lower(ELEVATION_DATA_SOURCE)
+                case 'google'
+                    eles(curIdxNanAlt) ...
+                        = getElevations( ...
+                        lats(curIdxNanAlt), lons(curIdxNanAlt));
+                case 'usgs'
+                    eles(curIdxNanAlt) = queryElevationPointsFromUsgs( ...
+                        lats(curIdxNanAlt), lons(curIdxNanAlt), 'Matlab');
+                otherwise
+                    error(['Unsupported elevation data source: ', ...
+                        ELEVATION_DATA_SOURCE, '!'])
+            end
             flagFetchSuccess = true;
         catch
             numFetchErrs = numFetchErrs+1;
@@ -86,7 +101,7 @@ for curIdxNanAlt = indicesNanAlts
 end
 
 % Construct markLocs.
-markLocs = [lats, lons, alts];
+markLocs = [lats, lons, eles];
 
 % Save the results.
 save(pathToSave, ...
