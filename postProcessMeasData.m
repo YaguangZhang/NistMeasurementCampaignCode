@@ -78,7 +78,7 @@ addpath(fullfile(pwd, '11_ExportDataForSimulation'));
 exportDataForSimulation;
 
 %% 13_MimicFigsForDebugging
-addpath(fullfile(pwd, '13_MimicFigsForDebugging'));
+addpath(fullfile(pwd, '13_OutlayerInspection'));
 inspectOutlayers;
 
 % EOF
