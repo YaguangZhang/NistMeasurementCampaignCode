@@ -171,8 +171,17 @@ else
             warning(['#', num2str(idxPar), ...
                 ' series parent dir does not have any series subfolders!']);
         end
+        % Sort files by track index.
+        regExpression = 'Series_(\d+)$';
+        trackIndicesStr = arrayfun(@(d) ...
+            regexp(d.name, regExpression, 'tokens'), curSeriesDirs);
+        trackIndices = cellfun(@(s) str2double(s), trackIndicesStr);
+        [~, indicesSortedSeriesDirs] = sort(trackIndices);
+        curSeriesDirs = curSeriesDirs(indicesSortedSeriesDirs);
+    
         allSeriesDirs{idxPar} = curSeriesDirs;
     end
+    
     disp('    Saving the results...')
     % Note that the exact paths to the folders may change depending on the
     % manchine and its operating system, so only the folder names should be

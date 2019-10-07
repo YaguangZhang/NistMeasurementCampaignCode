@@ -34,6 +34,9 @@ azimuthFnbwInDeg = 29.716+(360-331.961);
 
 %% Load Measurement Data
 
+disp(' ');
+disp('Loading data ...');
+
 ABS_PATH_TO_TX_INFO_LOGS_FILE = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'PostProcessingResults', 'PathLossComputation', 'txInfoLogs.mat');
 ABS_PATH_TO_PATH_LOSSES_FILE = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
@@ -116,7 +119,12 @@ modelLegends = {'Free space path loss', ...
     'Site-specific model B', 'Site-specific model C'};
 numModelsToInspect = length(modelLegends);
 
+disp('Done!');
+
 %% Figs
+
+disp(' ');
+disp('Plotting outlayers for different models ...');
 
 FLAG_GEN_FIGS_SILENTLY = true;
 
@@ -344,10 +352,15 @@ for idxModel = 1:numModelsToInspect
         num2str(MAX_ALLOWED_ERROR_IN_DB), 'dB.jpg']);
 end
 
+disp('Done!');
+
 %% TX Antenna Main Lobe Figs
 % For each track's measurement results, generate an overview plot with the
 % TX antenna coverage area. We will show both the HPBW and FNBW areas as
 % triangle polyshapes.
+
+disp(' ');
+disp('Plotting antenna main lobe illustrations ...');
 
 BEAM_AREA_SIDE_LENGTH_IN_M = 500;
 EXPECTED_PATH_LOSS_RANGE = [195, 50]; % [max(allMeas), min(allMeas)]
@@ -457,7 +470,8 @@ contiSignalDiffs = arrayfun(@(idx) ...
     - contiPathLossesExtraInfo.contiRxGains{idx}, ...
     1:numOfTracks, 'UniformOutput', false);
 allSigDiffs = vertcat(contiSignalDiffs{:});
-EXPECTED_SIGNAL_DIFF_RANGE = [max(allSigDiffs), min(allSigDiffs)]; %[195, 50]; %
+% EXPECTED_SIGNAL_DIFF_RANGE = [max(allSigDiffs), min(allSigDiffs)];
+EXPECTED_SIGNAL_DIFF_RANGE = [195, 50];
 
 curFig = figure('Visible', ~FLAG_GEN_FIGS_SILENTLY); hold on;
 hTx = plot(TX_LON, TX_LAT, '^g', ...
@@ -476,11 +490,11 @@ axis(figAxisToSet); view(2);
 plotGoogleMapAfterPlot3k(curFig, 'satellite');
 
 curDirToSaveFig = fullfile(pathToSaveResults, ...
-    ['Overview_SigDiffs.png']);
+    'Overview_SigDiffs.png');
 saveas(curFig, curDirToSaveFig);
 
 for idxTrack = 1:numOfTracks
-    curSigDiffs = contiPathLossesWithGpsInfo{idxTrack}(:,1);
+    curSigDiffs = contiSignalDiffs{idxTrack}(:,1);
     curRxLonLats = contiPathLossesWithGpsInfo{idxTrack}(:,[3,2]);
     curTxAzInDeg = TX_INFO_LOGS{1}(idxTrack).txAz;
     
@@ -517,5 +531,7 @@ end
 if FLAG_GEN_FIGS_SILENTLY
     close all
 end
+
+disp('Done!');
 
 % EOF

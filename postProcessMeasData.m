@@ -20,7 +20,7 @@ addpath(fullfile(pwd, '1_Calibration'));
 
 %% 2_PlotGpsSampsOnMap: Plot Overview Maps ASB
 addpath(fullfile(pwd, '2_PlotGpsSampsOnMap'));
-plotAllGpsSampsOnMap;
+% plotAllGpsSampsOnMap;
 
 %% 3_PathLossComputation: Compute & Plot the Path Losses
 
@@ -50,7 +50,7 @@ generatePdpPlots;
 
 %% 6_DebugContiPathLosses: Plot More PDPs
 addpath(fullfile(pwd, '6_DebugContiPathLosses'));
-debugContiPathLosses;
+% debugContiPathLosses;
 
 %% 7_ManuallyLocateTrees: Manually Label Trees on Map
 
