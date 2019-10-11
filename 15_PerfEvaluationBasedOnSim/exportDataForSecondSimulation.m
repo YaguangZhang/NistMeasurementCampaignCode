@@ -129,7 +129,7 @@ disp('    Done!')
 %% Interpolate Data in the Vegetation Grid
 
 % Shift negative tree height values for the trunk locations to this.
-MIN_TREE_HEIGHT_ALLOWED_IN_METER = 0.25;
+MIN_TREE_HEIGHT_ALLOWED_IN_METER = 1;
 
 disp(' ')
 disp('    Collecting foliage area data ...')
@@ -197,9 +197,10 @@ trunkGroundHeightWrtTXInM ...
 trunkTreeHeightInM ...
     = getInterTreeHeightInM(treeUtmXYsExt(:,1), treeUtmXYsExt(:,2));
 
-% Fix the negative tree height issue.
-boolsTrunkLocsWithNegTreeH = trunkTreeHeightInM<0;
-trunkTreeHeightInM(boolsTrunkLocsWithNegTreeH) ...
+% Fix trees with too small height.
+boolsTrunkLocsWithTooSmallTreeH ...
+    = trunkTreeHeightInM<MIN_TREE_HEIGHT_ALLOWED_IN_METER;
+trunkTreeHeightInM(boolsTrunkLocsWithTooSmallTreeH) ...
     = MIN_TREE_HEIGHT_ALLOWED_IN_METER;
 
 % Ignore entries with NaN attribute(s).
