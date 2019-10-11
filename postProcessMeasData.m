@@ -20,7 +20,7 @@ addpath(fullfile(pwd, '1_Calibration'));
 
 %% 2_PlotGpsSampsOnMap: Plot Overview Maps ASB
 addpath(fullfile(pwd, '2_PlotGpsSampsOnMap'));
-% plotAllGpsSampsOnMap;
+plotAllGpsSampsOnMap;
 
 %% 3_PathLossComputation: Compute & Plot the Path Losses
 
@@ -42,11 +42,11 @@ end
 
 %% 4_FoliageAttenuationEstimation: Estimate Excess Path Losses
 addpath(fullfile(pwd, '4_FoliageAttenuationEstimation'));
-estimateFoliageAttenuation;
+% estimateFoliageAttenuation;
 
 %% 5_PdpInspection: Plot One PDP per Track
 addpath(fullfile(pwd, '5_PdpInspection'));
-generatePdpPlots;
+% generatePdpPlots;
 
 %% 6_DebugContiPathLosses: Plot More PDPs
 addpath(fullfile(pwd, '6_DebugContiPathLosses'));
@@ -63,7 +63,7 @@ end
 
 %% 8_FoliageAttenuationEstimation_ManualTreeLocs
 addpath(fullfile(pwd, '8_FoliageAttenuationEstimation_ManualTreeLocs'));
-estimateFoliageAttenuationWithManualTreeLocs;
+% estimateFoliageAttenuationWithManualTreeLocs;
 
 %% 9_GenerateVegAreas
 addpath(fullfile(pwd, '9_GenerateVegAreas'));
@@ -71,11 +71,11 @@ addpath(fullfile(pwd, '9_GenerateVegAreas'));
 
 %% 10_CompareFoliageDepthBasedModels
 addpath(fullfile(pwd, '10_CompareFoliageDepthBasedModels'));
-compareFoliageDepthBasedModels;
+% compareFoliageDepthBasedModels;
 
 %% 11_ExportDataForSimulation
 addpath(fullfile(pwd, '11_ExportDataForSimulation'));
-exportDataForSimulation;
+% exportDataForSimulation;
 
 %% 13_MimicFigsForDebugging
 addpath(fullfile(pwd, '13_OutlayerInspection'));
