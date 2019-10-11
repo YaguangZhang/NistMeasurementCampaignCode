@@ -1,6 +1,9 @@
 % EXPORTDATAFORSIMULATION Export data as csv files for external usages,
 % e.g. simulations.
 %
+% Note: this script is replaced by 
+%   15_PerfEvaluationBasedOnSim/exportDataForSecondSimulation.m
+%
 % Yaguang Zhang, Purdue, 12/27/2018
 
 clear; clc; close all;
