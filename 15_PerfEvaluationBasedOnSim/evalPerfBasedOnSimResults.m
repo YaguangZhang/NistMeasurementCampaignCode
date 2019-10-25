@@ -538,6 +538,28 @@ end
 curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'simVsMeasLess');
 genEvalPerfFigsForMeas;
 
+%% Further Clean Measurement Data
+% We will find indices for discarding samples out of the first null range
+% when necessary. Furthermore, we will discard track 6.
+
+numOfTracks = length(contiPathLossesWithGpsInfo);
+boolsToKeepMeas = cell(numOfTracks,1);
+for idxTrack = 1:numOfTracks
+    curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
+    curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
+    if idxTrack == 6
+        boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
+    else
+        boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
+            fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
+            fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
+    end
+end
+
+curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'simVsMeasLessNoTrackSix');
+genEvalPerfFigsForMeas;
+
 %% Predictions for Extended RX Location Grid
 % We will consider site-specific model C and the ITU model.
 

@@ -77,21 +77,27 @@ for idxTrack = 1:numOfTracks
         'MarkerFaceColor', 'none', ...
         'LineWidth', 1.5);
     colormap hot;
-    plot3k([curRxLonLats, curPLs], ...
-        'Marker', {'.', 12}, ...
-        'ColorRange', EXPECTED_PATH_LOSS_RANGE, ...
-        'CBLabels', numOfTicklabels, 'Labels', ...
-        {['Track #', num2str(idxTrack)], ...
-        'Longitude', 'Latitude', ...
-        '', 'Path Loss (dB)'});
+    if ~isempty(curRxLonLats)
+        plot3k([curRxLonLats, curPLs], ...
+            'Marker', {'.', 12}, ...
+            'ColorRange', EXPECTED_PATH_LOSS_RANGE, ...
+            'CBLabels', numOfTicklabels, 'Labels', ...
+            {['Track #', num2str(idxTrack)], ...
+            'Longitude', 'Latitude', ...
+            '', 'Path Loss (dB)'});
+    end
     xticks([]); yticks([]);
     
     plot(fnbwPolyshape, 'FaceColor', 'cyan');
     plot(hpbwPolyshape, 'FaceColor', 'green');
     
     axis(figAxisToSet); view(2);
-    plotGoogleMapAfterPlot3k(curFig, 'satellite');
-
+    if ~isempty(curRxLonLats)
+        plotGoogleMapAfterPlot3k(curFig, 'satellite');
+    else
+        plot_google_map('MapType', 'satellite');
+    end
+    
     curDirToSaveFig = fullfile(curAbsPathToSavePlots, ...
         ['basicPLsWithTxMainLobe_Track_', num2str(idxTrack), '.png']);
     saveas(curFig, curDirToSaveFig);
@@ -126,7 +132,7 @@ for idxXlsx = 1:numOfSimResultsXlsx
         = simXlsxFilesForMeasTracks(idxXlsx).name;
 end
 
-% For locating outlayers.
+%% For locating outlayers.
 numOfSigmasOutlayer = 1;
 
 % Load the simulation results and generate comparison plots.
@@ -170,7 +176,9 @@ for idxTrack = 1:numOfTracks
         ys = arrayfun(@(x) sqrt(mseFct(x)), xs);
         plot(xs, ys, '.-');
         bestRmsd = sqrt(mseFct(curBestShift));
-        hMin = plot(curBestShift, bestRmsd, 'r*');
+        if ~isempty(curBestShift)
+            hMin = plot(curBestShift, bestRmsd, 'r*');
+        end
         xlabel('Shift Value (dB)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis equal;
         legend('Best shift value');
@@ -190,7 +198,9 @@ for idxTrack = 1:numOfTracks
         hMeas = plot(1:expectedNumOfSamps, curMeasLosses, '.');
         xlabel('Sample'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
-        legend([hSim, hMeas], 'Simulation', 'Measurement');
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement');
+        end
         pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
             [curFigFilenamePrefix, '_PlVsSampIdx_Track_', ...
             num2str(idxTrack), '.png']);
@@ -202,12 +212,16 @@ for idxTrack = 1:numOfTracks
         
         hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
         hold on;
-        hSim = plot(xs, curShiftedSim(indicesSortByDist), 'x-');
-        hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
+        if ~isempty(xs)
+            hSim = plot(xs, curShiftedSim(indicesSortByDist), 'x-');
+            hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
+        end
         xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
-        legend([hSim, hMeas], 'Simulation', 'Measurement', ...
-            'Location', 'SouthEast');
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                'Location', 'SouthEast');
+        end
         pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
             [curFigFilenamePrefix, '_PlVsDist_Track_', ...
             num2str(idxTrack), '.png']);
@@ -323,7 +337,9 @@ for idxTrack = 1:numOfTracks
         ys = arrayfun(@(x) sqrt(mseFct(x)), xs);
         plot(xs, ys, '.-');
         bestRmsd = sqrt(mseFct(curBestShift));
-        hMin = plot(curBestShift, bestRmsd, 'r*');
+        if ~isempty(curBestShift)
+            hMin = plot(curBestShift, bestRmsd, 'r*');
+        end
         xlabel('Shift Value (dB)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis equal;
         legend('Best shift value');
@@ -343,7 +359,9 @@ for idxTrack = 1:numOfTracks
         hMeas = plot(1:expectedNumOfSamps, curSigDiffs, '.');
         xlabel('Sample'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
-        legend([hSim, hMeas], 'Simulation', 'Measurement');
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement');
+        end
         pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
             [curFigFilenamePrefix, '_PlVsSampIdx_Track_', ...
             num2str(idxTrack), '.png']);
@@ -355,12 +373,16 @@ for idxTrack = 1:numOfTracks
         
         hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
         hold on;
-        hSim = plot(xs, curShiftedSim(indicesSortByDist), 'x-');
-        hMeas = plot(xs, curSigDiffs(indicesSortByDist), '.--');
+        if ~isempty(xs)
+            hSim = plot(xs, curShiftedSim(indicesSortByDist), 'x-');
+            hMeas = plot(xs, curSigDiffs(indicesSortByDist), '.--');
+        end
         xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
-        legend([hSim, hMeas], 'Simulation', 'Measurement', ...
-            'Location', 'SouthEast');
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                'Location', 'SouthEast');
+        end
         pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
             [curFigFilenamePrefix, '_PlVsDist_Track_', ...
             num2str(idxTrack), '.png']);

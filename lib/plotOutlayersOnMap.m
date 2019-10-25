@@ -18,30 +18,33 @@ function hFigOutlayersOnMap = plotOutlayersOnMap( ...
 %
 % Yaguang Zhang, Purdue, 10/17/2019
 
-xSignma = std(x);
-xMean = mean(x);
-
-boolsIsOutlayer = abs(x-xMean)>(numOfSigmasOutlayer.*xSignma);
-
-floatFomatter = '%.2f';
-zShift = -min(x);
-
-hFigOutlayersOnMap = figure; hold on;
-plot3(lons, lats, zeros(size(lons)), '.', 'Color', ones(1,3).*0.7);
-colormap hot;
-[~, ~, hCb] = plot3k([lons(boolsIsOutlayer), lats(boolsIsOutlayer), ...
-    x(boolsIsOutlayer)+zShift]);
-hCb.TickLabels = arrayfun(@(idx) ...
-    {num2str(str2double(hCb.TickLabels{idx})-zShift)}, ...
-    1:length(hCb.Ticks))';
-if exist('figAxisToSet', 'var')
-    axis(figAxisToSet);
+if isempty(x)
+    hFigOutlayersOnMap = figure;
+else
+    xSignma = std(x);
+    xMean = mean(x);
+    
+    boolsIsOutlayer = abs(x-xMean)>(numOfSigmasOutlayer.*xSignma);
+    
+    floatFomatter = '%.2f';
+    zShift = -min(x);
+    
+    hFigOutlayersOnMap = figure; hold on;
+    plot3(lons, lats, zeros(size(lons)), '.', 'Color', ones(1,3).*0.7);
+    colormap hot;
+    [~, ~, hCb] = plot3k([lons(boolsIsOutlayer), lats(boolsIsOutlayer), ...
+        x(boolsIsOutlayer)+zShift]);
+    hCb.TickLabels = arrayfun(@(idx) ...
+        {num2str(str2double(hCb.TickLabels{idx})-zShift)}, ...
+        1:length(hCb.Ticks))';
+    if exist('figAxisToSet', 'var')
+        axis(figAxisToSet);
+    end
+    view(2); plotGoogleMapAfterPlot3k(hFigOutlayersOnMap, 'satellite');
+    xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
+    title(['Outlayers on Map (mu = ',  ...
+        num2str(xMean, floatFomatter), ', sigma =', ...
+        num2str(xSignma, floatFomatter), ')']);
 end
-view(2); plotGoogleMapAfterPlot3k(hFigOutlayersOnMap, 'satellite');
-xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
-title(['Outlayers on Map (mu = ',  ...
-    num2str(xMean, floatFomatter), ', sigma =', ...
-    num2str(xSignma, floatFomatter), ')']);
-
 end
 % EOF

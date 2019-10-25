@@ -29,51 +29,57 @@ function [ADTestResult, ADTestP, muHat, sigmaHat, hFig] ...
 %
 % Yaguang Zhang, Purdue, 10/16/2019
 
-[ADTestResult, ADTestP] = adtest(x);
-[muHat, sigmaHat] = normfit(x);
+MIN_NUM_OF_BINS = 20;
 
-if nargout>4
-    % For plotting the impirical pdf.
-    numBins = ceil(length(x)./10);    
-    [N, edges] = histcounts(x, numBins);
-    empiricalPdfXs = mean([edges(1:end-1); edges(2:end)]);
-    empiricalPdfYs = N./length(x)./(edges(2)-edges(1));
+if isempty(x)
+    [ADTestResult, ADTestP, muHat, sigmaHat] = deal(nan);
+    hFig = figure;
+else
+    [ADTestResult, ADTestP] = adtest(x);
+    [muHat, sigmaHat] = normfit(x);
     
-    % For plotting the fitted norm dist.
-    numNormPts = 100;
-    xsNorm = linspace(edges(1), edges(end), numNormPts);
-    ysNorm = normpdf(xsNorm, muHat, sigmaHat);
-    
-    % For showing extra statistics in the plot title.
-    skew = skewness(x);
-    skewUnbiased = skewness(x, 0);
-    kurt = kurtosis(x);
-    kurtUnbiased = kurtosis(x, 0);
-    mu = mean(x);
-    sigma = std(x);
-    
-    % Float number fommatters.
-    FNF1Pre = '%.1f';
-    FNF2Pre = '%.2f';
-    
-    % Figure.
-    hFig = figure; hold on;
-    hEmp = plot(empiricalPdfXs, empiricalPdfYs, '--b');
-    hNorm = plot(xsNorm, ysNorm, '--r');
-    axis tight; grid on; grid minor;
-    xlabel('Value'); ylabel('PDF');
-    legend([hEmp, hNorm], 'Empirical', 'Fitted norm')
-    title({['mu = ', num2str(mu, FNF1Pre), ...
-        ', sigma = ', num2str(sigma, FNF1Pre), ...
-        ', Anderson-Darling Test Result: ', num2str(ADTestResult), ...
-        ' (p = ', num2str(ADTestP, FNF2Pre), ')']; ...
-        ['Skewness = ', num2str(skew, FNF2Pre), ...
-        ' (unbiased:', num2str(skewUnbiased, FNF2Pre), '), ', ...
-        'Kurtosis = ', num2str(kurt, FNF2Pre), ...
-        ' (unbiased:', num2str(kurtUnbiased, FNF2Pre), ')']; ...
-        ['Fitted Norm: muHat = ', num2str(muHat, FNF1Pre), ...
-        ', sigmaHat = ', num2str(sigmaHat, FNF1Pre)]});
+    if nargout>4
+        % For plotting the impirical pdf.
+        numBins = max(ceil(length(x)./10), MIN_NUM_OF_BINS);
+        [N, edges] = histcounts(x, numBins);
+        empiricalPdfXs = mean([edges(1:end-1); edges(2:end)]);
+        empiricalPdfYs = N./length(x)./(edges(2)-edges(1));
+        
+        % For plotting the fitted norm dist.
+        numNormPts = 100;
+        xsNorm = linspace(edges(1), edges(end), numNormPts);
+        ysNorm = normpdf(xsNorm, muHat, sigmaHat);
+        
+        % For showing extra statistics in the plot title.
+        skew = skewness(x);
+        skewUnbiased = skewness(x, 0);
+        kurt = kurtosis(x);
+        kurtUnbiased = kurtosis(x, 0);
+        mu = mean(x);
+        sigma = std(x);
+        
+        % Float number fommatters.
+        FNF1Pre = '%.1f';
+        FNF2Pre = '%.2f';
+        
+        % Figure.
+        hFig = figure; hold on;
+        hEmp = plot(empiricalPdfXs, empiricalPdfYs, '--b');
+        hNorm = plot(xsNorm, ysNorm, '--r');
+        axis tight; grid on; grid minor;
+        xlabel('Value'); ylabel('PDF');
+        legend([hEmp, hNorm], 'Empirical', 'Fitted norm')
+        title({['mu = ', num2str(mu, FNF1Pre), ...
+            ', sigma = ', num2str(sigma, FNF1Pre), ...
+            ', Anderson-Darling Test Result: ', num2str(ADTestResult), ...
+            ' (p = ', num2str(ADTestP, FNF2Pre), ')']; ...
+            ['Skewness = ', num2str(skew, FNF2Pre), ...
+            ' (unbiased:', num2str(skewUnbiased, FNF2Pre), '), ', ...
+            'Kurtosis = ', num2str(kurt, FNF2Pre), ...
+            ' (unbiased:', num2str(kurtUnbiased, FNF2Pre), ')']; ...
+            ['Fitted Norm: muHat = ', num2str(muHat, FNF1Pre), ...
+            ', sigmaHat = ', num2str(sigmaHat, FNF1Pre)]});
+    end
 end
-
 end
 % EOF
