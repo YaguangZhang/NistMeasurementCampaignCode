@@ -414,7 +414,7 @@ axis(figAxisToSet); view(2);
 plotGoogleMapAfterPlot3k(curFig, 'satellite');
 
 curDirToSaveFig = fullfile(pathToSaveResults, ...
-    ['Overview_BasicPLs.png']);
+    'Overview_BasicPLs.png');
 saveas(curFig, curDirToSaveFig);
 
 % By track.
@@ -521,6 +521,7 @@ curDirToSaveFig = fullfile(pathToSaveResults, ...
     'Overview_SigDiffs.png');
 saveas(curFig, curDirToSaveFig);
 
+[hpbwLonLatPolyshapes, fnbwLonLatPolyshapes] = deal(cell(numOfTracks,1));
 for idxTrack = 1:numOfTracks
     curSigDiffs = contiSignalDiffs{idxTrack}(:,1);
     curRxLonLats = contiPathLossesWithGpsInfo{idxTrack}(:,[3,2]);
@@ -554,7 +555,13 @@ for idxTrack = 1:numOfTracks
     curDirToSaveFig = fullfile(pathToSaveResults, ...
         ['sigDiffsWithTxMainLobe_Track_', num2str(idxTrack), '.png']);
     saveas(curFig, curDirToSaveFig);
+    
+    hpbwLonLatPolyshapes{idxTrack} = hpbwPolyshape;
+    fnbwLonLatPolyshapes{idxTrack} = fnbwPolyshape;
 end
+
+curDirToSaveMat = fullfile(pathToSaveResults, 'beamPolygons.mat');
+save(curDirToSaveMat, 'hpbwLonLatPolyshapes', 'fnbwLonLatPolyshapes');
 
 if FLAG_GEN_FIGS_SILENTLY
     close all
