@@ -3,7 +3,7 @@
 %
 % Yaguang Zhang, Purdue, 09/13/2019
 
-clearvars -except getUsgsAltInM; clc; close all;
+clearvars -except getUsgsAltInMFromUtmXY; clc; close all;
 
 %% Configurations
 
@@ -354,20 +354,20 @@ if ~exist('simGridXs', 'var')
 end
 
 % Function to fetch elevation according to the vegetation data structure.
-if ~exist('getUsgsAltInM', 'var')
-    disp('        Generating getUsgsAltInM...');
-    getUsgsAltInM = scatteredInterpolant( ...
+if ~exist('getUsgsAltInMFromUtmXY', 'var')
+    disp('        Generating getUsgsAltInMFromUtmXY...');
+    getUsgsAltInMFromUtmXY = scatteredInterpolant( ...
         VEG_AREA_IMG_META.XS(:), ...
         VEG_AREA_IMG_META.YS(:), ...
         VEG_AREA_IMG_META.ALTS(:));
 end
-TX_ALT_USGS = getUsgsAltInM(xTx, yTx);
+TX_ALT_USGS = getUsgsAltInMFromUtmXY(xTx, yTx);
 
 % RX grid points.
 fullPathRxLocs = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     ['rxLoc_track_', gridTrackFileLabel, '.csv']);
 
-curAltsUsgsRx = getUsgsAltInM(simGridXs, simGridYs);
+curAltsUsgsRx = getUsgsAltInMFromUtmXY(simGridXs, simGridYs);
 curRxGroundHeightWrtTx ...
     = curAltsUsgsRx-(TX_ALT_USGS+TX_HEIGHT_M);
 
@@ -579,7 +579,7 @@ else
     [simGridPredResults.fsplInDb, simGridPredResults.distsToTxInM3d] ...
         = computeFreeSpacePathLosses(tx3D, ...
         [simGrid.utmXYs, simGrid.eles+RX_HEIGHT_M], F_C_IN_GHZ);
-    
+     
     disp('        Site-specific model C...');
     % Site-specific model C.
     historyModelResult ...
@@ -672,7 +672,6 @@ else
     clearanceZoneBoundYs = clearanceZoneBoundYs ...
         (clearanceZoneBoundNewOrderIndices, :);
     
-    
     % Compute distance in woodland.
     numOfGridPts = length(simGrid.eles);
     estiDistsNotInWoodland = nan(numOfGridPts, 1);
@@ -688,7 +687,7 @@ else
             = norm([interXs-xTx, interYs-yTx]);
     end
     simGridPredResults.estiDistsInWoodland ...
-        = simGridPredResults.distsToTxInM3d-estiDistsNotInWoodland;
+        = max(simGridPredResults.distsToTxInM3d-estiDistsNotInWoodland, 0);
     simGridPredResults.ituPredictionsInDbOld = ...
         simGridPredResults.fsplInDb ...
         + simGridPredResults.modelItuObsByWoodland.excessLossFormula( ...
@@ -706,7 +705,6 @@ else
 end
 
 % Overview for the clearance zone around the TX.
-
 allPLValues = [simGridPredResults.fsplInDb; ...
     simGridPredResults.ituPredictionsInDbOld; ...
     simGridPredResults.siteSpecificModelCPredictionsInDbOld];
@@ -803,15 +801,32 @@ disp('    Comparisons with the simulation results for the big grid...');
 simResultsForGridTable = readtable(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
 simPLsForGrid = simResultsForGridTable.simLoss_dB_;
 
+% Fit simulation results to FSPL at 1 m reference point.
+if length(simPLsForGrid) == 5742
+    idxForCloseInRefGridPt = 4550;
+    % Also note that, for now, the const values of ~263 shown in
+    % simPLsForGrid are not valide.
+    simPLsForGrid(simPLsForGrid==simPLsForGrid(1)) = nan;
+end
+
+[xCloseInRefGridPt, yCloseInRefGridPt] = deg2utm( ...
+    simGridLats(idxForCloseInRefGridPt), ...
+    simGridLons(idxForCloseInRefGridPt));
+distTxToCloseInRefGridPt = norm([xTx, yTx] ...
+    - [xCloseInRefGridPt, yCloseInRefGridPt]);
+fsplCloseInRefGridPt = simGridPredResults.fsplInDb(idxForCloseInRefGridPt);
+simPLsForGridCalibrated = simPLsForGrid ...
+    + fsplCloseInRefGridPt - simPLsForGrid(idxForCloseInRefGridPt);
+
 % Overview of the simulation results.
 hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
 hold on; colormap hot;
 plot3k([simGridLons, simGridLats, ...
-    simPLsForGrid], ...
+    simPLsForGridCalibrated], ...
     'Labels', {'', 'Longitude', 'Latitude', '', 'FSPL (dB)'}, ...
     'ColorRange', plRange([2,1]));
 higherLayerZ ...
-    = max(simPLsForGrid)+1;
+    = max(simPLsForGridCalibrated)+1;
 hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
 hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
     ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
@@ -834,11 +849,12 @@ end
 hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
 hold on; colormap hot;
 plot3k([simGridLons, simGridLats, ...
-    simPLsForGrid], ...
+    simPLsForGridCalibrated], ...
     'Labels', {'', 'Longitude', 'Latitude', '', 'FSPL (dB)'}, ...
-    'ColorRange', [ceil(max(simPLsForGrid)), floor(min(simPLsForGrid))]);
+    'ColorRange', [ceil(max(simPLsForGridCalibrated)), ...
+    floor(min(simPLsForGridCalibrated))]);
 higherLayerZ ...
-    = max(simPLsForGrid)+1;
+    = max(simPLsForGridCalibrated)+1;
 hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
 hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
     ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
@@ -857,16 +873,18 @@ if flagGenFigSilently
     close all;
 end
 
-%% Overview of the difference between the ITU predictions and the simulation
+% Overview of the difference between the ITU predictions and the simulation
 % results.
 hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
 hold on; colormap hot;
-plot3k([simGridLons, simGridLats, ...
-    simPLsForGrid], ...
+curZs =simPLsForGridCalibrated ...
+    - simGridPredResults.ituPredictionsInDbOld;
+plot3k([simGridLons, simGridLats, curZs], ...
     'Labels', {'', 'Longitude', 'Latitude', '', 'FSPL (dB)'}, ...
-    'ColorRange', [ceil(max(simPLsForGrid)), floor(min(simPLsForGrid))]);
+    'ColorRange', [ceil(max(curZs)), ...
+    floor(min(curZs))]);
 higherLayerZ ...
-    = max(simPLsForGrid)+1;
+    = max(curZs)+1;
 hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
 hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
     ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
@@ -876,9 +894,10 @@ legend([hTx, hTrees(1)], ...
     'TX', 'Trees', ...
     'Location', 'southeast');
 plotGoogleMapAfterPlot3k(hFigOverviewForSimPLsForGrid, 'satellite');
+title(['RMSE = ', num2str(sqrt(mean(curZs(~isnan(curZs)).^2))), ' dB']);
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'overviewForSimPLsForGrid_FullRange.png');
+    'overviewForOldItuVsSimForGrid.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 if flagGenFigSilently
@@ -889,12 +908,14 @@ end
 % the simulation results.
 hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
 hold on; colormap hot;
-plot3k([simGridLons, simGridLats, ...
-    simPLsForGrid], ...
+curZs =simPLsForGridCalibrated ...
+    - simGridPredResults.siteSpecificModelCPredictionsInDbOld;
+plot3k([simGridLons, simGridLats, curZs], ...
     'Labels', {'', 'Longitude', 'Latitude', '', 'FSPL (dB)'}, ...
-    'ColorRange', [ceil(max(simPLsForGrid)), floor(min(simPLsForGrid))]);
+    'ColorRange', [ceil(max(curZs)), ...
+    floor(min(curZs))]);
 higherLayerZ ...
-    = max(simPLsForGrid)+1;
+    = max(curZs)+1;
 hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
 hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
     ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
@@ -904,9 +925,10 @@ legend([hTx, hTrees(1)], ...
     'TX', 'Trees', ...
     'Location', 'southeast');
 plotGoogleMapAfterPlot3k(hFigOverviewForSimPLsForGrid, 'satellite');
+title(['RMSE = ', num2str(sqrt(mean(curZs(~isnan(curZs)).^2))), ' dB']);
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'overviewForSimPLsForGrid_FullRange.png');
+    'overviewForOldSiteSpecificCVsSimForGrid.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 if flagGenFigSilently

@@ -33,7 +33,7 @@ end
 
 numToStrFormatter = '%.12f';
 maxNumOfTrials = 10;
-urlUsgsEpqs = 'https://nationalmap.gov/epqs/pqs.php';
+urlUsgsEpqs = 'https://ned.usgs.gov/epqs/pqs.php';
 usgsNanValue = -1000000;
 
 numQueryPts = length(lats);
