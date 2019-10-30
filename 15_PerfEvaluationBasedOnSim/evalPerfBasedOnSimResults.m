@@ -1116,12 +1116,18 @@ else
 end
 
 % Fit simulation results to FSPL at 1 m reference point.
-if length(simPLsForGrid) == 5742
-    idxForCloseInRefGridPt = 4550;
-    % Also note that, for now, the const values of ~263 shown in
-    % simPLsForGrid are not valide.
+[~, gridRawDataFilename, ~] ...
+    = fileparts(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
+if strcmp(gridRawDataFilename, 'var_grnd_grid_propagation_stats_20191026' )
+    % For now, the const values of ~263 shown in simPLsForGrid are not
+    % valide.
     simPLsForGrid(simPLsForGrid==simPLsForGrid(1)) = nan;
 end
+
+% Find the index for the 1-m close-in reference point.
+CLOSE_IN_REF_POINT_DIST_IN_M = 1;
+[~, idxForCloseInRefGridPt] = min(abs( ...
+    simGridPredResults.distsToTxInM3d-CLOSE_IN_REF_POINT_DIST_IN_M));
 
 [xCloseInRefGridPt, yCloseInRefGridPt] = deg2utm( ...
     simGridLats(idxForCloseInRefGridPt), ...
