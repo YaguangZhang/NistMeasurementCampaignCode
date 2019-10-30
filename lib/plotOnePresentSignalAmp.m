@@ -34,6 +34,14 @@ function [ hFig, nsToPlot, signalAmp, signalIdxRange ] ...
 %
 % Yaguang Zhang, Purdue, 04/30/2018
 
+% By default, find the flag flagGenFigSilently in the base workspace. If
+% not found, flagGenFigSilently will be set to false.
+try
+    flagGenFigSilently = evalin('base', 'flagGenFigSilently');
+catch
+    flagGenFigSilently = false;
+end
+
 FLAG_SUBTITLES = true;
 
 if nargin<5
@@ -62,9 +70,9 @@ curDefulatTextInt = get(0,'DefaultTextInterpreter');
 set(0,'DefaultTextInterpreter','none');
 
 if exist('figureName', 'var') && isstring(figureName)
-    hFig = figure('Name',figureName);
+    hFig = figure('Name',figureName, 'visible', ~flagGenFigSilently);
 else
-    hFig = figure;
+    hFig = figure('visible', ~flagGenFigSilently);
 end
 
 % Convert sample number to ns.

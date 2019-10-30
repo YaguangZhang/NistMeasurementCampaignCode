@@ -29,11 +29,19 @@ function [ADTestResult, ADTestP, muHat, sigmaHat, hFig] ...
 %
 % Yaguang Zhang, Purdue, 10/16/2019
 
+% By default, find the flag flagGenFigSilently in the base workspace. If
+% not found, flagGenFigSilently will be set to false.
+try
+    flagGenFigSilently = evalin('base', 'flagGenFigSilently');
+catch
+    flagGenFigSilently = false;
+end
+
 MIN_NUM_OF_BINS = 20;
 
 if isempty(x)
     [ADTestResult, ADTestP, muHat, sigmaHat] = deal(nan);
-    hFig = figure;
+    hFig = figure('visible', ~flagGenFigSilently);
 else
     [ADTestResult, ADTestP] = adtest(x);
     [muHat, sigmaHat] = normfit(x);
@@ -63,7 +71,7 @@ else
         FNF2Pre = '%.2f';
         
         % Figure.
-        hFig = figure; hold on;
+        hFig = figure('visible', ~flagGenFigSilently); hold on;
         hEmp = plot(empiricalPdfXs, empiricalPdfYs, '--b');
         hNorm = plot(xsNorm, ysNorm, '--r');
         axis tight; grid on; grid minor;

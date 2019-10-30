@@ -18,8 +18,16 @@ function hFigOutlayersOnMap = plotOutlayersOnMap( ...
 %
 % Yaguang Zhang, Purdue, 10/17/2019
 
+% By default, find the flag flagGenFigSilently in the base workspace. If
+% not found, flagGenFigSilently will be set to false.
+try
+    flagGenFigSilently = evalin('base', 'flagGenFigSilently');
+catch
+    flagGenFigSilently = false;
+end
+
 if isempty(x)
-    hFigOutlayersOnMap = figure;
+    hFigOutlayersOnMap = figure('visible', ~flagGenFigSilently);
 else
     xSignma = std(x);
     xMean = mean(x);
@@ -29,7 +37,7 @@ else
     floatFomatter = '%.2f';
     zShift = -min(x);
     
-    hFigOutlayersOnMap = figure; hold on;
+    hFigOutlayersOnMap = figure('visible', ~flagGenFigSilently); hold on;
     plot3(lons, lats, zeros(size(lons)), '.', 'Color', ones(1,3).*0.7);
     colormap hot;
     [~, ~, hCb] = plot3k([lons(boolsIsOutlayer), lats(boolsIsOutlayer), ...
