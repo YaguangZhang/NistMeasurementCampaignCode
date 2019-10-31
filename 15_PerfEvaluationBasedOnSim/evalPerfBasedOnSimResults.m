@@ -1729,14 +1729,47 @@ hSim = plot(rxToTxDistsInM3d, groundTruthPlValues, 'bo');
 hModSsc = plot(rxToTxDistsInM3d, ...
     simGridPredResults.siteSpecificModelCPredictionsInDbNew, 'r*');
 hModItu = plot(rxToTxDistsInM3d, ...
-    simGridPredResults.ituPredictionsInDbNew, 'b.');
+    simGridPredResults.ituPredictionsInDbNew, 'g.');
 legend([hSim, hModItu, hModSsc], ...
-    'Simulation', 'ITU', 'Site-Specific Model C');
+    'Simulation', 'New ITU', 'New SS-C', 'Location', 'southeast');
 grid on; grid minor; 
 xlabel('RX to TX distance (m)'); ylabel('Path loss (dB)');
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'gridAfOnMap.png');
+    'allPlsOverDist.png');
+saveas(hFigPathLossOverDist, curFigPath);
+
+% Shifting-window RMSE.
+WINDOW_SIZE_IN_M = 10; % Needs to be an even number.
+
+modelPredictions ...
+    = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
+
+curXs = floor(min(rxToTxDistsInM3d+WINDOW_SIZE_IN_M/2)) ...
+    :1:ceil(max(rxToTxDistsInM3d-WINDOW_SIZE_IN_M/2));
+numOfCurXs = length(curXs);
+[rmsesSscNew, rmsesItuNew] = deal(nan(numOfCurXs,1));
+rmseFct = @(diff) sqrt(mean( diff.^2 ));
+for idxX = 1:numOfCurXs
+    curX = curXs(idxX);
+    curXRangeMin = curX-WINDOW_SIZE_IN_M/2;
+    curXRangeMax = curX+WINDOW_SIZE_IN_M/2;
+    boolsGridPtsInCurRange = (rxToTxDistsInM3d>=curXRangeMin) ...
+        & (rxToTxDistsInM3d<=curXRangeMax);
+    rmsesSscNew(idxX) = rmseFct(sscVsSimZsNew(boolsGridPtsInCurRange));
+    rmsesItuNew(idxX) = rmseFct(ituVsSimZsNew(boolsGridPtsInCurRange));
+end
+
+hFigWindowedRmse = figure('visible', ~flagGenFigSilently); hold on;
+hItuNew = plot(curXs, rmsesItuNew, 'r*--');
+hSscNew = plot(curXs, rmsesSscNew, 'b.-');
+grid on; grid minor; 
+xlabel('RX to TX distance (m)'); ylabel('Windowed RMSE (dB)');
+legend([hItuNew, hSscNew], ...
+    'New ITU', 'New SS-C', 'Location', 'southeast');
+
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'windowedRmse.png');
 saveas(hFigPathLossOverDist, curFigPath);
 
 % For site-specific C model on measurements: path loss vs RX-to-TX
