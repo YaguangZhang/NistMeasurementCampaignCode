@@ -578,6 +578,30 @@ genEvalPerfFigsForMeas;
 
 allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
 
+%% Further Clean Measurement Data
+% We will find indices for discarding samples out of the first null range
+% when necessary. Furthermore, we will discard track 6 and track 10.
+if false
+    numOfTracks = length(contiPathLossesWithGpsInfo);
+    boolsToKeepMeas = cell(numOfTracks,1);
+    for idxTrack = 1:numOfTracks
+        curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
+        curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
+        if (idxTrack == 6) || (idxTrack == 10)
+            boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
+        else
+            boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
+                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
+                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
+        end
+    end
+    
+    curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'simVsMeasLessNoTrackSixNorTen');
+    genEvalPerfFigsForMeas;
+    
+    allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
+end
 %% Prepare Results for Cleaned Measurements
 
 tx3D = [xTx, yTx, ...
@@ -1133,9 +1157,16 @@ end
 % Calibrate the simulation results for the grid.
 switch lower(simGridLossCalibMethod)
     case 'fspl'
-        % Find the index for the 1-m close-in reference point.
+        % Find the index for the LoS 1-m close-in reference point.
         CLOSE_IN_REF_POINT_DIST_IN_M = 1;
-        [~, idxForCloseInRefGridPt] = min(abs( ...
+        
+        boolsGridPtsOutofWood = inpolygon(simGridLons, simGridLats, ...
+            simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,2),...
+            simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,1));
+        distsToTxInM3dOutOfWood = simGridPredResults.distsToTxInM3d;
+        distsToTxInM3dOutOfWood(~boolsGridPtsOutofWood) = inf;
+        
+        [curMinDistDiff, idxForCloseInRefGridPt] = min(abs( ...
             simGridPredResults.distsToTxInM3d ...
             - CLOSE_IN_REF_POINT_DIST_IN_M));
         
@@ -1342,8 +1373,43 @@ sscVsSimZsNew = simGridPredResults.siteSpecificModelCPredictionsInDbNew ...
     - simPLsForGridCalibrated;
 fspsVsSimZs = simGridPredResults.fsplInDb - simPLsForGridCalibrated;
 
+% Shift the new ITU and site-specific C results to see what the best fit
+% will look like.
+
+% We will treat the simulation results as the ground truth.
+curMeasLosses = simPLsForGridCalibrated;
+curSimLoss = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
+
+mseFct = @(shift) mean((curSimLoss+shift-curMeasLosses).^2);
+
+minShift = min(curMeasLosses)-max(curSimLoss);
+maxShift = max(curMeasLosses)-min(curSimLoss);
+curBestShift = fminsearch(mseFct, minShift, optimset('MaxFunEvals',100000));
+simGridPredResults.siteSpecificModelCPredictionsInDbNewShifted ...
+    = curSimLoss+curBestShift;
+
+sscVsSimZsNewShifted ...
+    = simGridPredResults.siteSpecificModelCPredictionsInDbNewShifted ...
+    - simPLsForGridCalibrated;
+
+curMeasLosses = simPLsForGridCalibrated;
+curSimLoss = simGridPredResults.ituPredictionsInDbNew;
+
+mseFct = @(shift) mean((curSimLoss+shift-curMeasLosses).^2);
+
+minShift = min(curMeasLosses)-max(curSimLoss);
+maxShift = max(curMeasLosses)-min(curSimLoss);
+curBestShift = fminsearch(mseFct, minShift);
+simGridPredResults.ituPredictionsInDbNewShifted = curSimLoss+curBestShift;
+
+ituVsSimZsNewShifted = simGridPredResults.ituPredictionsInDbNewShifted ...
+    - simPLsForGridCalibrated;
+
+% For plotting in the same path loss range.
 curPLDiffs = [ituVsSimZsOld; sscVsSimZsOld; ...
-    ituVsSimZsNew; sscVsSimZsNew; fspsVsSimZs];
+    ituVsSimZsNew; sscVsSimZsNew; fspsVsSimZs; ...
+    sscVsSimZsNewShifted; ituVsSimZsNewShifted];
+
 % curColorRange = [ceil(max(curPLDiffs)), floor(min(curPLDiffs))];
 curColorRange = [0, ceil(max(abs(curPLDiffs)))];
 
@@ -1393,6 +1459,24 @@ hFigOverviewForSimPLsForGrid ...
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridFsplVsSim.png');
+saveas(hFigOverviewForSimPLsForGrid, curFigPath);
+
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, ituVsSimZsNewShifted], ...
+    'New ITU Shifted', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
+
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'comparisonForGridNewItuShiftedVsSim.png');
+saveas(hFigOverviewForSimPLsForGrid, curFigPath);
+
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, sscVsSimZsNewShifted], ...
+    'New SS-C Shifted', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
+
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'comparisonForGridNewSiteSpecificCShiftedVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 % Plot diff vs TX-to-RX distance.
@@ -1632,6 +1716,28 @@ plotGoogleMapAfterPlot3k(hFigAfOnMapForGrid, 'satellite');
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'gridAfOnMap.png');
 saveas(hFigAfOnMapForGrid, curFigPath);
+
+% For ITU and site-specific C vs simulation results on the grid, we
+% generate the RMSE vs RX-to-TX figure, treating the simulation results as
+% ground truth.
+groundTruthPlValues = simPLsForGridCalibrated;
+rxToTxDistsInM3d = simGridPredResults.distsToTxInM3d;
+
+% All path losses.
+hFigPathLossOverDist = figure('visible', ~flagGenFigSilently); hold on;
+hSim = plot(rxToTxDistsInM3d, groundTruthPlValues, 'bo');
+hModSsc = plot(rxToTxDistsInM3d, ...
+    simGridPredResults.siteSpecificModelCPredictionsInDbNew, 'r*');
+hModItu = plot(rxToTxDistsInM3d, ...
+    simGridPredResults.ituPredictionsInDbNew, 'b.');
+legend([hSim, hModItu, hModSsc], ...
+    'Simulation', 'ITU', 'Site-Specific Model C');
+grid on; grid minor; 
+xlabel('RX to TX distance (m)'); ylabel('Path loss (dB)');
+
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'gridAfOnMap.png');
+saveas(hFigPathLossOverDist, curFigPath);
 
 % For site-specific C model on measurements: path loss vs RX-to-TX
 % distance. We will plot both the results for the old parameter values and
