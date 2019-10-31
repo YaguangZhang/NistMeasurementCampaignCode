@@ -141,13 +141,11 @@ numOfSigmasOutlayer = 1;
 for idxTrack = 1:numOfTracks
     curDirToLoadSimResults = dirsToLoadSimResultsForEachTrack{idxTrack};
     if ~isempty(curDirToLoadSimResults)
-        curSimResultsTable = readtable(curDirToLoadSimResults);
-        curSimLoss = curSimResultsTable.simLoss(boolsToKeepMeas{idxTrack});
+        curSimLoss = loadSimLossFromExcel(curDirToLoadSimResults);
+        curSimLoss = curSimLoss(boolsToKeepMeas{idxTrack});
         
-        % Remove trailing NaNs if necessary.
-        if any(isnan(curSimLoss))
-            curSimLoss = curSimLoss(1:(find(isnan(curSimLoss), 1)-1));
-        end
+        assert(all(~isnan(curSimLoss)), ...
+            'NaN value found in simulation results!');
         
         curMeasLosses = curContiPathLossesWithGpsInfo{idxTrack}(:,1);
         expectedNumOfSamps = length(curMeasLosses);
@@ -302,13 +300,12 @@ allSigDiffs = vertcat(contiSignalDiffs{:});
 for idxTrack = 1:numOfTracks
     curDirToLoadSimResults = dirsToLoadSimResultsForEachTrack{idxTrack};
     if ~isempty(curDirToLoadSimResults)
-        curSimResultsTable = readtable(curDirToLoadSimResults);
-        curSimLoss = curSimResultsTable.simLoss(boolsToKeepMeas{idxTrack});
         
-        % Remove trailing NaNs if necessary.
-        if any(isnan(curSimLoss))
-            curSimLoss = curSimLoss(1:(find(isnan(curSimLoss), 1)-1));
-        end
+        curSimLoss = loadSimLossFromExcel(curDirToLoadSimResults);
+        curSimLoss = curSimLoss(boolsToKeepMeas{idxTrack});
+        
+        assert(all(~isnan(curSimLoss)), ...
+            'NaN value found in simulation results!');
         
         curSigDiffs = contiSignalDiffs{idxTrack}(:);
         expectedNumOfSamps = length(curSigDiffs);

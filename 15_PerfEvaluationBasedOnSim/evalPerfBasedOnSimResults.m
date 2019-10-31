@@ -139,6 +139,10 @@ flagGenFigSilently = true;
 figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
     39.9893839683981, 39.9915745444857];
 
+% Calibrate the simulation results for the grid according to close-in
+% "FSPL" or "cleanedMeas".
+simGridLossCalibMethod = 'FSPL';
+
 %% Before Processing the Data
 
 curFileName = mfilename;
@@ -1101,8 +1105,10 @@ disp(' ');
 disp('    Comparisons with the simulation results for the big grid...');
 
 % The simulation results for the extended RX location grid.
-simResultsForGridTable = readtable(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
-simPLsForGridOrig = simResultsForGridTable.simLoss_dB_;
+simPLsForGridOrig ...
+    = loadSimLossFromExcel(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
+% simResultsForGridTable = readtable(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
+%  simPLsForGridOrig = simResultsForGridTable.simLoss_dB_;
 
 [~, curSimResultsForGridFilename] ...
     = fileparts(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
@@ -1124,19 +1130,135 @@ if strcmp(gridRawDataFilename, 'var_grnd_grid_propagation_stats_20191026' )
     simPLsForGrid(simPLsForGrid==simPLsForGrid(1)) = nan;
 end
 
-% Find the index for the 1-m close-in reference point.
-CLOSE_IN_REF_POINT_DIST_IN_M = 1;
-[~, idxForCloseInRefGridPt] = min(abs( ...
-    simGridPredResults.distsToTxInM3d-CLOSE_IN_REF_POINT_DIST_IN_M));
-
-[xCloseInRefGridPt, yCloseInRefGridPt] = deg2utm( ...
-    simGridLats(idxForCloseInRefGridPt), ...
-    simGridLons(idxForCloseInRefGridPt));
-distTxToCloseInRefGridPt = norm([xTx, yTx] ...
-    - [xCloseInRefGridPt, yCloseInRefGridPt]);
-fsplCloseInRefGridPt = simGridPredResults.fsplInDb(idxForCloseInRefGridPt);
-simPLsForGridCalibrated = simPLsForGrid ...
-    + fsplCloseInRefGridPt - simPLsForGrid(idxForCloseInRefGridPt);
+% Calibrate the simulation results for the grid.
+switch lower(simGridLossCalibMethod)
+    case 'fspl'
+        % Find the index for the 1-m close-in reference point.
+        CLOSE_IN_REF_POINT_DIST_IN_M = 1;
+        [~, idxForCloseInRefGridPt] = min(abs( ...
+            simGridPredResults.distsToTxInM3d ...
+            - CLOSE_IN_REF_POINT_DIST_IN_M));
+        
+        [xCloseInRefGridPt, yCloseInRefGridPt] = deg2utm( ...
+            simGridLats(idxForCloseInRefGridPt), ...
+            simGridLons(idxForCloseInRefGridPt));
+        distTxToCloseInRefGridPt = norm([xTx, yTx] ...
+            - [xCloseInRefGridPt, yCloseInRefGridPt]);
+        fsplCloseInRefGridPt ...
+            = simGridPredResults.fsplInDb(idxForCloseInRefGridPt);
+        simGridPlShiftAmount = fsplCloseInRefGridPt ...
+            - simPLsForGrid(idxForCloseInRefGridPt);
+        simPLsForGridCalibrated = simPLsForGrid + simGridPlShiftAmount;
+    case 'cleanedmeas'
+        simLossForMeas = cell(numOfTracks,1);
+        for idxTrack = 1:numOfTracks
+            curDirToLoadSimResults ...
+                = dirsToLoadSimResultsForEachTrack{idxTrack};
+            if ~isempty(curDirToLoadSimResults)
+                simLossForMeas{idxTrack} ...
+                    = loadSimLossFromExcel(curDirToLoadSimResults);
+                
+                assert(all(~isnan(simLossForMeas{idxTrack})), ...
+                    'NaN value found in simulation results!');
+            end
+        end
+        allSimPlForMeas = vertcat(simLossForMeas{:});
+        allSimPlForMeasCleaned = allSimPlForMeas(allBoolsToKeepMeas);
+        
+        allContiPathLossesWithGpsInfo ...
+            = vertcat(contiPathLossesWithGpsInfo{:});
+        allContiPathLossesWithGpsInfoCleaned ...
+            = allContiPathLossesWithGpsInfo(allBoolsToKeepMeas, :);
+        curMeasLosses = allContiPathLossesWithGpsInfoCleaned(:,1);
+        expectedNumOfSamps = length(curMeasLosses);
+        curSimLoss = allSimPlForMeasCleaned;
+        
+        assert(length(curSimLoss)==expectedNumOfSamps, ...
+            'Unexpected number of simulation results!');
+        mseFct = @(shift) sum((curSimLoss+shift-curMeasLosses).^2)...
+            /expectedNumOfSamps;
+        
+        minShift = min(curMeasLosses)-max(curSimLoss);
+        maxShift = max(curMeasLosses)-min(curSimLoss);
+        curBestShift = fminsearch(mseFct, minShift);
+        curShiftedSim = curSimLoss+curBestShift;
+        
+        % Plot RMSD vs shift around the best shift value.
+        curFigFilenamePrefix = 'SimVsMeas_MeasCleaned';
+        
+        hFigRmsdInspection = figure('visible', ~flagGenFigSilently);
+        hold on;
+        xs = minShift:0.1:maxShift;
+        ys = arrayfun(@(x) sqrt(mseFct(x)), xs);
+        plot(xs, ys, '.-');
+        bestRmsd = sqrt(mseFct(curBestShift));
+        if ~isempty(curBestShift)
+            hMin = plot(curBestShift, bestRmsd, 'r*');
+        end
+        xlabel('Shift Value (dB)'); ylabel('RMSD (dB)');
+        grid on; grid minor; axis equal;
+        legend('Best shift value');
+        title({['Best Shift Value = ', ...
+            num2str(curBestShift, '%.2f'), ' dB']; ...
+            ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
+        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+            [curFigFilenamePrefix, '_RmsdInspection_Track_', ...
+            num2str(idxTrack), '.png']);
+        
+        saveas(hFigRmsdInspection, pathToSaveCurFig);
+        
+        % Plot simulation results with measurements.
+        hFigSimVsMeasByIdx = figure('visible', ~flagGenFigSilently);
+        hold on;
+        hSim = plot(1:expectedNumOfSamps, curShiftedSim, 'x');
+        hMeas = plot(1:expectedNumOfSamps, curMeasLosses, '.');
+        xlabel('Sample'); ylabel('RMSD (dB)');
+        grid on; grid minor; axis tight;
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement');
+        end
+        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+            [curFigFilenamePrefix, '_PlVsSampIdx_MeasCleaned', ...
+            num2str(idxTrack), '.png']);
+        
+        saveas(hFigSimVsMeasByIdx, pathToSaveCurFig);
+        
+        % Load history TX to RX distance.
+        rxToTx3DDistInM = cell(numOfTracks,1);
+        for idxTrack = 1:numOfTracks
+            curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
+                ['rxLoc_meas_', num2str(idxTrack), '.csv']));
+            rxToTx3DDistInM{idxTrack} ...
+                = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+        end
+        curRxToTx3DDistInM = vertcat(rxToTx3DDistInM{:});
+        
+        % Another comparison figure with TX-to-RX distance as the x axis.
+        [xs, indicesSortByDist] = sort(curRxToTx3DDistInM);
+        
+        hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
+        hold on;
+        if ~isempty(xs)
+            hSim = plot(xs, curShiftedSim(indicesSortByDist), 'x-');
+            hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
+        end
+        xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
+        grid on; grid minor; axis tight;
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                'Location', 'SouthEast');
+        end
+        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+            [curFigFilenamePrefix, '_PlVsDist_MeasCleaned', ...
+            num2str(idxTrack), '.png']);
+        
+        saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
+        
+        simGridPlShiftAmount = curBestShift;
+        simPLsForGridCalibrated = simPLsForGrid + simGridPlShiftAmount;
+    otherwise
+        error(['Unknown calibration method: ', simGridLossCalibMethod]);
+end
 
 % Overview of the simulation results.
 hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
@@ -1210,7 +1332,6 @@ saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 % Overview of the difference between the ITU predictions and the simulation
 % results.
-fspsVsSimZs = simGridPredResults.fsplInDb - simPLsForGridCalibrated;
 ituVsSimZsOld = simGridPredResults.ituPredictionsInDbOld ...
     - simPLsForGridCalibrated;
 sscVsSimZsOld = simGridPredResults.siteSpecificModelCPredictionsInDbOld ...
@@ -1219,28 +1340,17 @@ ituVsSimZsNew = simGridPredResults.ituPredictionsInDbNew ...
     - simPLsForGridCalibrated;
 sscVsSimZsNew = simGridPredResults.siteSpecificModelCPredictionsInDbNew ...
     - simPLsForGridCalibrated;
+fspsVsSimZs = simGridPredResults.fsplInDb - simPLsForGridCalibrated;
 
-curPLDiffs = [ituVsSimZsOld; sscVsSimZsOld; ituVsSimZsNew; sscVsSimZsNew];
-curColorRange = [ceil(max(curPLDiffs)), floor(min(curPLDiffs))];
+curPLDiffs = [ituVsSimZsOld; sscVsSimZsOld; ...
+    ituVsSimZsNew; sscVsSimZsNew; fspsVsSimZs];
+% curColorRange = [ceil(max(curPLDiffs)), floor(min(curPLDiffs))];
+curColorRange = [0, ceil(max(abs(curPLDiffs)))];
 
-hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
-hold on; colormap jet;
-curZs = ituVsSimZsOld;
-plot3k([simGridLons, simGridLats, curZs], ...
-    'Labels', {'', 'Longitude', 'Latitude', '', 'Old ITU - Sim (dB)'}, ...
-    'ColorRange', curColorRange);
-higherLayerZ ...
-    = max(curZs)+1;
-hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
-hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
-    ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
-axis tight;
-view(2);
-legend([hTx, hTrees(1)], ...
-    'TX', 'Trees', ...
-    'Location', 'southeast');
-% plotGoogleMapAfterPlot3k(hFigOverviewForSimPLsForGrid, 'satellite');
-title(['RMSE = ', num2str(sqrt(mean(curZs(~isnan(curZs)).^2))), ' dB']);
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, ituVsSimZsOld], ...
+    'Old ITU', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridOldItuVsSim.png');
@@ -1248,75 +1358,41 @@ saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 % Overview of the difference between the site-specific C predictions and
 % the simulation results.
-hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
-hold on; colormap jet;
-curZs = sscVsSimZsOld;
-plot3k([simGridLons, simGridLats, curZs], ...
-    'Labels', {'', 'Longitude', 'Latitude', '', 'Old SS-C - Sim (dB)'}, ...
-    'ColorRange', curColorRange);
-higherLayerZ ...
-    = max(curZs)+1;
-hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
-hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
-    ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
-axis tight;
-view(2);
-legend([hTx, hTrees(1)], ...
-    'TX', 'Trees', ...
-    'Location', 'southeast');
-% plotGoogleMapAfterPlot3k(hFigOverviewForSimPLsForGrid, 'satellite');
-title(['RMSE = ', num2str(sqrt(mean(curZs(~isnan(curZs)).^2))), ' dB']);
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, sscVsSimZsOld], ...
+    'Old SS-C', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridOldSiteSpecificCVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
-hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
-hold on; colormap jet;
-curZs = ituVsSimZsNew;
-plot3k([simGridLons, simGridLats, curZs], ...
-    'Labels', {'', 'Longitude', 'Latitude', '', 'New ITU - Sim (dB)'}, ...
-    'ColorRange', curColorRange);
-higherLayerZ ...
-    = max(curZs)+1;
-hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
-hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
-    ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
-axis tight;
-view(2);
-legend([hTx, hTrees(1)], ...
-    'TX', 'Trees', ...
-    'Location', 'southeast');
-% plotGoogleMapAfterPlot3k(hFigOverviewForSimPLsForGrid, 'satellite');
-title(['RMSE = ', num2str(sqrt(mean(curZs(~isnan(curZs)).^2))), ' dB']);
+% Overview of the difference for the new model fitting results.
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, ituVsSimZsNew], ...
+    'New ITU', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewItuVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
-% Overview of the difference between the site-specific C predictions and
-% the simulation results.
-hFigOverviewForSimPLsForGrid = figure('visible', ~flagGenFigSilently);
-hold on; colormap jet;
-curZs = sscVsSimZsNew;
-plot3k([simGridLons, simGridLats, curZs], ...
-    'Labels', {'', 'Longitude', 'Latitude', '', 'New SS-C - Sim (dB)'}, ...
-    'ColorRange', curColorRange);
-higherLayerZ ...
-    = max(curZs)+1;
-hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
-hTrees = plot3(markLocs(:,2), markLocs(:,1), ...
-    ones(length(markLocs(:,1))).*higherLayerZ, 'b*');
-axis tight;
-view(2);
-legend([hTx, hTrees(1)], ...
-    'TX', 'Trees', ...
-    'Location', 'southeast');
-% plotGoogleMapAfterPlot3k(hFigOverviewForSimPLsForGrid, 'satellite');
-title(['RMSE = ', num2str(sqrt(mean(curZs(~isnan(curZs)).^2))), ' dB']);
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, sscVsSimZsNew], ...
+    'New SS-C', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewSiteSpecificCVsSim.png');
+saveas(hFigOverviewForSimPLsForGrid, curFigPath);
+
+hFigOverviewForSimPLsForGrid ...
+    = plotPathLossDiff([simGridLons, simGridLats, fspsVsSimZs], ...
+    'FSPL', curColorRange, [lonTx, latTx], ...
+    [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
+
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'comparisonForGridFsplVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 % Plot diff vs TX-to-RX distance.
@@ -1466,21 +1542,35 @@ saveas(hCurPLMap, curFigPath);
 hFigPlOverAf = figure('visible', ~flagGenFigSilently); hold on;
 % All measurements.
 hAllMeas = plot(measPredResults.foliageAreasInFirstFresnel, ...
-    measPredResults.allContiPathLossesWithGpsInfo(:,1), 'or');
+    measPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    - measPredResults.fsplInDb, 'or');
 % Cleaned measurements.
 hCleanedMeas = plot(cleanedMeasPredResults.foliageAreasInFirstFresnel, ...
-    cleanedMeasPredResults.allContiPathLossesWithGpsInfo(:,1), '*b');
+    cleanedMeasPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    - cleanedMeasPredResults.fsplInDb, '*b');
 % Old SSC.
 hOldSsc = plot(measPredResults.foliageAreasInFirstFresnel, ...
-    measPredResults.siteSpecificModelCPredictionsInDbOld, '.k');
+    measPredResults.siteSpecificModelCPredictionsInDbOld ...
+    - measPredResults.fsplInDb, '.k');
 % New SSC.
 hNewSsc = plot(cleanedMeasPredResults.foliageAreasInFirstFresnel, ...
-    cleanedMeasPredResults.siteSpecificModelCPredictionsInDbNew, '.g');
-axis tight; xlabel('Foliage area (m^2)'); ylabel('Path loss (dB)');
+    cleanedMeasPredResults.siteSpecificModelCPredictionsInDbNew ...
+    - cleanedMeasPredResults.fsplInDb, '.g');
+axis tight; xlabel('Foliage Area (m^2)'); ylabel('Excess Path Loss (dB)');
 grid on; grid minor;
 legend([hAllMeas, hCleanedMeas, hOldSsc, hNewSsc], ...
     'All measurements', 'Cleaned measurements', 'Old SS-C', 'New SS-C', ...
     'Location', 'southeast');
+rmseOld = sqrt(sum(( ...
+    measPredResults.siteSpecificModelCPredictionsInDbOld ...
+    - measPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    ).^2)/length(measPredResults.ituPredictionsInDbOld));
+rmseNew = sqrt(sum(( ...
+    cleanedMeasPredResults.siteSpecificModelCPredictionsInDbNew ...
+    - cleanedMeasPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    ).^2)/length(cleanedMeasPredResults.ituPredictionsInDbOld));
+title({['Old RMSE = ', num2str(rmseOld), ' dB']; ...
+    ['New RMSE = ', num2str(rmseNew), ' dB']});
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'fittedModelSiteSpecificC.png');
@@ -1490,21 +1580,36 @@ saveas(hFigPlOverAf, curFigPath);
 hFigPlOverDw = figure('visible', ~flagGenFigSilently); hold on;
 % All measurements.
 hAllMeas = plot(measPredResults.estiDistsInWoodland, ...
-    measPredResults.allContiPathLossesWithGpsInfo(:,1), 'or');
+    measPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    - measPredResults.fsplInDb, 'or');
 % Cleaned measurements.
 hCleanedMeas = plot(cleanedMeasPredResults.estiDistsInWoodland, ...
-    cleanedMeasPredResults.allContiPathLossesWithGpsInfo(:,1), '*b');
+    cleanedMeasPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    - cleanedMeasPredResults.fsplInDb, '*b');
 % Old ITU.
 hOldSsc = plot(measPredResults.estiDistsInWoodland, ...
-    measPredResults.ituPredictionsInDbOld, '.k');
+    measPredResults.ituPredictionsInDbOld ...
+    - measPredResults.fsplInDb, '.k');
 % New ITU.
 hNewSsc = plot(cleanedMeasPredResults.estiDistsInWoodland, ...
-    cleanedMeasPredResults.ituPredictionsInDbNew, '.g');
-axis tight; xlabel('Foliage area (m^2)'); ylabel('Path loss (dB)');
+    cleanedMeasPredResults.ituPredictionsInDbNew ...
+    - cleanedMeasPredResults.fsplInDb, '.g');
+axis tight; xlabel('Woodland Distance (m)');
+ylabel('Excess Path Loss (dB)');
 grid on; grid minor;
 legend([hAllMeas, hCleanedMeas, hOldSsc, hNewSsc], ...
     'All measurements', 'Cleaned measurements', 'Old ITU', 'New ITU', ...
     'Location', 'southeast');
+rmseOld = sqrt(sum(( ...
+    measPredResults.ituPredictionsInDbOld ...
+    - measPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    ).^2)/length(measPredResults.ituPredictionsInDbOld));
+rmseNew = sqrt(sum(( ...
+    cleanedMeasPredResults.ituPredictionsInDbNew ...
+    - cleanedMeasPredResults.allContiPathLossesWithGpsInfo(:,1) ...
+    ).^2)/length(cleanedMeasPredResults.ituPredictionsInDbOld));
+title({['Old RMSE = ', num2str(rmseOld), ' dB']; ...
+    ['New RMSE = ', num2str(rmseNew), ' dB']});
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'fittedModelItu.png');
@@ -1512,12 +1617,12 @@ saveas(hFigPlOverDw, curFigPath);
 
 % For site-specific C model on grid: foliage area on map.
 hFigAfOnMapForGrid = figure('visible', ~flagGenFigSilently);
-hold on; colormap hot;
+hold on; colormap jet;
 plot3k([simGridLons, simGridLats, ...
     simGridPredResults.foliageAreasInFirstFresnel], ...
-    'Labels', {'', 'Longitude', 'Latitude', '', 'Foliage area (m^2)'});
+    'Labels', {'', 'Longitude', 'Latitude', '', 'Foliage Area (m^2)'});
 higherLayerZ ...
-    = max(simGridPredResults.siteSpecificModelCPredictionsInDbOld)+1;
+    = max(simGridPredResults.foliageAreasInFirstFresnel)+1;
 hTx = plot3(lonTx, latTx, higherLayerZ, '^g', 'LineWidth', 2);
 axis tight;
 view(2);
