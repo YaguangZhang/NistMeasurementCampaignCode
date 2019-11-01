@@ -596,28 +596,28 @@ allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
 
 %% Further Clean Measurement Data
 % We will find indices for discarding samples out of the first null range
-% when necessary. Furthermore, we will discard track 6 and track 10.
-if false
-    numOfTracks = length(contiPathLossesWithGpsInfo);
-    boolsToKeepMeas = cell(numOfTracks,1);
-    for idxTrack = 1:numOfTracks
-        curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
-        curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
-        if (idxTrack == 6) || (idxTrack == 10)
-            boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
-        else
-            boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
-                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
-                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
-        end
+% when necessary. Furthermore,  we will discard all traverse tracks.
+
+numOfTracks = length(contiPathLossesWithGpsInfo);
+boolsToKeepMeas = cell(numOfTracks,1);
+for idxTrack = 1:numOfTracks
+    curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
+    curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
+    if idxTrack >= 6
+        boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
+    else
+        boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
+            fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
+            fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
     end
-    
-    curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-        'simVsMeasLessNoTrackSixNorTen');
-    genEvalPerfFigsForMeas;
-    
-    allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
 end
+
+curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'simVsMeasLessNoTrackSixNorTen');
+genEvalPerfFigsForMeas;
+
+allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
+
 %% Prepare Results for Cleaned Measurements
 
 tx3D = [xTx, yTx, ...

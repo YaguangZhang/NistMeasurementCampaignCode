@@ -31,7 +31,8 @@ mseFct = @(shift) sum((simPls+shift-measPls).^2)/expectedNumOfSamps;
 
 switch lower(method)
     case 'both'
-        fctToFit = @(paraToFit, input) input.*paraToFit(1)+paraToFit(2);
+        fctToFit = @(paraToFit, input) input.*abs(paraToFit(1)) ...
+            + paraToFit(2);
         [~, shiftStart, ~] = calibrateSimPlsWithMeas( ...
             simPls, measPls, 'ShiftOnly');
         
@@ -39,8 +40,8 @@ switch lower(method)
         
         fittedRes = nlinfit(simPls, measPls, fctToFit, startingPt);
         
-        multiFactor = fittedRes(1);
-        shift = fittedRes(2);        
+        multiFactor = abs(fittedRes(1));
+        shift = fittedRes(2);
     case 'shiftonly'
         minShift = min(measPls)-max(simPls);
         shift = fminsearch(mseFct, minShift);
