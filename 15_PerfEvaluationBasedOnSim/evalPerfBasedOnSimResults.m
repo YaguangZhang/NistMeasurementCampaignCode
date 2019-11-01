@@ -551,7 +551,9 @@ end
 
 curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'simVsMeas'); %#ok<*NASGU>
+flagGenFigsForAttennaBeam = true;
 genEvalPerfFigsForMeas;
+flagGenFigsForAttennaBeam = false;
 
 %% Clean Measurement Data
 % We will find indices for discarding samples out of the first null range
@@ -592,15 +594,17 @@ curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'simVsMeasLessNoTrackSix');
 genEvalPerfFigsForMeas;
 
-allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
-
-%% Further Clean Measurement Data
+%% Furthest Clean Measurement Data
 % We will find indices for discarding samples out of the first null range
-% when necessary. Furthermore,  we will discard all traverse tracks.
+% when necessary. Furthermore, we will discard all traverse tracks, the
+% segments with too much GPS errors, and results over the maximum
+% measurable path loss.
 
+MAX_MEASURABLE_PATH_LOSS_IN_DB = 182;
 numOfTracks = length(contiPathLossesWithGpsInfo);
 boolsToKeepMeas = cell(numOfTracks,1);
 for idxTrack = 1:numOfTracks
+    curPathLosses = contiPathLossesWithGpsInfo{idxTrack}(:, 1);
     curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
     curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
     if idxTrack >= 6
@@ -609,14 +613,30 @@ for idxTrack = 1:numOfTracks
         boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
             fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
             fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
+        if idxTrack == 1
+            indicesToDiscardOnTrackFive = 34:40;
+            boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
+                = false(length(indicesToDiscardOnTrackFive), 1);
+        elseif idxTrack == 2
+            indicesToDiscardOnTrackFive = 132:152;
+            boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
+                = false(length(indicesToDiscardOnTrackFive), 1);
+        elseif idxTrack == 5
+            indicesToDiscardOnTrackFive = 42:58;
+            boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
+                = false(length(indicesToDiscardOnTrackFive), 1);
+        end
+        
+        indicesTooBigPathLoss = find( ...
+            curPathLosses>MAX_MEASURABLE_PATH_LOSS_IN_DB);
+        boolsToKeepMeas{idxTrack}(indicesTooBigPathLoss) ...
+                = false(length(indicesTooBigPathLoss), 1);
     end
 end
 
 curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'simVsMeasLessNoTrackSixNorTen');
+    'simVsMeasLessNoTraverseTracks');
 genEvalPerfFigsForMeas;
-
-allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
 
 %% Prepare Results for Cleaned Measurements
 

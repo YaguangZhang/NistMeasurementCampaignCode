@@ -39,15 +39,19 @@ figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
     39.9893839683981, 39.9915745444857];
 
 % Overview.
-allRxLonLats = allContiPathLossesWithGpsInfo(:, [3,2]);
-allMeas = allContiPathLossesWithGpsInfo(:, 1);
+allContiPathLossesWithGpsInfoOriginal ...
+    = vertcat(contiPathLossesWithGpsInfo{:});
+allRxLonLats = allContiPathLossesWithGpsInfoOriginal(:, [3,2]);
+allMeas = allContiPathLossesWithGpsInfoOriginal(:, 1);
+allBoolsToKeepMeas = vertcat(boolsToKeepMeas{:});
 
 curFig = figure('Visible', ~FLAG_GEN_FIGS_SILENTLY); hold on;
 hTx = plot(TX_LON, TX_LAT, '^g', ...
     'MarkerFaceColor', 'none', ...
     'LineWidth', 1.5);
 colormap hot;
-plot3k([allRxLonLats, allMeas], ...
+plot3k([allRxLonLats(allBoolsToKeepMeas, :), ...
+    allMeas(allBoolsToKeepMeas)], ...
     'Marker', {'.', 12}, ...
     'ColorRange', EXPECTED_PATH_LOSS_RANGE, ...
     'CBLabels', numOfTicklabels, 'Labels', ...
@@ -62,45 +66,47 @@ curDirToSaveFig = fullfile(curAbsPathToSavePlots, ...
     'Overview_BasicPLs.png');
 saveas(curFig, curDirToSaveFig);
 
-% By track.
-for idxTrack = 1:numOfTracks
-    curPLs = curContiPathLossesWithGpsInfo{idxTrack}(:,1);
-    curRxLonLats = curContiPathLossesWithGpsInfo{idxTrack}(:,[3,2]);
-    curTxAzInDeg = TX_INFO_LOGS{1}(idxTrack).txAz;
-    
-    
-    hpbwPolyshape = hpbwLonLatPolyshapes{idxTrack};
-    fnbwPolyshape = fnbwLonLatPolyshapes{idxTrack};
-    
-    curFig = figure('Visible', ~FLAG_GEN_FIGS_SILENTLY); hold on;
-    hTx = plot(TX_LON, TX_LAT, '^g', ...
-        'MarkerFaceColor', 'none', ...
-        'LineWidth', 1.5);
-    colormap hot;
-    if ~isempty(curRxLonLats)
-        plot3k([curRxLonLats, curPLs], ...
-            'Marker', {'.', 12}, ...
-            'ColorRange', EXPECTED_PATH_LOSS_RANGE, ...
-            'CBLabels', numOfTicklabels, 'Labels', ...
-            {['Track #', num2str(idxTrack)], ...
-            'Longitude', 'Latitude', ...
-            '', 'Path Loss (dB)'});
+if flagGenFigsForAttennaBeam
+    % By track.
+    for idxTrack = 1:numOfTracks
+        curPLs = curContiPathLossesWithGpsInfo{idxTrack}(:,1);
+        curRxLonLats = curContiPathLossesWithGpsInfo{idxTrack}(:,[3,2]);
+        curTxAzInDeg = TX_INFO_LOGS{1}(idxTrack).txAz;
+        
+        
+        hpbwPolyshape = hpbwLonLatPolyshapes{idxTrack};
+        fnbwPolyshape = fnbwLonLatPolyshapes{idxTrack};
+        
+        curFig = figure('Visible', ~FLAG_GEN_FIGS_SILENTLY); hold on;
+        hTx = plot(TX_LON, TX_LAT, '^g', ...
+            'MarkerFaceColor', 'none', ...
+            'LineWidth', 1.5);
+        colormap hot;
+        if ~isempty(curRxLonLats)
+            plot3k([curRxLonLats, curPLs], ...
+                'Marker', {'.', 12}, ...
+                'ColorRange', EXPECTED_PATH_LOSS_RANGE, ...
+                'CBLabels', numOfTicklabels, 'Labels', ...
+                {['Track #', num2str(idxTrack)], ...
+                'Longitude', 'Latitude', ...
+                '', 'Path Loss (dB)'});
+        end
+        xticks([]); yticks([]);
+        
+        plot(fnbwPolyshape, 'FaceColor', 'cyan');
+        plot(hpbwPolyshape, 'FaceColor', 'green');
+        
+        axis(figAxisToSet); view(2);
+        if ~isempty(curRxLonLats)
+            plotGoogleMapAfterPlot3k(curFig, 'satellite');
+        else
+            plot_google_map('MapType', 'satellite');
+        end
+        
+        curDirToSaveFig = fullfile(curAbsPathToSavePlots, ...
+            ['basicPLsWithTxMainLobe_Track_', num2str(idxTrack), '.png']);
+        saveas(curFig, curDirToSaveFig);
     end
-    xticks([]); yticks([]);
-    
-    plot(fnbwPolyshape, 'FaceColor', 'cyan');
-    plot(hpbwPolyshape, 'FaceColor', 'green');
-    
-    axis(figAxisToSet); view(2);
-    if ~isempty(curRxLonLats)
-        plotGoogleMapAfterPlot3k(curFig, 'satellite');
-    else
-        plot_google_map('MapType', 'satellite');
-    end
-    
-    curDirToSaveFig = fullfile(curAbsPathToSavePlots, ...
-        ['basicPLsWithTxMainLobe_Track_', num2str(idxTrack), '.png']);
-    saveas(curFig, curDirToSaveFig);
 end
 
 %% Load Simulation Results for the Measured Locations
@@ -162,7 +168,7 @@ for idxTrack = 1:numOfTracks
         % Plot RMSD vs shift around the best shift value.
         curFigFilenamePrefix = 'SimVsMeas';
         
-        bestRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));       
+        bestRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
         
         % Plot simulation results with measurements.
         hFigSimVsMeasByIdx = figure('visible', ~flagGenFigSilently);
@@ -170,9 +176,9 @@ for idxTrack = 1:numOfTracks
         hSim = plot(1:expectedNumOfSamps, curCalibratedSim, 'x');
         hMeas = plot(1:expectedNumOfSamps, curMeasLosses, '.');
         title({['shift = ', ...
-                num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
-                num2str(curMultiFactor, '%.2f')]; ...
-                ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
+            num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
+            num2str(curMultiFactor, '%.2f')]; ...
+            ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
         xlabel('Sample'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
         if ~isempty(hSim)
@@ -194,9 +200,9 @@ for idxTrack = 1:numOfTracks
             hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
         end
         title({['shift = ', ...
-                num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
-                num2str(curMultiFactor, '%.2f')]; ...
-                ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
+            num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
+            num2str(curMultiFactor, '%.2f')]; ...
+            ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
         xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
         if ~isempty(hSim)
