@@ -22,7 +22,8 @@ for idxTrack = 1:numOfTracks
         .contiRxGains{idxTrack} = contiPathLossesExtraInfo ...
         .contiRxGains{idxTrack}(boolsToKeepMeas{idxTrack});
 end
-allContiPathLossesWithGpsInfo = vertcat(curContiPathLossesWithGpsInfo{:});
+curAllContiPathLossesWithGpsInfo ...
+    = vertcat(curContiPathLossesWithGpsInfo{:});
 
 %% TX Antenna Main Lobe Figs
 % For each track's measurement results, generate an overview plot with the
@@ -156,88 +157,99 @@ for idxTrack = 1:numOfTracks
         curMeasLosses = curContiPathLossesWithGpsInfo{idxTrack}(:,1);
         expectedNumOfSamps = length(curMeasLosses);
         
-        [curCalibratedSim, curBestShift, curMultiFactor] ...
-            = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
-        
         % Load history TX to RX distance.
         curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
             ['rxLoc_meas_', num2str(idxTrack), '.csv']));
         curRxToTx3DDistInM ...
             = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
         
+        [curSortedRxToTxDists, indicesSortByDist] ...
+            = sort(curRxToTx3DDistInM);
+        
+        curSimLoss = curSimLoss(indicesSortByDist);
+        curMeasLosses = curMeasLosses(indicesSortByDist);
+        
+        [curCalibratedSim, curBestShift, curMultiFactor] ...
+            = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
+        
         % Plot RMSD vs shift around the best shift value.
         curFigFilenamePrefix = 'SimVsMeas';
         
         bestRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
         
-        % Plot simulation results with measurements.
-        hFigSimVsMeasByIdx = figure('visible', ~flagGenFigSilently);
-        hold on;
-        hSim = plot(1:expectedNumOfSamps, curCalibratedSim, 'x');
-        hMeas = plot(1:expectedNumOfSamps, curMeasLosses, '.');
-        title({['shift = ', ...
-            num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
-            num2str(curMultiFactor, '%.2f')]; ...
-            ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
-        xlabel('Sample'); ylabel('RMSD (dB)');
-        grid on; grid minor; axis tight;
-        if ~isempty(hSim)
-            legend([hSim, hMeas], 'Simulation', 'Measurement');
+        if expectedNumOfSamps>0
+            % Plot simulation results with measurements.
+            hFigSimVsMeasByIdx = figure('visible', ~flagGenFigSilently);
+            hold on;
+            hSim = plot(1:expectedNumOfSamps, curCalibratedSim, 'x');
+            hMeas = plot(1:expectedNumOfSamps, curMeasLosses, '.');
+            title({['shift = ', ...
+                num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
+                num2str(curMultiFactor, '%.2f')]; ...
+                ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
+            xlabel('Sample'); ylabel('Path Loss (dB)');
+            grid on; grid minor; axis tight;
+            if ~isempty(hSim)
+                legend([hSim, hMeas], 'Simulation', 'Measurement');
+            end
+            pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+                [curFigFilenamePrefix, '_PlVsSampIdx_Track_', ...
+                num2str(idxTrack), '.png']);
+            
+            saveas(hFigSimVsMeasByIdx, pathToSaveCurFig);
         end
-        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
-            [curFigFilenamePrefix, '_PlVsSampIdx_Track_', ...
-            num2str(idxTrack), '.png']);
         
-        saveas(hFigSimVsMeasByIdx, pathToSaveCurFig);
-        
-        % Another comparison figure with TX-to-RX distance as the x axis.
-        [xs, indicesSortByDist] = sort(curRxToTx3DDistInM);
-        
-        hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
-        hold on;
-        if ~isempty(xs)
-            hSim = plot(xs, curCalibratedSim(indicesSortByDist), 'x-');
-            hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
+        if ~isempty(curSortedRxToTxDists)
+            % Another comparison figure with TX-to-RX distance as the x
+            % axis.
+            hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
+            hold on;
+            hSim = plot(curSortedRxToTxDists, ...
+                curCalibratedSim, 'x-');
+            hMeas = plot(curSortedRxToTxDists, ...
+                curMeasLosses, '.--');
+            title({['shift = ', ...
+                num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
+                num2str(curMultiFactor, '%.2f')]; ...
+                ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
+            xlabel('3D RX-to-TX Distance (m)'); ylabel('Path Loss (dB)');
+            grid on; grid minor; axis tight;
+            if ~isempty(hSim)
+                legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                    'Location', 'SouthEast');
+            end
+            pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+                [curFigFilenamePrefix, '_PlVsDist_Track_', ...
+                num2str(idxTrack), '.png']);
+            
+            saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
         end
-        title({['shift = ', ...
-            num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
-            num2str(curMultiFactor, '%.2f')]; ...
-            ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
-        xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
-        grid on; grid minor; axis tight;
-        if ~isempty(hSim)
-            legend([hSim, hMeas], 'Simulation', 'Measurement', ...
-                'Location', 'SouthEast');
-        end
-        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
-            [curFigFilenamePrefix, '_PlVsDist_Track_', ...
-            num2str(idxTrack), '.png']);
-        
-        saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
         
         % Statistical performance comparison: the RMSD comparing the
         % simulation results with the measurements.
         curDiffBetweenSimAndMeas = curCalibratedSim - curMeasLosses;
-        curLats = curContiPathLossesWithGpsInfo{idxTrack}(:, 2);
-        curLons = curContiPathLossesWithGpsInfo{idxTrack}(:, 3);
-        
-        [~, ~, ~, ~, hCurFigFittedNorm] ...
-            = fitDataToNormDist(curDiffBetweenSimAndMeas);
-        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
-            [curFigFilenamePrefix, '_FittedNormForDiff_', ...
-            num2str(idxTrack), '.png']);
-        
-        saveas(hCurFigFittedNorm, pathToSaveCurFig);
-        
-        % For showing outlayers on map.
-        hCurOutlayersOnMap = plotOutlayersOnMap( ...
-            curDiffBetweenSimAndMeas, curLons, curLats, ...
-            numOfSigmasOutlayer, figAxisToSet);
-        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
-            [curFigFilenamePrefix, '_Outlayers_', ...
-            num2str(idxTrack), '.png']);
-        
-        saveas(hCurOutlayersOnMap, pathToSaveCurFig);
+        if ~isempty(curDiffBetweenSimAndMeas)
+            curLats = curContiPathLossesWithGpsInfo{idxTrack}(:, 2);
+            curLons = curContiPathLossesWithGpsInfo{idxTrack}(:, 3);
+            
+            [~, ~, ~, ~, hCurFigFittedNorm] ...
+                = fitDataToNormDist(curDiffBetweenSimAndMeas);
+            pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+                [curFigFilenamePrefix, '_FittedNormForDiff_', ...
+                num2str(idxTrack), '.png']);
+            
+            saveas(hCurFigFittedNorm, pathToSaveCurFig);
+            
+            % For showing outlayers on map.
+            hCurOutlayersOnMap = plotOutlayersOnMap( ...
+                curDiffBetweenSimAndMeas, curLons, curLats, ...
+                numOfSigmasOutlayer, figAxisToSet);
+            pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
+                [curFigFilenamePrefix, '_Outlayers_', ...
+                num2str(idxTrack), '.png']);
+            
+            saveas(hCurOutlayersOnMap, pathToSaveCurFig);
+        end
         
         % Store the results for overview plots.
         curAllShiftedSims{idxTrack} = curCalibratedSim;
@@ -249,7 +261,7 @@ for idxTrack = 1:numOfTracks
 end
 
 % The RMSD comparison for all data.
-allMeasLosses = allContiPathLossesWithGpsInfo(:,1);
+allMeasLosses = curAllContiPathLossesWithGpsInfo(:,1);
 allShiftedSims = vertcat(curAllShiftedSims{:});
 [~, ~, ~, ~, hCurFigFittedNorm] ...
     = fitDataToNormDist(allShiftedSims - allMeasLosses);
@@ -260,8 +272,8 @@ saveas(hCurFigFittedNorm, pathToSaveCurFig);
 
 % The outlayers for all data.
 allDiffBetweenSimAndMeas = vertcat(curAllDiffBetweenSimAndMeas{:});
-allMeasLats = allContiPathLossesWithGpsInfo(:, 2);
-allMeasLons = allContiPathLossesWithGpsInfo(:, 3);
+allMeasLats = curAllContiPathLossesWithGpsInfo(:, 2);
+allMeasLons = curAllContiPathLossesWithGpsInfo(:, 3);
 
 hCurOutlayersOnMap = plotOutlayersOnMap( ...
     allDiffBetweenSimAndMeas, allMeasLons, allMeasLats, ...

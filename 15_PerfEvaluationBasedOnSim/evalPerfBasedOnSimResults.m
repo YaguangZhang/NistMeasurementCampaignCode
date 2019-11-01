@@ -140,7 +140,7 @@ figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
     39.9893839683981, 39.9915745444857];
 
 % Calibrate the simulation results for the grid according to close-in
-% 'FSPL', 'cleanedMeas', or 'trackOneOnGrid':
+% 'FSPL', 'cleanedMeas', 'trackOneOnGrid', or 'cleanedMeasOnGrid':
 %   - FSPL
 %     We will find a close-in reference point and shift the simulation
 %     results for the grid as a whole so that at the reference point the
@@ -157,7 +157,7 @@ figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
 %   - cleanedMeasOnGrid
 %     Similar to 'trackOneOnGrid', but instead of using only track 1, we
 %     will use all the cleaned measurement data.
-simGridLossCalibMethod = 'cleanedMeas';
+simGridLossCalibMethod = 'cleanedMeasOnGrid';
 
 %% Before Processing the Data
 
@@ -352,7 +352,6 @@ legend([hAreaOfInterest, hGridPts], ...
     'Area of interest', 'RX location grid points', ...
     'Location', 'SouthEast');
 transparentizeCurLegends;
-
 
 curDirToSave = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'Overview_RxLocGrid.png');
 saveas(hFigAreaOfInterest, curDirToSave);
@@ -599,7 +598,7 @@ genEvalPerfFigsForMeas;
 % when necessary. Furthermore, we will discard all traverse tracks, the
 % segments with too much GPS errors, and results over the maximum
 % measurable path loss.
-
+if false
 MAX_MEASURABLE_PATH_LOSS_IN_DB = 182;
 numOfTracks = length(contiPathLossesWithGpsInfo);
 boolsToKeepMeas = cell(numOfTracks,1);
@@ -630,14 +629,14 @@ for idxTrack = 1:numOfTracks
         indicesTooBigPathLoss = find( ...
             curPathLosses>MAX_MEASURABLE_PATH_LOSS_IN_DB);
         boolsToKeepMeas{idxTrack}(indicesTooBigPathLoss) ...
-                = false(length(indicesTooBigPathLoss), 1);
+            = false(length(indicesTooBigPathLoss), 1);
     end
 end
 
 curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'simVsMeasLessNoTraverseTracks');
 genEvalPerfFigsForMeas;
-
+end
 %% Prepare Results for Cleaned Measurements
 
 tx3D = [xTx, yTx, ...
@@ -1164,12 +1163,16 @@ disp('    Done!');
 disp(' ');
 disp('    Comparisons with the simulation results for the big grid...');
 
-MULTIPLICATION_FACTOR = 1;
+if strcmpi(simGridLossCalibMethod, 'fspl')
+    INITIAL_MULTIPLICATION_FACTOR = 30;
+else
+    INITIAL_MULTIPLICATION_FACTOR = 1;
+end
 
 % The simulation results for the extended RX location grid.
 simPLsForGridOrig ...
     = loadSimLossFromExcel(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID, ...
-    MULTIPLICATION_FACTOR);
+    INITIAL_MULTIPLICATION_FACTOR);
 % simResultsForGridTable = readtable(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
 %  simPLsForGridOrig = simResultsForGridTable.simLoss_dB_;
 
@@ -1228,7 +1231,7 @@ switch lower(simGridLossCalibMethod)
             if ~isempty(curDirToLoadSimResults)
                 simLossForMeas{idxTrack} ...
                     = loadSimLossFromExcel(curDirToLoadSimResults, ...
-                    MULTIPLICATION_FACTOR);
+                    INITIAL_MULTIPLICATION_FACTOR);
                 
                 assert(all(~isnan(simLossForMeas{idxTrack})), ...
                     'NaN value found in simulation results!');
@@ -1245,33 +1248,24 @@ switch lower(simGridLossCalibMethod)
         expectedNumOfSamps = length(curMeasLosses);
         curSimLoss = allSimPlForMeasCleaned;
         
+        % Load history TX to RX distance.
+        rxToTx3DDistInM = cell(numOfTracks,1);
+        for idxTrack = 1:numOfTracks
+            curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
+                ['rxLoc_meas_', num2str(idxTrack), '.csv']));
+            rxToTx3DDistInM{idxTrack} ...
+                = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+        end
+        curRxToTx3DDistInM = vertcat(rxToTx3DDistInM{:});
+        [curSortedRxToTxDists, indicesSortByDist] ...
+            = sort(curRxToTx3DDistInM);
+        
         [curCalibratedSim, curBestShift, curMultiFactor] ...
-            = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
+            = calibrateSimPlsWithMeas(curSimLoss(indicesSortByDist), ...
+            curMeasLosses(indicesSortByDist));
         
         % Plot RMSD vs shift around the best shift value.
         curFigFilenamePrefix = 'SimVsMeas_MeasCleaned';
-        
-        hFigRmsdInspection = figure('visible', ~flagGenFigSilently);
-        hold on;
-        xs = minShift:0.1:maxShift;
-        ys = arrayfun(@(x) sqrt(mseFct(x)), xs);
-        plot(xs, ys, '.-');
-        bestRmsd = sqrt(mseFct(curBestShift));
-        if ~isempty(curBestShift)
-            hMin = plot(curBestShift, bestRmsd, 'r*');
-        end
-        xlabel('Shift Value (dB)'); ylabel('RMSD (dB)');
-        grid on; grid minor; axis equal;
-        legend('Best shift value');
-        title({['shift = ', ...
-            num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
-            num2str(curMultiFactor, '%.2f')]; ...
-            ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
-        pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
-            [curFigFilenamePrefix, '_RmsdInspection_Track_', ...
-            num2str(idxTrack), '.png']);
-        
-        saveas(hFigRmsdInspection, pathToSaveCurFig);
         
         % Plot simulation results with measurements.
         hFigSimVsMeasByIdx = figure('visible', ~flagGenFigSilently);
@@ -1289,24 +1283,14 @@ switch lower(simGridLossCalibMethod)
         
         saveas(hFigSimVsMeasByIdx, pathToSaveCurFig);
         
-        % Load history TX to RX distance.
-        rxToTx3DDistInM = cell(numOfTracks,1);
-        for idxTrack = 1:numOfTracks
-            curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
-                ['rxLoc_meas_', num2str(idxTrack), '.csv']));
-            rxToTx3DDistInM{idxTrack} ...
-                = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
-        end
-        curRxToTx3DDistInM = vertcat(rxToTx3DDistInM{:});
-        
         % Another comparison figure with TX-to-RX distance as the x axis.
-        [xs, indicesSortByDist] = sort(curRxToTx3DDistInM);
-        
         hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
         hold on;
-        if ~isempty(xs)
-            hSim = plot(xs, curCalibratedSim(indicesSortByDist), 'x-');
-            hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
+        if ~isempty(curSortedRxToTxDists)
+            hSim = plot(curSortedRxToTxDists, ...
+                curCalibratedSim(indicesSortByDist), 'x-');
+            hMeas = plot(curSortedRxToTxDists, ...
+                curMeasLosses(indicesSortByDist), '.--');
         end
         xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
@@ -1323,7 +1307,63 @@ switch lower(simGridLossCalibMethod)
         simGridPlShiftAmount = curBestShift;
         simGridPlMultiFactor = curMultiFactor;
         simPLsForGridCalibrated = simPLsForGrid.*curMultiFactor ...
-            + simGridPlShiftAmount;
+            + curBestShift;
+    case 'trackoneongrid'
+        [trackOnUtmXs, trackOnUtmY] = deg2utm( ...
+            contiPathLossesWithGpsInfo{1}(:, 3), ...
+            contiPathLossesWithGpsInfo{1}(:, 2));
+        indicesGridPtsForTrackOne ...
+            = knnsearch(simGrid.utmXYs, [trackOnUtmXs, trackOnUtmY]);
+        
+        curSimLoss = simPLsForGrid(indicesGridPtsForTrackOne);
+        curMeasLosses = contiPathLossesWithGpsInfo{1}(:, 1);
+        
+        idxTrack = 1;
+        % Load history TX to RX distance.
+        curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
+            ['rxLoc_meas_', num2str(idxTrack), '.csv']));
+        curRxToTx3DDistInM ...
+            = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+        
+        curRxToTx3DDistInM ...
+            = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+        [~, indicesSortByDist] ...
+            = sort(curRxToTx3DDistInM);
+        
+        [~, curBestShift, ...
+            curMultiFactor] ...
+            = calibrateSimPlsWithMeas(curSimLoss(indicesSortByDist), ...
+            curMeasLosses(indicesSortByDist));
+        
+        simGridPlShiftAmount = curBestShift;
+        simGridPlMultiFactor = curMultiFactor;
+        simPLsForGridCalibrated = simPLsForGrid.*curMultiFactor ...
+            + curBestShift;
+    case 'cleanedmeasongrid'
+        simPLsForGridAsCali = cell(numOfTracks, 1);
+        for idxTrack = 1:numOfTracks
+            [trackOnUtmXs, trackOnUtmY] = deg2utm( ...
+                contiPathLossesWithGpsInfo{idxTrack}(:, 2), ...
+                contiPathLossesWithGpsInfo{idxTrack}(:, 3));
+            indicesGridPtsForCurTrack ...
+                = knnsearch(simGrid.utmXYs, [trackOnUtmXs, trackOnUtmY]);
+            
+            simPLsForGridAsCali{idxTrack} ...
+                = simPLsForGrid(indicesGridPtsForCurTrack);
+        end
+        allSimPLsForGridAsCali = vertcat(simPLsForGridAsCali{:});
+        
+        allContiPathLossesWithGpsInfo ...
+            = vertcat(contiPathLossesWithGpsInfo{:});
+        [~, curBestShift, ...
+            curMultiFactor] = calibrateSimPlsWithMeas( ...
+            allSimPLsForGridAsCali, ...
+            allContiPathLossesWithGpsInfo(:, 1));
+        
+        simGridPlShiftAmount = curBestShift;
+        simGridPlMultiFactor = curMultiFactor;
+        simPLsForGridCalibrated = simPLsForGrid.*curMultiFactor ...
+            + curBestShift;
     otherwise
         error(['Unknown calibration method: ', simGridLossCalibMethod]);
 end
@@ -1424,7 +1464,7 @@ curSimLoss = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
     .siteSpecificModelCPredictionsInDbNewCalibratedShift, ...
     simGridPredResults ...
     .siteSpecificModelCPredictionsInDbNewCalibratedMultiFactor] ...
-    = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
+    = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses, 'both');
 
 sscVsSimZsNewShifted ...
     = simGridPredResults.siteSpecificModelCPredictionsInDbNewCalibrated ...
@@ -1437,9 +1477,10 @@ curSimLoss = simGridPredResults.ituPredictionsInDbNew;
 [simGridPredResults.ituPredictionsInDbNewCalibrated, ...
     simGridPredResults.ituPredictionsInDbNewCalibratedShift, ...
     simGridPredResults.ituPredictionsInDbNewCalibratedMultiFactor] ...
-    = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
+    = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses, 'both');
 
-ituVsSimZsNewShifted = simGridPredResults.ituPredictionsInDbNewCalibrated ...
+ituVsSimZsNewShifted ....
+    = simGridPredResults.ituPredictionsInDbNewCalibrated ...
     - simPLsForGridCalibrated;
 
 % For plotting in the same path loss range.
@@ -1500,10 +1541,10 @@ saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
 % For the calibrated (according to the model predictions) ones.
 hFigOverviewForSimPLsForGrid ...
-    = plotPathLossDiff([simGridLons, simGridLats, ituVsSimZsNewShifted], ...
+    = plotPathLossDiff([simGridLons, ...
+    simGridLats, ituVsSimZsNewShifted], ...
     'New ITU Shifted', curColorRange, [lonTx, latTx], ...
     [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
-figure(hFigOverviewForSimPLsForGrid);
 hTitleStr = get(get(gca, 'title'), 'string');
 title({['shift = ', num2str( ...
     simGridPredResults ...
@@ -1516,25 +1557,26 @@ curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewItuCalibratedVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
-hFigSimPLsCalibratedForGrid= figure; hold on;
+hFigSimPLsCalibratedForGrid = figure('visible', ~flagGenFigSilently);
+hold on;
 hOldSim = plot(simGridPredResults.distsToTxInM3d, ...
     simPLsForGridCalibrated, 'r*');
-hSimCaliByItu = plot(simGridPredResults.distsToTxInM3d, ...
+hItuBySimCali = plot(simGridPredResults.distsToTxInM3d, ...
     simGridPredResults ...
     .ituPredictionsInDbNewCalibrated, 'go');
 hItu = plot(simGridPredResults.distsToTxInM3d, simGridPredResults ...
     .ituPredictionsInDbNew, 'b.');
-legend([hOldSim, hSimCaliByItu, hItu], 'Sim', 'Sim Cali by ITU', 'ITU');
+legend([hOldSim, hItuBySimCali, hItu], 'Sim', 'ITU Cali by Sim', 'ITU');
 grid on; grid minor;
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'ccomparisonForGridNewSiteSpecificCCalibratedVsSim_PlOverDist.png');
+    'comparisonForGridNewSiteSpecificCCalibratedVsSim_PlOverDist.png');
 saveas(hFigSimPLsCalibratedForGrid, curFigPath);
 
 hFigOverviewForSimPLsForGrid ...
-    = plotPathLossDiff([simGridLons, simGridLats, sscVsSimZsNewShifted], ...
+    = plotPathLossDiff([simGridLons, ...
+    simGridLats, sscVsSimZsNewShifted], ...
     'New SS-C Shifted', curColorRange, [lonTx, latTx], ...
     [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
-figure(hFigOverviewForSimPLsForGrid);
 hTitleStr = get(get(gca, 'title'), 'string');
 title({['shift = ', num2str( ...
     simGridPredResults ...
@@ -1547,14 +1589,16 @@ curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewSiteSpecificCCalibratedVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
-hFigSimPLsCalibratedForGrid= figure; hold on;
+hFigSimPLsCalibratedForGrid= figure('visible', ~flagGenFigSilently);
+hold on;
 hOldSim = plot(simGridPredResults.distsToTxInM3d, ...
     simPLsForGridCalibrated, 'r*');
-hSimCaliBySsc = plot(simGridPredResults.distsToTxInM3d, simGridPredResults ...
+hSscCaliBySim = plot(simGridPredResults.distsToTxInM3d, ....
+    simGridPredResults ...
     .siteSpecificModelCPredictionsInDbNewCalibrated, 'go');
 hSsc = plot(simGridPredResults.distsToTxInM3d, simGridPredResults ...
-    .siteSpecificModelCPredictionsInDbNewCalibrated, 'b.');
-legend([hOldSim, hSimCaliBySsc, hSsc], 'Sim', 'Sim Cali by SS-C', 'SS-C');
+    .siteSpecificModelCPredictionsInDbNew, 'b.');
+legend([hOldSim, hSscCaliBySim, hSsc], 'Sim', 'SS-C Cali by Sim', 'SS-C');
 grid on; grid minor;
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewItuCalibratedVsSim_PlOverDist.png');
@@ -1853,7 +1897,7 @@ legend([hItuNew, hSscNew], ...
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'windowedRmse.png');
-saveas(hFigPathLossOverDist, curFigPath);
+saveas(hFigWindowedRmse, curFigPath);
 
 % For site-specific C model on measurements: path loss vs RX-to-TX
 % distance. We will plot both the results for the old parameter values and
