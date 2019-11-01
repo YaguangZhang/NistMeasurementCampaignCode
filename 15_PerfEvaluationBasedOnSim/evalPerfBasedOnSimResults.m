@@ -140,8 +140,24 @@ figAxisToSet = [-105.2774429259207, -105.2744429246357, ...
     39.9893839683981, 39.9915745444857];
 
 % Calibrate the simulation results for the grid according to close-in
-% "FSPL" or "cleanedMeas".
-simGridLossCalibMethod = 'FSPL';
+% 'FSPL', 'cleanedMeas', or 'trackOneOnGrid':
+%   - FSPL
+%     We will find a close-in reference point and shift the simulation
+%     results for the grid as a whole so that at the reference point the
+%     simulation result will agree with FSPL.
+%   - cleanedMeas
+%     We will find a shift for the whole grid simulation results according
+%     to the best shift and multiplication factor from the simulation
+%     results for the cleaned data set.
+%   - trackOneOnGrid
+%     We will find the nearest neighbor grid point for each measurement
+%     location on track 1 and calibrate the grid simulation results
+%     according to those on the fetched locations (compared to the cleaned
+%     measurement data).
+%   - cleanedMeasOnGrid
+%     Similar to 'trackOneOnGrid', but instead of using only track 1, we
+%     will use all the cleaned measurement data.
+simGridLossCalibMethod = 'cleanedMeas';
 
 %% Before Processing the Data
 
@@ -1128,9 +1144,12 @@ disp('    Done!');
 disp(' ');
 disp('    Comparisons with the simulation results for the big grid...');
 
+MULTIPLICATION_FACTOR = 1;
+
 % The simulation results for the extended RX location grid.
 simPLsForGridOrig ...
-    = loadSimLossFromExcel(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
+    = loadSimLossFromExcel(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID, ...
+    MULTIPLICATION_FACTOR);
 % simResultsForGridTable = readtable(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
 %  simPLsForGridOrig = simResultsForGridTable.simLoss_dB_;
 
@@ -1145,7 +1164,7 @@ else
     simPLsForGrid = simPLsForGridOrig;
 end
 
-% Fit simulation results to FSPL at 1 m reference point.
+
 [~, gridRawDataFilename, ~] ...
     = fileparts(ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID);
 if strcmp(gridRawDataFilename, 'var_grnd_grid_propagation_stats_20191026' )
@@ -1157,7 +1176,8 @@ end
 % Calibrate the simulation results for the grid.
 switch lower(simGridLossCalibMethod)
     case 'fspl'
-        % Find the index for the LoS 1-m close-in reference point.
+        % Fit simulation results to FSPL at 1 m reference point. First,
+        % find the index for the LoS 1-m close-in reference point.
         CLOSE_IN_REF_POINT_DIST_IN_M = 1;
         
         boolsGridPtsOutofWood = inpolygon(simGridLons, simGridLats, ...
@@ -1187,7 +1207,8 @@ switch lower(simGridLossCalibMethod)
                 = dirsToLoadSimResultsForEachTrack{idxTrack};
             if ~isempty(curDirToLoadSimResults)
                 simLossForMeas{idxTrack} ...
-                    = loadSimLossFromExcel(curDirToLoadSimResults);
+                    = loadSimLossFromExcel(curDirToLoadSimResults, ...
+                    MULTIPLICATION_FACTOR);
                 
                 assert(all(~isnan(simLossForMeas{idxTrack})), ...
                     'NaN value found in simulation results!');
@@ -1204,15 +1225,8 @@ switch lower(simGridLossCalibMethod)
         expectedNumOfSamps = length(curMeasLosses);
         curSimLoss = allSimPlForMeasCleaned;
         
-        assert(length(curSimLoss)==expectedNumOfSamps, ...
-            'Unexpected number of simulation results!');
-        mseFct = @(shift) sum((curSimLoss+shift-curMeasLosses).^2)...
-            /expectedNumOfSamps;
-        
-        minShift = min(curMeasLosses)-max(curSimLoss);
-        maxShift = max(curMeasLosses)-min(curSimLoss);
-        curBestShift = fminsearch(mseFct, minShift);
-        curShiftedSim = curSimLoss+curBestShift;
+        [curCalibratedSim, curBestShift, curMultiFactor] ...
+            = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
         
         % Plot RMSD vs shift around the best shift value.
         curFigFilenamePrefix = 'SimVsMeas_MeasCleaned';
@@ -1229,8 +1243,9 @@ switch lower(simGridLossCalibMethod)
         xlabel('Shift Value (dB)'); ylabel('RMSD (dB)');
         grid on; grid minor; axis equal;
         legend('Best shift value');
-        title({['Best Shift Value = ', ...
-            num2str(curBestShift, '%.2f'), ' dB']; ...
+        title({['shift = ', ...
+            num2str(curBestShift, '%.2f'), ' dB, multiFactor = ', ...
+            num2str(curMultiFactor, '%.2f')]; ...
             ['Best RMSD = ', num2str(bestRmsd, '%.2f'), ' dB']});
         pathToSaveCurFig = fullfile(curAbsPathToSavePlots, ...
             [curFigFilenamePrefix, '_RmsdInspection_Track_', ...
@@ -1241,7 +1256,7 @@ switch lower(simGridLossCalibMethod)
         % Plot simulation results with measurements.
         hFigSimVsMeasByIdx = figure('visible', ~flagGenFigSilently);
         hold on;
-        hSim = plot(1:expectedNumOfSamps, curShiftedSim, 'x');
+        hSim = plot(1:expectedNumOfSamps, curCalibratedSim, 'x');
         hMeas = plot(1:expectedNumOfSamps, curMeasLosses, '.');
         xlabel('Sample'); ylabel('RMSD (dB)');
         grid on; grid minor; axis tight;
@@ -1270,7 +1285,7 @@ switch lower(simGridLossCalibMethod)
         hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
         hold on;
         if ~isempty(xs)
-            hSim = plot(xs, curShiftedSim(indicesSortByDist), 'x-');
+            hSim = plot(xs, curCalibratedSim(indicesSortByDist), 'x-');
             hMeas = plot(xs, curMeasLosses(indicesSortByDist), '.--');
         end
         xlabel('3D RX-to-TX Distance (m)'); ylabel('RMSD (dB)');
@@ -1286,7 +1301,9 @@ switch lower(simGridLossCalibMethod)
         saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
         
         simGridPlShiftAmount = curBestShift;
-        simPLsForGridCalibrated = simPLsForGrid + simGridPlShiftAmount;
+        simGridPlMultiFactor = curMultiFactor;
+        simPLsForGridCalibrated = simPLsForGrid.*curMultiFactor ...
+            + simGridPlShiftAmount;
     otherwise
         error(['Unknown calibration method: ', simGridLossCalibMethod]);
 end
@@ -1376,33 +1393,33 @@ fspsVsSimZs = simGridPredResults.fsplInDb - simPLsForGridCalibrated;
 % Shift the new ITU and site-specific C results to see what the best fit
 % will look like.
 
-% We will treat the simulation results as the ground truth.
+% We will treat the simulation results as the ground truth and calibrate
+% the model predictions to see the best poissible agreement that could be
+% achieved. First, for the site-specific C model.
 curMeasLosses = simPLsForGridCalibrated;
 curSimLoss = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
 
-mseFct = @(shift) mean((curSimLoss+shift-curMeasLosses).^2);
-
-minShift = min(curMeasLosses)-max(curSimLoss);
-maxShift = max(curMeasLosses)-min(curSimLoss);
-curBestShift = fminsearch(mseFct, minShift, optimset('MaxFunEvals',100000));
-simGridPredResults.siteSpecificModelCPredictionsInDbNewShifted ...
-    = curSimLoss+curBestShift;
+[simGridPredResults.siteSpecificModelCPredictionsInDbNewCalibrated, ...
+    simGridPredResults ...
+    .siteSpecificModelCPredictionsInDbNewCalibratedShift, ...
+    simGridPredResults ...
+    .siteSpecificModelCPredictionsInDbNewCalibratedMultiFactor] ...
+    = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
 
 sscVsSimZsNewShifted ...
-    = simGridPredResults.siteSpecificModelCPredictionsInDbNewShifted ...
+    = simGridPredResults.siteSpecificModelCPredictionsInDbNewCalibrated ...
     - simPLsForGridCalibrated;
 
+% Now for the ITU model.
 curMeasLosses = simPLsForGridCalibrated;
 curSimLoss = simGridPredResults.ituPredictionsInDbNew;
 
-mseFct = @(shift) mean((curSimLoss+shift-curMeasLosses).^2);
+[simGridPredResults.ituPredictionsInDbNewCalibrated, ...
+    simGridPredResults.ituPredictionsInDbNewCalibratedShift, ...
+    simGridPredResults.ituPredictionsInDbNewCalibratedMultiFactor] ...
+    = calibrateSimPlsWithMeas(curSimLoss, curMeasLosses);
 
-minShift = min(curMeasLosses)-max(curSimLoss);
-maxShift = max(curMeasLosses)-min(curSimLoss);
-curBestShift = fminsearch(mseFct, minShift);
-simGridPredResults.ituPredictionsInDbNewShifted = curSimLoss+curBestShift;
-
-ituVsSimZsNewShifted = simGridPredResults.ituPredictionsInDbNewShifted ...
+ituVsSimZsNewShifted = simGridPredResults.ituPredictionsInDbNewCalibrated ...
     - simPLsForGridCalibrated;
 
 % For plotting in the same path loss range.
@@ -1461,23 +1478,67 @@ curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridFsplVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
 
+% For the calibrated (according to the model predictions) ones.
 hFigOverviewForSimPLsForGrid ...
     = plotPathLossDiff([simGridLons, simGridLats, ituVsSimZsNewShifted], ...
     'New ITU Shifted', curColorRange, [lonTx, latTx], ...
     [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
-
+figure(hFigOverviewForSimPLsForGrid);
+hTitleStr = get(get(gca, 'title'), 'string');
+title({['shift = ', num2str( ...
+    simGridPredResults ...
+    .ituPredictionsInDbNewCalibratedShift), ...
+    ' dB, multiFactor = ', num2str( ...
+    simGridPredResults ...
+    .ituPredictionsInDbNewCalibratedMultiFactor)]; ...,
+    hTitleStr});
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'comparisonForGridNewItuShiftedVsSim.png');
+    'comparisonForGridNewItuCalibratedVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
+
+hFigSimPLsCalibratedForGrid= figure; hold on;
+hOldSim = plot(simGridPredResults.distsToTxInM3d, ...
+    simPLsForGridCalibrated, 'r*');
+hSimCaliByItu = plot(simGridPredResults.distsToTxInM3d, ...
+    simGridPredResults ...
+    .ituPredictionsInDbNewCalibrated, 'go');
+hItu = plot(simGridPredResults.distsToTxInM3d, simGridPredResults ...
+    .ituPredictionsInDbNew, 'b.');
+legend([hOldSim, hSimCaliByItu, hItu], 'Sim', 'Sim Cali by ITU', 'ITU');
+grid on; grid minor;
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'ccomparisonForGridNewSiteSpecificCCalibratedVsSim_PlOverDist.png');
+saveas(hFigSimPLsCalibratedForGrid, curFigPath);
 
 hFigOverviewForSimPLsForGrid ...
     = plotPathLossDiff([simGridLons, simGridLats, sscVsSimZsNewShifted], ...
     'New SS-C Shifted', curColorRange, [lonTx, latTx], ...
     [markLocs(:,2), markLocs(:,1)], flagGenFigSilently);
-
+figure(hFigOverviewForSimPLsForGrid);
+hTitleStr = get(get(gca, 'title'), 'string');
+title({['shift = ', num2str( ...
+    simGridPredResults ...
+    .siteSpecificModelCPredictionsInDbNewCalibratedShift), ...
+    ' dB, multiFactor = ', num2str( ...
+    simGridPredResults ...
+    .siteSpecificModelCPredictionsInDbNewCalibratedMultiFactor)]; ...,
+    hTitleStr});
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'comparisonForGridNewSiteSpecificCShiftedVsSim.png');
+    'comparisonForGridNewSiteSpecificCCalibratedVsSim.png');
 saveas(hFigOverviewForSimPLsForGrid, curFigPath);
+
+hFigSimPLsCalibratedForGrid= figure; hold on;
+hOldSim = plot(simGridPredResults.distsToTxInM3d, ...
+    simPLsForGridCalibrated, 'r*');
+hSimCaliBySsc = plot(simGridPredResults.distsToTxInM3d, simGridPredResults ...
+    .siteSpecificModelCPredictionsInDbNewCalibrated, 'go');
+hSsc = plot(simGridPredResults.distsToTxInM3d, simGridPredResults ...
+    .siteSpecificModelCPredictionsInDbNewCalibrated, 'b.');
+legend([hOldSim, hSimCaliBySsc, hSsc], 'Sim', 'Sim Cali by SS-C', 'SS-C');
+grid on; grid minor;
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'comparisonForGridNewItuCalibratedVsSim_PlOverDist.png');
+saveas(hFigSimPLsCalibratedForGrid, curFigPath);
 
 % Plot diff vs TX-to-RX distance.
 hFigDiffVsTxToRxDist = figure('visible', ~flagGenFigSilently);
@@ -1503,6 +1564,8 @@ end
 disp('    Done!');
 
 %% Extra Plots
+
+disp('    Generating extra plots...');
 
 % We will use surf for the path loss results.
 simConfigs.UTM_X_Y_BOUNDARY_OF_INTEREST ...
@@ -1732,7 +1795,7 @@ hModItu = plot(rxToTxDistsInM3d, ...
     simGridPredResults.ituPredictionsInDbNew, 'g.');
 legend([hSim, hModItu, hModSsc], ...
     'Simulation', 'New ITU', 'New SS-C', 'Location', 'southeast');
-grid on; grid minor; 
+grid on; grid minor;
 xlabel('RX to TX distance (m)'); ylabel('Path loss (dB)');
 
 curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
@@ -1763,7 +1826,7 @@ end
 hFigWindowedRmse = figure('visible', ~flagGenFigSilently); hold on;
 hItuNew = plot(curXs, rmsesItuNew, 'r*--');
 hSscNew = plot(curXs, rmsesSscNew, 'b.-');
-grid on; grid minor; 
+grid on; grid minor;
 xlabel('RX to TX distance (m)'); ylabel('Windowed RMSE (dB)');
 legend([hItuNew, hSscNew], ...
     'New ITU', 'New SS-C', 'Location', 'southeast');
@@ -1784,8 +1847,12 @@ if flagGenFigSilently
     close all;
 end
 
+disp('    Done!');
+
 %% Save Workspace for Manual Inspection
+disp('    Saving workspace for future inspectation...')
 save(fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'workspace.mat'));
+disp('    Done!');
 
 % EOF
