@@ -557,41 +557,44 @@ flagGenFigsForAttennaBeam = false;
 %% Clean Measurement Data
 % We will find indices for discarding samples out of the first null range
 % when necessary.
-
-numOfTracks = length(contiPathLossesWithGpsInfo);
-boolsToKeepMeas = cell(numOfTracks,1);
-for idxTrack = 1:numOfTracks
-    curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
-    curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
-    boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
-        fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
-        fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
-end
-
-curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, 'simVsMeasLess');
-genEvalPerfFigsForMeas;
-
-%% Further Clean Measurement Data
-% We will find indices for discarding samples out of the first null range
-% when necessary. Furthermore, we will discard track 6.
-
-numOfTracks = length(contiPathLossesWithGpsInfo);
-boolsToKeepMeas = cell(numOfTracks,1);
-for idxTrack = 1:numOfTracks
-    curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
-    curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
-    if idxTrack == 6
-        boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
-    else
+if false
+    numOfTracks = length(contiPathLossesWithGpsInfo);
+    boolsToKeepMeas = cell(numOfTracks,1);
+    for idxTrack = 1:numOfTracks
+        curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
+        curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
         boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
             fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
             fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
     end
+
+    curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'simVsMeasLess');
+    genEvalPerfFigsForMeas;
 end
 
-curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'simVsMeasLessNoTrackSix');
-genEvalPerfFigsForMeas;
+%% Further Clean Measurement Data
+% We will find indices for discarding samples out of the first null range
+% when necessary. Furthermore, we will discard track 6.
+if false
+    numOfTracks = length(contiPathLossesWithGpsInfo);
+    boolsToKeepMeas = cell(numOfTracks,1);
+    for idxTrack = 1:numOfTracks
+        curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
+        curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
+        if idxTrack == 6
+            boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
+        else
+            boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
+                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
+                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
+        end
+    end
+    
+    curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'simVsMeasLessNoTrackSix');
+    genEvalPerfFigsForMeas;
+end
 
 %% Furthest Clean Measurement Data
 % We will find indices for discarding samples out of the first null range
@@ -599,43 +602,43 @@ genEvalPerfFigsForMeas;
 % segments with too much GPS errors, and results over the maximum
 % measurable path loss.
 if false
-MAX_MEASURABLE_PATH_LOSS_IN_DB = 182;
-numOfTracks = length(contiPathLossesWithGpsInfo);
-boolsToKeepMeas = cell(numOfTracks,1);
-for idxTrack = 1:numOfTracks
-    curPathLosses = contiPathLossesWithGpsInfo{idxTrack}(:, 1);
-    curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
-    curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
-    if idxTrack >= 6
-        boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
-    else
-        boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
-            fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
-            fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
-        if idxTrack == 1
-            indicesToDiscardOnTrackFive = 34:40;
-            boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
-                = false(length(indicesToDiscardOnTrackFive), 1);
-        elseif idxTrack == 2
-            indicesToDiscardOnTrackFive = 132:152;
-            boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
-                = false(length(indicesToDiscardOnTrackFive), 1);
-        elseif idxTrack == 5
-            indicesToDiscardOnTrackFive = 42:58;
-            boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
-                = false(length(indicesToDiscardOnTrackFive), 1);
+    MAX_MEASURABLE_PATH_LOSS_IN_DB = 182;
+    numOfTracks = length(contiPathLossesWithGpsInfo);
+    boolsToKeepMeas = cell(numOfTracks,1);
+    for idxTrack = 1:numOfTracks
+        curPathLosses = contiPathLossesWithGpsInfo{idxTrack}(:, 1);
+        curLats = contiPathLossesWithGpsInfo{idxTrack}(:, 2);
+        curLons = contiPathLossesWithGpsInfo{idxTrack}(:, 3);
+        if idxTrack >= 6
+            boolsToKeepMeas{idxTrack} = false(length(curLons), 1);
+        else
+            boolsToKeepMeas{idxTrack} = inpolygon(curLons, curLats, ...
+                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
+                fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
+            if idxTrack == 1
+                indicesToDiscardOnTrackFive = 34:40;
+                boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
+                    = false(length(indicesToDiscardOnTrackFive), 1);
+            elseif idxTrack == 2
+                indicesToDiscardOnTrackFive = 132:152;
+                boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
+                    = false(length(indicesToDiscardOnTrackFive), 1);
+            elseif idxTrack == 5
+                indicesToDiscardOnTrackFive = 42:58;
+                boolsToKeepMeas{idxTrack}(indicesToDiscardOnTrackFive) ...
+                    = false(length(indicesToDiscardOnTrackFive), 1);
+            end
+            
+            indicesTooBigPathLoss = find( ...
+                curPathLosses>MAX_MEASURABLE_PATH_LOSS_IN_DB);
+            boolsToKeepMeas{idxTrack}(indicesTooBigPathLoss) ...
+                = false(length(indicesTooBigPathLoss), 1);
         end
-        
-        indicesTooBigPathLoss = find( ...
-            curPathLosses>MAX_MEASURABLE_PATH_LOSS_IN_DB);
-        boolsToKeepMeas{idxTrack}(indicesTooBigPathLoss) ...
-            = false(length(indicesTooBigPathLoss), 1);
     end
-end
-
-curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
-    'simVsMeasLessNoTraverseTracks');
-genEvalPerfFigsForMeas;
+    
+    curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+        'simVsMeasLessNoTraverseTracks');
+    genEvalPerfFigsForMeas;
 end
 %% Prepare Results for Cleaned Measurements
 
@@ -1340,16 +1343,17 @@ switch lower(simGridLossCalibMethod)
         simPLsForGridCalibrated = simPLsForGrid.*curMultiFactor ...
             + curBestShift;
     case 'cleanedmeasongrid'
-        simPLsForGridAsCali = cell(numOfTracks, 1);
+        [simPLsForGridAsCali, indicesGridPtsForCurTrack] ....
+            = deal(cell(numOfTracks, 1));
         for idxTrack = 1:numOfTracks
             [trackOnUtmXs, trackOnUtmY] = deg2utm( ...
                 contiPathLossesWithGpsInfo{idxTrack}(:, 2), ...
                 contiPathLossesWithGpsInfo{idxTrack}(:, 3));
-            indicesGridPtsForCurTrack ...
+            indicesGridPtsForCurTrack{idxTrack} ...
                 = knnsearch(simGrid.utmXYs, [trackOnUtmXs, trackOnUtmY]);
             
             simPLsForGridAsCali{idxTrack} ...
-                = simPLsForGrid(indicesGridPtsForCurTrack);
+                = simPLsForGrid(indicesGridPtsForCurTrack{idxTrack});
         end
         allSimPLsForGridAsCali = vertcat(simPLsForGridAsCali{:});
         
@@ -1364,6 +1368,49 @@ switch lower(simGridLossCalibMethod)
         simGridPlMultiFactor = curMultiFactor;
         simPLsForGridCalibrated = simPLsForGrid.*curMultiFactor ...
             + curBestShift;
+        
+        % Generate comparison plots with the measurements for each track
+        % according to the grid simulation results.
+        for idxTrack = 1:numOfTracks
+            % Load history TX to RX distance.
+            curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
+                ['rxLoc_meas_', num2str(idxTrack), '.csv']));
+            curRxToTx3DDistInM ...
+                = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+            
+            [curSortedRxToTxDists, indicesSortByDist] ...
+                = sort(curRxToTx3DDistInM);
+            
+            curMeasPlsSorted = contiPathLossesWithGpsInfo{idxTrack}...
+                (boolsToKeepMeas{idxTrack});
+            curMeasPlsSorted = curMeasPlsSorted(indicesSortByDist);
+            
+            curSimPlsSorted = simPLsForGridCalibrated( ...
+                indicesGridPtsForCurTrack{idxTrack});
+            curSimPlsSorted = curSimPlsSorted(indicesSortByDist);
+            
+            curRmsd = sqrt(mean((curSimPlsSorted-curMeasPlsSorted).^2));
+            
+            % Path loss vs distance.
+            hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
+            hold on;
+            hSim = plot(curSortedRxToTxDists, ...
+                curSimPlsSorted, 'x-');
+            hMeas = plot(curSortedRxToTxDists, ...
+                curMeasPlsSorted, '.--');
+            title(['RMSD = ', num2str(curRmsd, '%.2f'), ' dB']);
+            xlabel('3D RX-to-TX Distance (m)'); ylabel('Path Loss (dB)');
+            grid on; grid minor; axis tight;
+            if ~isempty(hSim)
+                legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                    'Location', 'SouthEast');
+            end
+            pathToSaveCurFig = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+                ['GridSimResults_PlVsDist_Track_', ...
+                num2str(idxTrack), '.png']);
+            
+            saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
+        end
     otherwise
         error(['Unknown calibration method: ', simGridLossCalibMethod]);
 end
@@ -1572,7 +1619,7 @@ curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewSiteSpecificCCalibratedVsSim_PlOverDist.png');
 saveas(hFigSimPLsCalibratedForGrid, curFigPath);
 
-hFigOverviewForSimPLsForGrid ...
+hFigOverviewForSimPLsForGrid ...    
     = plotPathLossDiff([simGridLons, ...
     simGridLats, sscVsSimZsNewShifted], ...
     'New SS-C Shifted', curColorRange, [lonTx, latTx], ...
