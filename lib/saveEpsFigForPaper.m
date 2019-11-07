@@ -28,7 +28,7 @@ set(0, 'currentfigure', hFig);
 curFigureColor = get(gcf,'Color');
 set(gcf, 'Color', 'white');
 
-export_fig(epsFullPathToSave, '-eps', '-transparent'); 
+export_fig(epsFullPathToSave, '-eps'); 
 export_fig(pngFullPathToSave, '-png', '-transparent');
 
 set(gcf, 'Color', curFigureColor);

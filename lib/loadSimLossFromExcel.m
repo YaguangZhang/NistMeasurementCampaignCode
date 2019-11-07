@@ -6,7 +6,7 @@ function [ simLosses ] = loadSimLossFromExcel(absPathToExcel, ...
 % Yaguang Zhang, Purdue, 10/31/2019
 
 if ~exist('MULTIPLICATION_FACTOR', 'var')
-    MULTIPLICATION_FACTOR = 30;
+    MULTIPLICATION_FACTOR = 1;
 end
 
 % Flag to control whether to load in the raw sim results or the calibrated

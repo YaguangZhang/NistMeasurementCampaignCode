@@ -1,5 +1,5 @@
 %EVALPERFBASEDONSIMRESULTS Evaluation the performance of site-specific
-%models according to the simulation results from Lab
+%models according to the simulation results from CSLabs.
 %
 % Yaguang Zhang, Purdue, 09/13/2019
 
@@ -34,6 +34,8 @@ ABS_FILEPATH_TO_SIM_RESULTS_FOR_GRID ...
     = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
     'Data', '20191016_NistFoliageSimulationResultsForGrid', ...
     'var_grnd_grid_propagation_stats_20191029.xlsx');
+% 'var_grnd_grid_propagation_stats_20191029.xlsx' or
+% 'var_grnd_grid_propagation_stats_20191102.xlsx'.
 
 % Configure other paths accordingly.
 ABS_PATH_TO_SAVE_PLOTS = fullfile(ABS_PATH_TO_NIST_SHARED_FOLDER, ...
@@ -198,7 +200,6 @@ assert(exist(ABS_PATH_TO_BEAM_POLYGONS_FILE, 'file')==2, ...
     'Couldn''t find beamPolygons.mat! Please run 13_OutlayerInspection/inspectOutlayers.m first.');
 assert(exist(ABS_PATH_TO_MANUALLY_LABELED_TREE_LOCS, 'file')==2, ...
     'Couldn''t find treeLocs.mat! Please run NistMeasurementCampaignCode/15_PerfEvaluationBasedOnSim/manuallyLocateMoreTrees.m first.');
-
 
 % The data have been processed before and the result files have been found.
 disp('    Found all .mat files required.');
@@ -567,7 +568,7 @@ if false
             fnbwLonLatPolyshapes{idxTrack}.Vertices(:,1), ...
             fnbwLonLatPolyshapes{idxTrack}.Vertices(:,2));
     end
-
+    
     curAbsPathToSavePlots = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
         'simVsMeasLess');
     genEvalPerfFigsForMeas;
@@ -640,6 +641,7 @@ if false
         'simVsMeasLessNoTraverseTracks');
     genEvalPerfFigsForMeas;
 end
+
 %% Prepare Results for Cleaned Measurements
 
 tx3D = [xTx, yTx, ...
@@ -1371,6 +1373,9 @@ switch lower(simGridLossCalibMethod)
         
         % Generate comparison plots with the measurements for each track
         % according to the grid simulation results.
+        [allSimLossesCleanedMeasOnGrid, allMeasLossesCleanedMeasOnGrid, ...
+            allRxToTx3DDistInMCleanedMeasOnGrid] ...
+            = deal(cell(numOfTracks,1));
         for idxTrack = 1:numOfTracks
             % Load history TX to RX distance.
             curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
@@ -1390,6 +1395,11 @@ switch lower(simGridLossCalibMethod)
             curSimPlsSorted = curSimPlsSorted(indicesSortByDist);
             
             curRmsd = sqrt(mean((curSimPlsSorted-curMeasPlsSorted).^2));
+            
+            allSimLossesCleanedMeasOnGrid{idxTrack} = curSimPlsSorted;
+            allMeasLossesCleanedMeasOnGrid{idxTrack} = curMeasPlsSorted;
+            allRxToTx3DDistInMCleanedMeasOnGrid{idxTrack} ...
+                = curSortedRxToTxDists;
             
             % Path loss vs distance.
             hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
@@ -1411,6 +1421,38 @@ switch lower(simGridLossCalibMethod)
             
             saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
         end
+        
+        % An overview of the path loss vs distanace for all the tracks.
+        curSimLosses = vertcat(allSimLossesCleanedMeasOnGrid{:});
+        curMeasLosses = vertcat(allMeasLossesCleanedMeasOnGrid{:});
+        curRxToTx3DDistInM ...
+            = vertcat(allRxToTx3DDistInMCleanedMeasOnGrid{:});
+        
+        [sortedRxToTxDistsGrid, indicesSortByDist] ...
+            = sort(curRxToTx3DDistInM);
+        
+        curCalibratedSim = curSimLosses(indicesSortByDist);
+        curMeasLosses = curMeasLosses(indicesSortByDist);
+        
+        curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+        
+        % The path loss over distance plot for all data.
+        hFigSimVsMeasByDist = figure('visible', ~flagGenFigSilently);
+        hold on;
+        hSim = plot(sortedRxToTxDistsGrid, ...
+            curCalibratedSim, 'x-');
+        hMeas = plot(sortedRxToTxDistsGrid, ...
+            curMeasLosses, '.--');
+        title(['Overall RMSD = ', num2str(curRmsd, '%.2f'), ' dB']);
+        xlabel('3D RX-to-TX Distance (m)'); ylabel('Path Loss (dB)');
+        grid on; grid minor; axis tight;
+        if ~isempty(hSim)
+            legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                'Location', 'SouthEast');
+        end
+        pathToSaveCurFig = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+            'GridSimResults_PlVsDist_AllTracks.png');
+        saveas(hFigSimVsMeasByDist, pathToSaveCurFig);
     otherwise
         error(['Unknown calibration method: ', simGridLossCalibMethod]);
 end
@@ -1619,7 +1661,7 @@ curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'comparisonForGridNewSiteSpecificCCalibratedVsSim_PlOverDist.png');
 saveas(hFigSimPLsCalibratedForGrid, curFigPath);
 
-hFigOverviewForSimPLsForGrid ...    
+hFigOverviewForSimPLsForGrid ...
     = plotPathLossDiff([simGridLons, ...
     simGridLats, sscVsSimZsNewShifted], ...
     'New SS-C Shifted', curColorRange, [lonTx, latTx], ...
@@ -1964,6 +2006,461 @@ disp('    Done!');
 disp('    Saving workspace for future inspectation...')
 save(fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
     'workspace.mat'));
+disp('    Done!');
+
+%% Figures for Publication
+disp('    Generating figures for publication...')
+
+PATH_TO_SAVE_FIGS_FOR_PUBLICATION = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'epsFigsForPublication');
+if exist(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, 'dir')~=7
+    mkdir(PATH_TO_SAVE_FIGS_FOR_PUBLICATION);
+end
+
+customFigSize = [500, 500];
+
+% Raw sim peak difference vs dist for tracks 1 and 8.
+curTracksOfInterest = [1,8];
+figSizeToSetForRawSim = [500, 235];
+for idxTrack = curTracksOfInterest
+    curDirToLoadSimResults = dirsToLoadSimResultsForEachTrack{idxTrack};
+    if ~isempty(curDirToLoadSimResults)
+        curSimLosses = loadSimLossFromExcel(curDirToLoadSimResults, 1);
+        curSimLosses = curSimLosses(boolsToKeepMeas{idxTrack});
+        
+        assert(all(~isnan(curSimLosses)), ...
+            'NaN value found in simulation results!');
+        
+        curMeasLosses = curContiPathLossesWithGpsInfo{idxTrack}(:,1);
+        expectedNumOfSamps = length(curMeasLosses);
+        
+        % Load history TX to RX distance.
+        curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
+            ['rxLoc_meas_', num2str(idxTrack), '.csv']));
+        curRxToTx3DDistInM ...
+            = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+        
+        [curSortedRxToTxDists, indicesSortByDist] ...
+            = sort(curRxToTx3DDistInM);
+        
+        curSimLosses = curSimLosses(indicesSortByDist);
+        curMeasLosses = curMeasLosses(indicesSortByDist);
+        
+        if expectedNumOfSamps>0
+            % Plot raw simulation results and meassurements in the same
+            % plot.
+            hFigRawSimVsMeasByDist ...
+                = figure('visible', ~flagGenFigSilently, ...
+                'Position', [0,0,customFigSize]);
+            hCurAxis = gca;
+            hold on; set(hCurAxis, 'fontWeight', 'bold');
+            yyaxis left;
+            hSim = plot(curSortedRxToTxDists, curSimLosses, 'x--');
+            % axis tight;
+            xlabel('RX-to-TX Distance (m)');
+            ylabel({'Ray Sampling Count'; 'Difference (dB)'});
+            yyaxis right;
+            hMeas = plot(curSortedRxToTxDists, curMeasLosses, '.-');
+            % axis tight;
+            ylabel('Path Loss (dB)');
+            grid on; grid minor;
+            legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+                'Location', 'southeast');
+            adjustFigSizeByContent(hFigRawSimVsMeasByDist, axis, 'Width');
+            set(hFigRawSimVsMeasByDist, ...
+                'Position', [0, 0, figSizeToSetForRawSim]);
+            pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+                ['RawSimVsMeasByDist_Track_', ...
+                num2str(idxTrack)]);
+            
+            saveEpsFigForPaper(hFigRawSimVsMeasByDist, pathToSaveCurFig);
+        end
+    end
+end
+
+% Path loss vs dist for all tracks: the track-by-track calibration case.
+
+% Path loss vs dist for all tracks: the one calibration for the whole grid
+% case.
+if strcmpi(simGridLossCalibMethod, 'cleanedmeasongrid') && false
+    curSimLosses = vertcat(allSimLossesCleanedMeasOnGrid{:});
+    curMeasLosses = vertcat(allMeasLossesCleanedMeasOnGrid{:});
+    curRxToTx3DDistInM ...
+        = vertcat(allRxToTx3DDistInMCleanedMeasOnGrid{:});
+    
+    [sortedRxToTxDistsGrid, indicesSortByDist] ...
+        = sort(curRxToTx3DDistInM);
+    
+    curCalibratedSim = curSimLosses(indicesSortByDist);
+    curMeasLosses = curMeasLosses(indicesSortByDist);
+    lambda = physconst( 'LightSpeed' )/(F_C_IN_GHZ*10^9);
+    curFspl = fspl(sortedRxToTxDistsGrid, lambda);
+    
+    curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+    
+    % The path loss over distance plot for all data.
+    hFigSimGridVsMeasByDist = figure('visible', ~flagGenFigSilently, ...
+        'Position', [0,0,customFigSize].*0.8);
+    hCurAxis = gca;
+    hold on; set(hCurAxis, 'fontWeight', 'bold');
+    hSim = plot(sortedRxToTxDistsGrid, ...
+        curCalibratedSim-curFspl, 'x');
+    hMeas = plot(sortedRxToTxDistsGrid, ...
+        curMeasLosses-curFspl, '.');
+    % title(['Overall RMSD = ', num2str(curRmsd, '%.2f'), ' dB']);
+    xlabel('RX-to-TX Distance (m)'); ylabel('Excess Path Loss (dB)');
+    grid on; grid minor; axis tight;
+    adjustFigSizeByContent(hFigAreaOfInterest, axis, 'width');
+    if ~isempty(hSim)
+        legend([hSim, hMeas], 'Simulation', 'Measurement', ...
+            'Location', 'SouthEast');
+    end
+    
+    pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+        'simGridResultsVsMeas');
+    saveEpsFigForPaper(hFigSimGridVsMeasByDist, pathToSaveCurFig);
+end
+
+% Save RMSE for each track and the overall RMSE to a txt file with & as
+% delimiter (for use of latex): the track-by-track calibration case.
+curRmsdsStr = '';
+for idxTrack =1:numOfTracks
+    curDirToLoadSimResults = dirsToLoadSimResultsForEachTrack{idxTrack};
+    if ~isempty(curDirToLoadSimResults)
+        curSimLosses = loadSimLossFromExcel(curDirToLoadSimResults, 1);
+        curSimLosses = curSimLosses(boolsToKeepMeas{idxTrack});
+        
+        assert(all(~isnan(curSimLosses)), ...
+            'NaN value found in simulation results!');
+        
+        curMeasLosses = curContiPathLossesWithGpsInfo{idxTrack}(:,1);
+        expectedNumOfSamps = length(curMeasLosses);
+        
+        % Load history TX to RX distance.
+        curRxLocCsv = readtable(fullfile(ABS_PATH_TO_SIM_CSV_FILES, ...
+            ['rxLoc_meas_', num2str(idxTrack), '.csv']));
+        curRxToTx3DDistInM ...
+            = curRxLocCsv.rxToTx3DDistInM(boolsToKeepMeas{idxTrack});
+        
+        [curSortedRxToTxDists, indicesSortByDist] ...
+            = sort(curRxToTx3DDistInM);
+        
+        curSimLosses = curSimLosses(indicesSortByDist);
+        curMeasLosses = curMeasLosses(indicesSortByDist);
+        
+        [curCalibratedSim, curBestShift, curMultiFactor] ...
+            = calibrateSimPlsWithMeas(curSimLosses, curMeasLosses);
+        curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+        
+        curRmsdsStr ...
+            = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+        
+        curAllSimLosses{idxTrack} = curCalibratedSim;
+        curAllMeasLosses{idxTrack} = curMeasLosses;
+    end
+end
+
+% The overall RMSE for the first 5 tracks.
+curCalibratedSim = vertcat(curAllSimLosses{1:5});
+curMeasLosses = vertcat(curAllMeasLosses{1:5});
+curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+
+curRmsdsStr = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+
+% The overall RMSE for the last 5 tracks.
+curCalibratedSim = vertcat(curAllSimLosses{6:10});
+curMeasLosses = vertcat(curAllMeasLosses{6:10});
+curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+
+curRmsdsStr = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+
+% The overall RMSE.
+curCalibratedSim = vertcat(curAllSimLosses{:});
+curMeasLosses = vertcat(curAllMeasLosses{:});
+curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+
+curRmsdsStr = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+
+pathToSaveCurMat = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'TrackWiseRmses.txt');
+fid = fopen(pathToSaveCurMat, 'w');
+fprintf(fid, curRmsdsStr);
+fclose(fid);
+
+% Save RMSE for each track to a txt file with & as delimiter (for use of
+% latex): the one calibration for the whole grid case.
+if strcmpi(simGridLossCalibMethod, 'cleanedmeasongrid')
+    curRmsdsStr = '';
+    for idxTrack =1:numOfTracks
+        curCalibratedSim = allSimLossesCleanedMeasOnGrid{idxTrack};
+        curMeasLosses = allMeasLossesCleanedMeasOnGrid{idxTrack};
+        
+        curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+        
+        curRmsdsStr ...
+            = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+    end
+    
+    % The overall RMSE for the first 5 tracks.
+    curCalibratedSim = vertcat(allSimLossesCleanedMeasOnGrid{1:5});
+    curMeasLosses = vertcat(allMeasLossesCleanedMeasOnGrid{1:5});
+    curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+    
+    curRmsdsStr = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+    
+    % The overall RMSE for the last 5 tracks.
+    curCalibratedSim = vertcat(allSimLossesCleanedMeasOnGrid{6:10});
+    curMeasLosses = vertcat(allMeasLossesCleanedMeasOnGrid{6:10});
+    curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+    
+    curRmsdsStr = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+    
+    % The overall RMSE.
+    curCalibratedSim = vertcat(allSimLossesCleanedMeasOnGrid{:});
+    curMeasLosses = vertcat(allMeasLossesCleanedMeasOnGrid{:});
+    curRmsd = sqrt(mean((curCalibratedSim-curMeasLosses).^2));
+    
+    curRmsdsStr = [curRmsdsStr, ' & ', num2str(curRmsd, '%.1f')];
+    
+    pathToSaveCurMat = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+        'TrackWiseRmses_Grid.txt');
+    fid = fopen(pathToSaveCurMat, 'w');
+    fprintf(fid, curRmsdsStr);
+    fclose(fid);
+end
+
+% The grid with measured locs.
+allContiPathLossesWithGpsInfo ...
+    = vertcat(contiPathLossesWithGpsInfo{:});
+rxLons = allContiPathLossesWithGpsInfo(:,3);
+rxLats = allContiPathLossesWithGpsInfo(:,2);
+
+% A UTM plot for determining the axis to set.
+hFigAreaOfInterest = figure('visible', false); hold on;
+hAreaOfInterest = plot( ...
+    simGrid.xYRangePolyshape, ...
+    'FaceColor', areaOfInterestColor);
+hGridPts = plot(simGrid.utmXYs(:,1), ...
+    simGrid.utmXYs(:,2), '.b', 'MarkerSize', 3, 'Color', darkBlue);
+axis equal; view(2);
+adjustFigSizeByContent(hFigAreaOfInterest, axis, 'width');
+axisToSetUtm = axis;
+figPosToSet = get(hFigAreaOfInterest, 'Position');
+close(hFigAreaOfInterest);
+
+[axisToSetMinLat, axisToSetMinLon] ...
+    = utm2deg(axisToSetUtm(1), axisToSetUtm(3), txUtmZone);
+[axisToSetMaxLat, axisToSetMaxLon] ...
+    = utm2deg(axisToSetUtm(2), axisToSetUtm(4), txUtmZone);
+axisToSet = [axisToSetMinLon, axisToSetMaxLon, ...
+    axisToSetMinLat, axisToSetMaxLat];
+
+hFigGrid = figure('visible', ~flagGenFigSilently, ...
+    'Position', [0,0,customFigSize].*0.8);
+hCurAxis = gca;
+hold on; set(hCurAxis, 'fontWeight', 'bold');
+hAreaOfInterest = plot( ...
+    simGrid.latLonRangePolyshape, ...
+    'FaceColor', areaOfInterestColor);
+hGridPts = plot(simGrid.latLons(:, 2), ...
+    simGrid.latLons(:,1), '.b', 'MarkerSize', 3.5, 'Color', darkBlue);
+hRxs = plot(rxLons, rxLats, 'rx', 'LineWidth', 1);
+hTx = plot(lonTx, latTx, 'b^', 'LineWidth', 2);
+view(2);
+set(hFigGrid, 'Position', figPosToSet);
+axis(axisToSet);
+plot_google_map;
+xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
+box on;
+legend([hAreaOfInterest, hGridPts, hTx, hRxs], ...
+    'Extended Area of Interest', 'Grid Points', 'TX', ...
+    'Measured Locations', 'Location', 'SouthEast', 'AutoUpdate', 'off');
+% transparentizeCurLegends;
+makescale('sw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'Overview_Grid');
+saveEpsFigForPaper(hFigGrid, pathToSaveCurFig);
+
+% Overview of the simulation results.
+allPathlossValues = [ simPLsForGridCalibrated; ...
+    simGridPredResults.ituPredictionsInDbOld; ...
+    simGridPredResults.siteSpecificModelCPredictionsInDbOld];
+simConfigs.ALLOWED_PATH_LOSS_RANGE_IN_DB ...
+    = [floor(min(allPathlossValues)./10), ...
+    ceil(max(allPathlossValues)./10)].*10;
+
+customFigSizeForSurfMap = customFigSize.*0.6;
+
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, ...
+    simPLsForGridCalibrated];
+colorbarTitle = 'Path Loss (dB)';
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLossMap(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfMap);
+legend(hCurHandleTxs, 'TX', 'Location', 'southeast', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, colorbarTitle);
+makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_SimGridPLs');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+% Overview of the results from site-specific model C.
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, ...
+    simGridPredResults.siteSpecificModelCPredictionsInDbOld];
+colorbarTitle = 'Path Loss (dB)';
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLossMap(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfMap);
+legend(hCurHandleTxs, 'TX', 'Location', 'southeast', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, colorbarTitle);
+makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_SscPLs');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+% Overview of the results from ITU.
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, ...
+    simGridPredResults.ituPredictionsInDbOld];
+colorbarTitle = 'Path Loss (dB)';
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLossMap(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfMap);
+legend(hCurHandleTxs, 'TX', 'Location', 'southeast', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, colorbarTitle);
+makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_ItuPLs');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+% Overview of the results from site-specific model C - simulation results.
+customFigSizeForSurfDiff = customFigSize.*0.4;
+
+allPathlossValues = [ sscVsSimZsOld; ituVsSimZsOld ];
+simConfigs.ALLOWED_PATH_LOSS_RANGE_IN_DB ...
+    = [floor(min(allPathlossValues)./10), ...
+    ceil(max(allPathlossValues)./10)].*10;
+
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, sscVsSimZsOld];
+colorbarTitle = {'Difference w.r.t.' ; 'Simulation (dB)'};
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLoss(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfDiff);
+xlabel(''); ylabel('')
+legend(hCurHandleTxs, 'TX', 'Location', 'southeast', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, ''); box on;
+ylabel(hCb, colorbarTitle, 'FontSize', 9, 'Position', [2.1,-15]);
+% makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_SscPLs_minusSim');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+% Overview of the results from ITU - simulation results.
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, ituVsSimZsOld];
+colorbarTitle = {'Difference w.r.t.' ; 'Simulation (dB)'};
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLoss(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfDiff);
+xlabel(''); ylabel('')
+legend(hCurHandleTxs, 'TX', 'Location', 'southeast', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, ''); box on;
+ylabel(hCb, colorbarTitle, 'FontSize', 9, 'Position', [2.1,-15]);
+% makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_ItuPLs_minusSim');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+% All simulation results with ITU and SS-C predictions over distance.
+figureSizeToSet = [350 160];
+
+hFigPathLossOverDist = figure('visible', ~flagGenFigSilently, ...
+    'Position', [0,0,customFigSize].*0.8);
+hCurAxis = gca;
+hold on; set(hCurAxis, 'fontWeight', 'bold');
+hSim = plot(rxToTxDistsInM3d, groundTruthPlValues, 'bo', 'MarkerSize', 3);
+hModSsc = plot(rxToTxDistsInM3d, ...
+    simGridPredResults.siteSpecificModelCPredictionsInDbOld, 'rx', ...
+    'MarkerSize', 5);
+hModItu = plot(rxToTxDistsInM3d, ...
+    simGridPredResults.ituPredictionsInDbOld, 'g.', 'MarkerSize', 6);
+axis tight; axisToSet = axis; axisToSet(1) = 0;
+adjustFigSizeByContent(hFigPathLossOverDist, axisToSet, 'Width', 0.6);
+set(hFigPathLossOverDist, 'Position', [0 0 figureSizeToSet]);
+legend([hSim, hModItu, hModSsc], ...
+    'Simulation', 'ITU', 'Site-Specific Model C', 'Location', 'southeast');
+grid on; grid minor;
+xlabel('RX to TX Distance (m)'); ylabel('Path Loss (dB)');
+
+curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'allPlsOverDist');
+saveEpsFigForPaper(hFigPathLossOverDist, curFigPath);
+
+% Regional RMSD.
+WINDOW_SIZE_IN_M = 10; % Needs to be an even number.
+
+modelPredictions ...
+    = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
+
+curXs = floor(min(rxToTxDistsInM3d+WINDOW_SIZE_IN_M/2)) ...
+    :1:ceil(max(rxToTxDistsInM3d-WINDOW_SIZE_IN_M/2));
+numOfCurXs = length(curXs);
+[rmsesSscOld, rmsesItuOld] = deal(nan(numOfCurXs,1));
+rmseFct = @(diff) sqrt(mean( diff.^2 ));
+for idxX = 1:numOfCurXs
+    curX = curXs(idxX);
+    curXRangeMin = curX-WINDOW_SIZE_IN_M/2;
+    curXRangeMax = curX+WINDOW_SIZE_IN_M/2;
+    boolsGridPtsInCurRange = (rxToTxDistsInM3d>=curXRangeMin) ...
+        & (rxToTxDistsInM3d<=curXRangeMax);
+    rmsesSscOld(idxX) = rmseFct(sscVsSimZsOld(boolsGridPtsInCurRange));
+    rmsesItuOld(idxX) = rmseFct(ituVsSimZsOld(boolsGridPtsInCurRange));
+end
+
+hFigWindowedRmsd = figure('visible', ~flagGenFigSilently, ...
+    'Position', [0,0,customFigSize].*0.8);
+hCurAxis = gca;
+hold on; set(hCurAxis, 'fontWeight', 'bold');
+hSscOld = plot(curXs, rmsesSscOld, 'rx', ...
+    'MarkerSize', 5);
+hItuOld = plot(curXs, rmsesItuOld, 'g.', 'MarkerSize', 6);
+curAxis = axis;
+adjustFigSizeByContent(hFigWindowedRmsd, ...
+    [axisToSet(1:2), curAxis(3:4)] , 'Width', 0.1);
+set(hFigWindowedRmsd, 'Position', [0 0 figureSizeToSet]);
+grid on; grid minor;
+xlabel('RX to TX distance (m)'); ylabel('Regional RMSD (dB)');
+legend([hItuOld, hSscOld], ...
+    'ITU', 'Site-Specific Model C', 'Location', 'north');
+
+curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'windowedRmsdForItuAndSsc');
+saveEpsFigForPaper(hFigWindowedRmsd, curFigPath);
+
+% Close all figures if necessary.
+if flagGenFigSilently
+    close all;
+end
+
 disp('    Done!');
 
 % EOF
