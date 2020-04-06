@@ -1958,9 +1958,6 @@ saveas(hFigPathLossOverDist, curFigPath);
 % Shifting-window RMSE.
 WINDOW_SIZE_IN_M = 10; % Needs to be an even number.
 
-modelPredictions ...
-    = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
-
 curXs = floor(min(rxToTxDistsInM3d+WINDOW_SIZE_IN_M/2)) ...
     :1:ceil(max(rxToTxDistsInM3d-WINDOW_SIZE_IN_M/2));
 numOfCurXs = length(curXs);
@@ -2418,14 +2415,15 @@ saveEpsFigForPaper(hFigPathLossOverDist, curFigPath);
 % Regional RMSD.
 WINDOW_SIZE_IN_M = 10; % Needs to be an even number.
 
-modelPredictions ...
-    = simGridPredResults.siteSpecificModelCPredictionsInDbNew;
-
 curXs = floor(min(rxToTxDistsInM3d+WINDOW_SIZE_IN_M/2)) ...
     :1:ceil(max(rxToTxDistsInM3d-WINDOW_SIZE_IN_M/2));
 numOfCurXs = length(curXs);
 [rmsesSscOld, rmsesItuOld] = deal(nan(numOfCurXs,1));
 rmseFct = @(diff) sqrt(mean( diff.^2 ));
+
+boolsRxLocItuBetter = false(size(rxToTxDistsInM3d));
+maxRmsesImprovementWithItu = -inf(size(rxToTxDistsInM3d));
+
 for idxX = 1:numOfCurXs
     curX = curXs(idxX);
     curXRangeMin = curX-WINDOW_SIZE_IN_M/2;
@@ -2434,6 +2432,16 @@ for idxX = 1:numOfCurXs
         & (rxToTxDistsInM3d<=curXRangeMax);
     rmsesSscOld(idxX) = rmseFct(sscVsSimZsOld(boolsGridPtsInCurRange));
     rmsesItuOld(idxX) = rmseFct(ituVsSimZsOld(boolsGridPtsInCurRange));
+    
+    if rmsesItuOld(idxX)<rmsesSscOld(idxX)
+        rmseDiff = rmsesSscOld(idxX)-rmsesItuOld(idxX);
+        boolsRxLocItuBetter ...
+            = boolsRxLocItuBetter | boolsGridPtsInCurRange;
+        maxRmsesImprovementWithItu(boolsRxLocItuBetter) ...
+            = max(maxRmsesImprovementWithItu(boolsRxLocItuBetter), ...
+            rmseDiff.*ones( ...
+            size(maxRmsesImprovementWithItu(boolsRxLocItuBetter))));
+    end
 end
 
 hFigWindowedRmsd = figure('visible', ~flagGenFigSilently, ...
@@ -2455,6 +2463,77 @@ legend([hItuOld, hSscOld], ...
 curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'windowedRmsdForItuAndSsc');
 saveEpsFigForPaper(hFigWindowedRmsd, curFigPath);
+
+% Locations where ITU performs better.
+curFigTitle = {'Simulation Grid Locations'; ...
+    'with Better ITU Regional RMSE'};
+curFigPath = fullfile(ABS_PATH_TO_SAVE_PLOTS, ...
+    'simGridLocsWithBetterItuRegionalRmse.png');
+
+curFig = figure('visible', ~flagGenFigSilently); hold on;
+hTx = plot3(lonTx, latTx, TX_HEIGHT_M,'gx');
+hRx = plot3k([simGrid.latLons(boolsRxLocItuBetter,2), ...
+    simGrid.latLons(boolsRxLocItuBetter,1), ...
+    maxRmsesImprovementWithItu(boolsRxLocItuBetter)]);
+plot_google_map('MapType', 'satellite');
+xlabel('Longtitude'); ylabel('Latitude');
+view(2);
+legend([hTx, hRx], ...
+    'TX', 'RX locations with better ITU windowed RMSE', ...
+    'Location', 'SouthEast');
+transparentizeCurLegends;
+
+title(curFigTitle)
+saveas(curFig, curFigPath);
+
+% Regional RMSD for in-forest RX locations only according to the manually
+% labeled forest edge polygon.
+[clearanceZoneBoundXs, clearanceZoneBoundYs] = deg2utm( ...
+        simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,1), ...
+        simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,2));
+boolsRxLocInForest ...
+    = ~inpolygon(simGrid.utmXYs(:,1), simGrid.utmXYs(:,2), ...
+    clearanceZoneBoundXs, clearanceZoneBoundYs);
+
+curXsInF = floor( ...
+    min(rxToTxDistsInM3d(boolsRxLocInForest)...
+    +WINDOW_SIZE_IN_M/2)) ...
+    :1:ceil(max(rxToTxDistsInM3d(boolsRxLocInForest)...
+    -WINDOW_SIZE_IN_M/2));
+numOfCurXsInF = length(curXsInF);
+[rmsesSscOldInF, rmsesItuOldInF] = deal(nan(numOfCurXsInF,1));
+rmseFct = @(diff) sqrt(mean( diff.^2 ));
+for idxXInF = 1:numOfCurXsInF
+    curX = curXsInF(idxXInF);
+    curXRangeMin = curX-WINDOW_SIZE_IN_M/2;
+    curXRangeMax = curX+WINDOW_SIZE_IN_M/2;
+    boolsGridPtsInCurRange = (rxToTxDistsInM3d>=curXRangeMin) ...
+        & (rxToTxDistsInM3d<=curXRangeMax);
+    rmsesSscOldInF(idxXInF) = rmseFct(sscVsSimZsOld( ...
+        boolsGridPtsInCurRange & boolsRxLocInForest));
+    rmsesItuOldInF(idxXInF) = rmseFct(ituVsSimZsOld( ...
+        boolsGridPtsInCurRange & boolsRxLocInForest));
+end
+
+hFigWindowedRmsdInForest = figure('visible', ~flagGenFigSilently, ...
+    'Position', [0,0,customFigSize].*0.8);
+hCurAxis = gca;
+hold on; set(hCurAxis, 'fontWeight', 'bold');
+hSscOld = plot(curXsInF, rmsesSscOldInF, 'rx', ...
+    'MarkerSize', 5);
+hItuOld = plot(curXsInF, rmsesItuOldInF, 'g.', 'MarkerSize', 6);
+curAxis = axis;
+adjustFigSizeByContent(hFigWindowedRmsdInForest, ...
+    [axisToSet(1:2), curAxis(3:4)] , 'Width', 0.1);
+set(hFigWindowedRmsdInForest, 'Position', [0 0 figureSizeToSet]);
+grid on; grid minor;
+xlabel('RX to TX distance (m)'); ylabel('Regional RMSD (dB)');
+legend([hItuOld, hSscOld], ...
+    'ITU', 'Site-Specific Model C', 'Location', 'north');
+
+curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'windowedRmsdForItuAndSscInForest');
+saveEpsFigForPaper(hFigWindowedRmsdInForest, curFigPath);
 
 % Close all figures if necessary.
 if flagGenFigSilently
