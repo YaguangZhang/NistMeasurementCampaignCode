@@ -2643,6 +2643,35 @@ curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'windowedRmsdForItuAndSscInForestStrict');
 saveEpsFigForPaper(hFigWindowedRmsdInForestStrict, curFigPath);
 
+% Simulation results with ITU and SS-C predictions over distance strictly
+% in the forest.
+figureSizeToSet = [350 160];
+
+hFigPathLossOverDist = figure('visible', ~flagGenFigSilently, ...
+    'Position', [0,0,customFigSize].*0.8);
+hCurAxis = gca;
+hold on; set(hCurAxis, 'fontWeight', 'bold');
+hSim = plot(rxToTxDistsInM3d(boolsRxLocInForestStrict), ...
+    groundTruthPlValues(boolsRxLocInForestStrict), 'bo', 'MarkerSize', 3);
+hModSsc = plot(rxToTxDistsInM3d(boolsRxLocInForestStrict), ...
+    simGridPredResults.siteSpecificModelCPredictionsInDbOld( ...
+    boolsRxLocInForestStrict), 'rx', ...
+    'MarkerSize', 5);
+hModItu = plot(rxToTxDistsInM3d(boolsRxLocInForestStrict), ...
+    simGridPredResults.ituPredictionsInDbOld(boolsRxLocInForestStrict), ...
+    'g.', 'MarkerSize', 6);
+axis tight; axisToSet = axis; axisToSet(1) = 0;
+adjustFigSizeByContent(hFigPathLossOverDist, axisToSet, 'Width', 0.6);
+set(hFigPathLossOverDist, 'Position', [0 0 figureSizeToSet]);
+legend([hSim, hModItu, hModSsc], ...
+    'Simulation', 'ITU', 'Site-Specific Model C', 'Location', 'southeast');
+grid on; grid minor;
+xlabel('RX to TX Distance (m)'); ylabel('Path Loss (dB)');
+
+curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'allPlsOverDistInForestStrict');
+saveEpsFigForPaper(hFigPathLossOverDist, curFigPath);
+
 % Close all figures if necessary.
 if flagGenFigSilently
     close all;
