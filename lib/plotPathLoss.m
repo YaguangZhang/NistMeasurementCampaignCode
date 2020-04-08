@@ -3,7 +3,7 @@ function [hCurPLMap, hCurHandleTxs] ...
     simConfigs, flagVisible, flagZoomIn, flagCmdToPlotPLs, customFigSize)
 %PLOTPATHLOSS Plot the path loss.
 %
-% Similar to plotPathLossMap but not map is added.
+% Similar to plotPathLossMap but no map is added.
 %
 % Inputs:
 %   - matRxLonLatWithPathLoss

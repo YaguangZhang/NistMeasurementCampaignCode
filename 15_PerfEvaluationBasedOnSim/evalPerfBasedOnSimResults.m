@@ -2672,7 +2672,92 @@ curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'allPlsOverDistInForestStrict');
 saveEpsFigForPaper(hFigPathLossOverDist, curFigPath);
 
-% Close all figures if necessary.
+%% Overview of the results from ITU - simulation results with forest edge.
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, ituVsSimZsOld];
+colorbarTitle = {'Difference w.r.t.' ; 'Simulation (dB)'};
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLoss(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfDiff);
+xlabel(''); ylabel('')
+legend(hCurHandleTxs, 'TX', ...
+    'Location', 'southeast', 'AutoUpdate', 'off');
+% Sim grid boundary. Note the points in simGrid.latLonRangePolyshape is
+% actually arranged as (lon, lat).
+hSimGridBound = plot(simGrid.latLonRangePolyshape, ...
+    'FaceColor', 'none', 'LineWidth', 1);
+% Forest edge.
+hForestEdge = plot( ...
+    simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,2), ...
+    simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,1), ...
+    'k:', 'LineWidth', 1);
+% extraAx = axes('position',get(gca,'position'),'visible','off');
+% leg2 = legend(extraAx, hForestEdge, 'Forest Edge', ...
+%     'Location', 'northwest', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, ''); box on;
+ylabel(hCb, colorbarTitle, 'FontSize', 9, 'Position', [2.1,-15]);
+% makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_ItuPLs_minusSim_withForestEdge');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+%% Overview of the results from site-specific model C - simulation results
+% with zero foliage area.
+boolsZeroFoliageArea = simGridPredResults.foliageAreasInFirstFresnel==0;
+zeroFoliageAreaLonLatShape = alphaShape( ...
+    simGridLons(boolsZeroFoliageArea), simGridLats(boolsZeroFoliageArea));
+zeroFoliageAreaLonLatShape.Alpha = zeroFoliageAreaLonLatShape.Alpha/3.75;
+zeroFoliageAreaLonLatShape.RegionThreshold ...
+    = area(zeroFoliageAreaLonLatShape)/2;
+zeroFoliageAreaLonLatShapeEdgePtInds ...
+    = boundaryFacets(zeroFoliageAreaLonLatShape);
+zeroFoliageAreaLonLatShapeEdgePtInds ...
+    = [zeroFoliageAreaLonLatShapeEdgePtInds(:,1); ...
+    zeroFoliageAreaLonLatShapeEdgePtInds(end,2)];
+zeroFoliageAreaLonLatShapeEdge = zeroFoliageAreaLonLatShape.Points(...
+   zeroFoliageAreaLonLatShapeEdgePtInds, :);
+
+customFigSizeForSurfDiff = customFigSize.*0.4;
+
+allPathlossValues = [ sscVsSimZsOld; ituVsSimZsOld ];
+simConfigs.ALLOWED_PATH_LOSS_RANGE_IN_DB ...
+    = [floor(min(allPathlossValues)./10), ...
+    ceil(max(allPathlossValues)./10)].*10;
+
+matRxLonLatWithPathLoss = [simGridLons, simGridLats, sscVsSimZsOld];
+colorbarTitle = {'Difference w.r.t.' ; 'Simulation (dB)'};
+
+[hCurPLMap, hCurHandleTxs] ...
+    = plotPathLoss(matRxLonLatWithPathLoss, txLonLats, ...
+    simConfigs, flagVisible, flagZoomIn, ...
+    'surf', customFigSizeForSurfDiff);
+xlabel(''); ylabel('')
+legend(hCurHandleTxs, 'TX', 'Location', 'southeast', 'AutoUpdate', 'off');
+% Sim grid boundary. Note the points in simGrid.latLonRangePolyshape is
+% actually arranged as (lon, lat).
+hSimGridBound = plot(simGrid.latLonRangePolyshape, ...
+    'FaceColor', 'none', 'LineWidth', 1);
+% Zero foliage area region.
+hZeroFoliageArea = plot( ...
+    zeroFoliageAreaLonLatShapeEdge(:,1), ...
+    zeroFoliageAreaLonLatShapeEdge(:,2), ...
+    'k:', 'LineWidth', 1);
+% extraAx = axes('position',get(gca,'position'),'visible','off');
+% leg2 = legend(extraAx, hForestEdge, 'Zero Foliage Area Zone', ...
+%     'Location', 'northwest', 'AutoUpdate', 'off');
+hCb = findall(hCurPLMap, 'type', 'ColorBar');
+title(hCb, ''); box on;
+ylabel(hCb, colorbarTitle, 'FontSize', 9, 'Position', [2.1,-15]);
+% makescale('nw', 'units', 'si');
+
+pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
+    'surfOverview_SscPLs_minusSim_withZeroFoliageAreaZone');
+saveEpsFigForPaper(hCurPLMap, pathToSaveCurFig);
+
+%% Close all figures if necessary.
 if flagGenFigSilently
     close all;
 end
