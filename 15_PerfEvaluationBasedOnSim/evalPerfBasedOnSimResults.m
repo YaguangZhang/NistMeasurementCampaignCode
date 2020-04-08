@@ -2704,6 +2704,15 @@ curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'windowedRmsdForItuAndSscInForestStrict');
 saveEpsFigForPaper(hFigWindowedRmsdInForestStrict, curFigPath);
 
+% Display the overall RMSDs.
+disp('    Overall RMSDs for data strictly in the forest:')
+disp(['        ITU: ', num2str(rmseFct( ...
+    ituVsSimZsOld(boolsRxLocInForestStrict))), 'dB'])
+disp(['        SS-C: ', num2str(rmseFct( ...
+    sscVsSimZsOld(boolsRxLocInForestStrict))), 'dB'])
+disp(['        SS-C Refit: ', num2str(rmseFct( ...
+    sscVsSimZsRefitInForest)), 'dB'])
+
 %% Simulation results with ITU and SS-C predictions over distance strictly
 % in the forest.
 figureSizeToSet = [350 160];
