@@ -2593,7 +2593,7 @@ curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'windowedRmsdForItuAndSscInForest');
 saveEpsFigForPaper(hFigWindowedRmsdInForest, curFigPath);
 
-%% Regional RMSD for in-forest RX locations only according to the manually
+% Regional RMSD for in-forest RX locations only according to the manually
 % labeled forest edge polygon and the foliage area results.
 [clearanceZoneBoundXs, clearanceZoneBoundYs] = deg2utm( ...
         simGridPredResults.clearanceZoneLatLonBoundaryAroundTx(:,1), ...
@@ -2637,7 +2637,8 @@ set(hFigWindowedRmsdInForestStrict, 'Position', [0 0 figureSizeToSet]);
 grid on; grid minor;
 xlabel('RX to TX distance (m)'); ylabel('Regional RMSD (dB)');
 legend([hItuOld, hSscOld], ...
-    'ITU', 'Site-Specific Model C', 'Location', 'north');
+    'ITU', 'Site-Specific Model C', 'Location', 'northwest');
+transparentizeCurLegends;
 
 curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'windowedRmsdForItuAndSscInForestStrict');
@@ -2663,10 +2664,14 @@ hModItu = plot(rxToTxDistsInM3d(boolsRxLocInForestStrict), ...
 axis tight; axisToSet = axis; axisToSet(1) = 0;
 adjustFigSizeByContent(hFigPathLossOverDist, axisToSet, 'Width', 0.6);
 set(hFigPathLossOverDist, 'Position', [0 0 figureSizeToSet]);
-legend([hSim, hModItu, hModSsc], ...
+hCurLegend = legend([hSim, hModItu, hModSsc], ...
     'Simulation', 'ITU', 'Site-Specific Model C', 'Location', 'southeast');
 grid on; grid minor;
 xlabel('RX to TX Distance (m)'); ylabel('Path Loss (dB)');
+% Adjust the legend.
+transparentizeCurLegends;
+curLegendLoc = hCurLegend.Position;
+hCurLegend.Position = [0.46, 0.2325, curLegendLoc(3:end)];
 
 curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'allPlsOverDistInForestStrict');
