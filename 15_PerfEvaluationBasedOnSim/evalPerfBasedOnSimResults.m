@@ -2603,7 +2603,7 @@ boolsRxLocInForestStrict ...
     clearanceZoneBoundXs, clearanceZoneBoundYs)| ...
     (simGridPredResults.foliageAreasInFirstFresnel==0));
 
-%% Re-fit the site-specific model to the in-forest data.
+% Re-fit the site-specific model to the in-forest data.
 modelTwoStepLinearLossWrtFARefitInForest ...
     = simGridPredResults.modelTwoStepLinearLossWrtFA;
 fctToFit = @(paraToFit, input) ...
@@ -2693,12 +2693,12 @@ set(hFigWindowedRmsdInForestStrict, 'Position', [0 0 figureSizeToSet]);
 grid on; grid minor;
 xlabel('RX to TX distance (m)'); ylabel('Regional RMSD (dB)');
 hCurLegend = legend([hItuOld, hSscOld, hSscRefitInForest], ...
-    'ITU', 'Site-Specific Model C', 'Site-Specific Model C Refit', ...
+    'ITU', 'Site-Specific Model C', 'Site-Specific Model C Refitted', ...
     'Location', 'northwest');
 % Adjust the legend.
 transparentizeCurLegends;
 curLegendLoc = hCurLegend.Position;
-hCurLegend.Position = [0.1425, 0.64, curLegendLoc(3:end)];
+hCurLegend.Position = [0.145, 0.657, curLegendLoc(3:end)];
 
 curFigPath = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'windowedRmsdForItuAndSscInForestStrict');
@@ -2713,7 +2713,13 @@ disp(['        SS-C: ', num2str(rmseFct( ...
 disp(['        SS-C Refit: ', num2str(rmseFct( ...
     sscVsSimZsRefitInForest)), 'dB'])
 
-%% Simulation results with ITU and SS-C predictions over distance strictly
+% Display the parameters for SS-C.
+disp('    Parameters for SS-C in IEEE wireless comm. letters:')
+disp(simGridPredResults.modelTwoStepLinearLossWrtFA);
+disp('    Parameters for SS-C refitted to in-forest sim data:')
+disp(modelTwoStepLinearLossWrtFARefitInForest);
+
+% Simulation results with ITU and SS-C predictions over distance strictly
 % in the forest.
 figureSizeToSet = [350 160];
 
