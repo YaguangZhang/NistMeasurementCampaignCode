@@ -2234,6 +2234,7 @@ rxLons = allContiPathLossesWithGpsInfo(:,3);
 rxLats = allContiPathLossesWithGpsInfo(:,2);
 
 % A UTM plot for determining the axis to set.
+curFigSizeRatio = 1;
 hFigAreaOfInterest = figure('visible', false); hold on;
 hAreaOfInterest = plot( ...
     simGrid.xYRangePolyshape, ...
@@ -2254,27 +2255,32 @@ axisToSet = [axisToSetMinLon, axisToSetMaxLon, ...
     axisToSetMinLat, axisToSetMaxLat];
 
 hFigGrid = figure('visible', ~flagGenFigSilently, ...
-    'Position', [0,0,customFigSize].*0.8);
+    'Position', [0,0,customFigSize].*curFigSizeRatio);
 hCurAxis = gca;
 hold on; set(hCurAxis, 'fontWeight', 'bold');
 hAreaOfInterest = plot( ...
     simGrid.latLonRangePolyshape, ...
     'FaceColor', areaOfInterestColor);
 hGridPts = plot(simGrid.latLons(:, 2), ...
-    simGrid.latLons(:,1), '.b', 'MarkerSize', 3.5, 'Color', darkBlue);
+    simGrid.latLons(:,1), '.b', 'MarkerSize', 2.5, 'Color', darkBlue);
 hRxs = plot(rxLons, rxLats, 'rx', 'LineWidth', 1);
 hTx = plot(lonTx, latTx, 'b^', 'LineWidth', 2);
 view(2);
+% Adjust figure size according to the desired width-to-height ratio.
+figPosToSet(1:2) = 0;
+figPosToSet = figPosToSet./figPosToSet(3) ...
+    .*(customFigSize(1).*curFigSizeRatio);
 set(hFigGrid, 'Position', figPosToSet);
 axis(axisToSet);
 plot_google_map;
 xticks([]); yticks([]); xlabel('Longitude'); ylabel('Latitude');
 box on;
-legend([hAreaOfInterest, hGridPts, hTx, hRxs], ...
+hLegend = legend([hAreaOfInterest, hGridPts, hTx, hRxs], ...
     'Extended Area of Interest', 'Grid Points', 'TX', ...
     'Measured Locations', 'Location', 'SouthEast', 'AutoUpdate', 'off');
+hLegend.Position = [0.5104, 0.1112, 0.3934, 0.2039];
 % transparentizeCurLegends;
-makescale('sw', 'units', 'si');
+makescale('nw', 'units', 'si');
 
 pathToSaveCurFig = fullfile(PATH_TO_SAVE_FIGS_FOR_PUBLICATION, ...
     'Overview_Grid');
